@@ -1,0 +1,534 @@
+@import "tailwindcss";
+
+/*
+ * "Yumshoq" ko'rinish (asosiy; mobil ilova andozalaridan): och fon, chegarasiz oq yumaloq kartochkalar, yengil soya,
+ * sariq kvadrat "+" tugmalar. Aksent — New York taksisi: sariq + qora. Ikkinchi mavzu — GoMeal (pastda).
+ *
+ * Komponentlar shakl uchun tokenlardan foydalanadi: `rounded` (tugma / maydon), `rounded-card` (kartochka),
+ * `rounded-chip` (belgi), `border-line`, `surface`, `shadow-card`, `title-section` — ko'rinishni o'zgartirish uchun
+ * faqat shu yerdagi qiymatlar o'zgartiriladi.
+ */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  /* taksi sarig'i: 400 — asosiy to'ldirish, 700–900 — oq fonda o'qiladigan matn tusi */
+  --color-brand-50: #fff8e1;
+  --color-brand-100: #ffedb0;
+  --color-brand-200: #ffe080;
+  --color-brand-300: #ffd54a;
+  --color-brand-400: #ffc20e;
+  --color-brand-500: #f2b200;
+  --color-brand-600: #d99e00;
+  --color-brand-700: #8a6500;
+  --color-brand-800: #6b4e00;
+  --color-brand-900: #3d2d00;
+
+  --color-taxi: #ffc20e;
+  --color-taxi-hover: #f2b200;
+  /* tanlangan element chegarasi (kategoriya, taom, variantlar) — qora emas, to'q sariq */
+  --color-select: #fe9a00;
+  /* qora yuzalar: header, kirish ekrani, TV */
+  --color-coal: #121212;
+  --color-coal-soft: #1c1c1c;
+  --color-coal-line: #2e2e2e;
+
+  --color-page: #f1f1ed;
+  --color-surface: #fff;
+  /* kartochka chegarasi ko'rinmas — kartochkani soya ajratadi */
+  --color-line: transparent;
+
+  /* tugma va maydonlar */
+  --radius: 8px;
+  /* kartochka, panel, oyna */
+  --radius-card: 12px;
+  /* kartochka ichidagi rasm (kartochka radiusi − ichki bo'shliq) */
+  --radius-media: 8px;
+  /* kichik belgilar (holat, buyurtma turi) */
+  --radius-chip: 6px;
+  --radius-xs: 3px;
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+}
+
+/* tokenlar bilan ifodalanmaydigan qiymatlar (mavzu bo'yicha o'zgaradi) */
+:root {
+  --ui-card-shadow: 0 1px 2px rgba(18, 18, 18, 0.04), 0 10px 28px -14px rgba(18, 18, 18, 0.2);
+  --ui-title-size: 16px;
+  --ui-title-weight: 700;
+  --ui-title-mark: block;
+}
+
+/*
+ * GoMeal mavzusi (themeforest "GoMeal" andozasidan): Poppins shrifti, och kulrang fon, soyasiz oq kartochkalar,
+ * kattaroq yumaloqlik, oltin-sariq aksent, nuqtasiz sarlavhalar. Header qora qoladi. Komponentlardagi farqlar —
+ * `gomeal:` varianti bilan (masalan `gomeal:text-center`).
+ */
+:root[data-theme="gomeal"] {
+  --font-sans: "Poppins", "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-page: #f3f3f3;
+  --color-taxi: #f9b406;
+  --color-taxi-hover: #eba800;
+  --color-select: #f9b406;
+  --radius: 10px;
+  --radius-card: 16px;
+  --radius-media: 12px;
+  --radius-chip: 8px;
+  --ui-card-shadow: none;
+  --ui-title-size: 18px;
+  --ui-title-weight: 600;
+  --ui-title-mark: none;
+}
+
+@custom-variant gomeal (&:where([data-theme="gomeal"], [data-theme="gomeal"] *));
+
+/*
+ * Zamonaviy mavzu: sovuq kulrang fon, deyarli soyasiz oq kartochkalar, kategoriyalar — 3D ikonkali "chip"lar, taom rasmi
+ * kulrang quti ichida, pastda "Qo'shish" tugmasi. Tuzilishdagi farqlar — komponentlarda (`theme === 'modern'`),
+ * mayda farqlar — `modern:` varianti bilan.
+ */
+:root[data-theme="modern"] {
+  --color-page: #eef0f4;
+  --radius: 8px;
+  --radius-card: 12px;
+  --radius-media: 10px;
+  --radius-chip: 6px;
+  --ui-card-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --ui-title-weight: 600;
+  --ui-title-mark: none;
+}
+
+@custom-variant modern (&:where([data-theme="modern"], [data-theme="modern"] *));
+
+/* ───────────────────────── Shakl tokenlari ───────────────────────── */
+
+/* kartochka yuzasi */
+@utility surface {
+  background-color: var(--color-surface);
+}
+@utility shadow-card {
+  box-shadow: var(--ui-card-shadow);
+}
+/* suzuvchi element (kioskdagi savat kapsulasi) */
+@utility shadow-float {
+  box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.45);
+}
+/* bo'lim sarlavhasi: katta qalin matn */
+@utility title-section {
+  font-size: var(--ui-title-size);
+  font-weight: var(--ui-title-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+/* sarlavha oldidagi sariq nuqta (GoMeal'da yo'q) */
+@utility title-mark {
+  display: var(--ui-title-mark);
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--color-taxi);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  /* Tailwind v4 defaults borders to currentColor; keep plain `border` a soft hairline */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-neutral-200);
+  }
+
+  body {
+    @apply bg-page font-sans text-neutral-900 antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-neutral-950;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-neutral-400;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--color-brand-500);
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    border-color: var(--color-neutral-900);
+    box-shadow: none;
+  }
+  input,
+  textarea {
+    caret-color: var(--color-neutral-900);
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-300) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-neutral-300;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    @apply bg-neutral-400;
+  }
+}
+
+@layer components {
+  .page-enter {
+    animation: page-enter 0.18s ease-out;
+  }
+  .shake {
+    animation: shake 0.32s ease-in-out;
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .shake {
+    animation: none;
+  }
+}
+
+/* ───────────────────────── Buttons ─────────────────────────
+   Color / border / state only — size, padding, radius and layout stay on the element. Tugma matni hech qachon ikki
+   qatorga bo'linmaydi (`white-space: nowrap`) — joy yetmasa tugmalar qatori o'raladi (flex-wrap) yoki kengayadi. */
+@utility btn-primary {
+  white-space: nowrap;
+  color: var(--color-coal);
+  cursor: pointer;
+  background-color: var(--color-taxi);
+  border: 1px solid var(--color-taxi);
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+  &:hover:not(:disabled) {
+    background-color: var(--color-taxi-hover);
+    border-color: var(--color-taxi-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-coal);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+/* Qora tugma — sariq tugmaning juftligi */
+@utility btn-dark {
+  white-space: nowrap;
+  color: #fff;
+  cursor: pointer;
+  background-color: var(--color-coal);
+  border: 1px solid var(--color-coal);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  &:hover:not(:disabled) {
+    color: var(--color-taxi);
+    background-color: #000;
+    border-color: #000;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-taxi);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-ghost {
+  white-space: nowrap;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-neutral-300);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  &:hover:not(:disabled) {
+    color: var(--color-neutral-950);
+    background-color: var(--color-neutral-50);
+    border-color: var(--color-neutral-500);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-coal);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-icon {
+  color: var(--color-neutral-500);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  &:hover:not(:disabled) {
+    color: var(--color-neutral-950);
+    background-color: var(--color-brand-50);
+    border-color: var(--color-brand-300);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--color-coal);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-icon-danger {
+  color: var(--color-neutral-500);
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-neutral-200);
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  &:hover:not(:disabled) {
+    color: var(--color-red-700);
+    background-color: var(--color-red-50);
+    border-color: var(--color-red-200);
+  }
+  &:focus-visible {
+    outline: 1px solid #e3807a;
+    outline-offset: 1px;
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+/* ───────────────────────── SweetAlert2 ─────────────────────────
+   ReactJS_Language dagi kabi: sarlavha qatori (ikonka · katta harfli sarlavha · ✕) → matn → to'liq kenglikdagi tugmalar.
+   Unlayered, multi-class selectors: SweetAlert injects its own CSS at runtime. */
+.swal2-container {
+  --swal2-width: 30rem;
+  --swal2-padding: 0;
+  --swal2-border-radius: var(--radius-card);
+  --swal2-backdrop: rgba(0, 0, 0, 0.5);
+  --swal2-icon-animations: false;
+  --swal2-show-animation: none;
+  --swal2-hide-animation: none;
+  --swal2-toast-show-animation: none;
+  --swal2-toast-hide-animation: none;
+  --swal2-timer-progress-bar-background: var(--color-taxi);
+}
+.swal2-container .swal2-popup {
+  border: 1px solid var(--color-neutral-200);
+  background: var(--color-surface) !important;
+  color: var(--color-neutral-900) !important;
+}
+
+.swal2-container .swal2-popup.swal2-modal {
+  --swal2-icon-zoom: 0.36;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  text-align: left;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.45);
+}
+.swal2-container .swal2-popup.swal2-modal > * {
+  grid-column: 1 / -1;
+}
+.swal2-container .swal2-popup.swal2-modal::before {
+  content: "";
+  grid-column: 1 / -1;
+  grid-row: 1;
+  border-bottom: 1px solid var(--color-neutral-200);
+  pointer-events: none;
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-icon {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  margin: 0 0 0 calc(1.25rem / var(--swal2-icon-zoom));
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-title {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: 0;
+  padding: 1.05rem 0.75rem;
+  color: var(--color-neutral-900);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+.swal2-container .swal2-popup.swal2-modal:not([class*="swal2-icon-"]) > .swal2-title {
+  padding-left: 1.5rem;
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-close {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+  width: 2rem;
+  height: 2rem;
+  margin: 0 0.75rem 0 0;
+  border-radius: var(--radius);
+  color: var(--color-neutral-400);
+  font-size: 1rem;
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-close:hover {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-900);
+}
+.swal2-container .swal2-close:focus-visible {
+  outline: none;
+  box-shadow: none;
+  background: var(--color-neutral-100);
+}
+.swal2-container .swal2-actions > button:focus-visible {
+  outline: 2px solid var(--color-coal) !important;
+  outline-offset: 1px;
+  box-shadow: none !important;
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-html-container {
+  margin: 0;
+  padding: 1.25rem 1.5rem 0;
+  color: var(--color-neutral-600);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  text-align: left;
+}
+/* tugma matni bir qatorda qoladi; uchtasi sig'masa — keyingi qatorga o'tadi (qisilmaydi) */
+.swal2-container .swal2-popup.swal2-modal > .swal2-actions {
+  flex-wrap: wrap;
+  justify-content: stretch;
+  gap: 0.5rem;
+  width: auto;
+  margin: 0;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+.swal2-container .swal2-popup.swal2-modal > .swal2-actions > button {
+  flex: 1 1 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+.swal2-container .swal2-styled {
+  @apply inline-flex h-10 items-center justify-center rounded px-4 py-0 text-xs font-bold uppercase tracking-[0.08em];
+  box-shadow: none !important;
+}
+.swal2-container .swal2-styled.swal2-confirm {
+  color: var(--color-coal);
+  background-color: var(--color-taxi) !important;
+  border: 1px solid var(--color-taxi);
+}
+.swal2-container .swal2-styled.swal2-confirm:hover {
+  background-color: var(--color-taxi-hover) !important;
+  background-image: none;
+}
+.swal2-container .swal2-styled.swal2-cancel,
+.swal2-container .swal2-styled.swal2-deny {
+  color: var(--color-neutral-700);
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-neutral-300);
+}
+.swal2-container .swal2-styled.swal2-cancel:hover,
+.swal2-container .swal2-styled.swal2-deny:hover {
+  background-color: var(--color-neutral-50) !important;
+  background-image: none;
+  border-color: var(--color-neutral-500);
+}
+
+/* toast 360px da qotib qolmaydi — matnga qarab kengayadi (sig'maguncha bir qatorda) */
+.swal2-toast-shown .swal2-container.swal2-container {
+  width: max-content;
+  max-width: min(40rem, calc(100vw - 2rem));
+}
+.swal2-container .swal2-popup.swal2-toast {
+  border-radius: var(--radius-card);
+  border-left: 4px solid var(--color-taxi);
+  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.3);
+}
+.swal2-container .swal2-popup.swal2-toast .swal2-title {
+  color: var(--color-neutral-900);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.swal2-container .swal2-icon.swal2-success {
+  border-color: var(--color-emerald-700);
+  color: var(--color-emerald-700);
+}
+.swal2-container .swal2-icon.swal2-success [class^="swal2-success-line"] {
+  background-color: var(--color-emerald-700);
+}
+.swal2-container .swal2-icon.swal2-success .swal2-success-ring {
+  border-color: var(--color-emerald-200);
+}
+.swal2-container .swal2-icon.swal2-error {
+  border-color: var(--color-red-700);
+  color: var(--color-red-700);
+}
+.swal2-container .swal2-icon.swal2-error [class^="swal2-x-mark-line"] {
+  background-color: var(--color-red-700);
+}
+.swal2-container .swal2-icon.swal2-warning {
+  border-color: var(--color-amber-500);
+  color: var(--color-amber-700);
+}
+.swal2-container .swal2-icon.swal2-info,
+.swal2-container .swal2-icon.swal2-question {
+  border-color: var(--color-neutral-400);
+  color: var(--color-neutral-800);
+}

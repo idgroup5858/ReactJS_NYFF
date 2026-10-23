@@ -1,0 +1,41 @@
+[
+  { "file": "categories/burgers.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/burger-with-lettuce-and-tomatoes-sc5sTPMrVfk", "author": "amirali mirhashemian", "license": "Unsplash License" },
+  { "file": "categories/hotdogs.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/hotdog-sandwich-with-tomato-and-cheese-0GDN7NSoYRI", "author": "Ball Park Brand", "license": "Unsplash License" },
+  { "file": "categories/lavash.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/0Pr5YeRW3Z4", "author": "Leanna Myers", "license": "Unsplash License" },
+  { "file": "categories/shawarma.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/a-close-up-of-a-sandwich-on-a-plate-jhTzMj5aJQk", "author": "Anima Visual", "license": "Unsplash License" },
+  { "file": "categories/snacks.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/bG8sQGD8Bi8", "author": "Lee Milo", "license": "Unsplash License" },
+  { "file": "categories/drinks.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/sQNq223Rr54", "author": "Jonny Caspari", "license": "Unsplash License" },
+
+  { "file": "products/burger-classic.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/cheeseburger-with-fresh-vegetables-_qxbJUr9RqI", "author": "Ilya Mashkov", "license": "Unsplash License" },
+  { "file": "products/burger-cheese.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/a-cheeseburger-with-a-sesame-seed-bun-vdkyWisomns", "author": "Adam Bartoszewicz", "license": "Unsplash License" },
+  { "file": "products/burger-double.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/hamburger-with-cheese-and-patties-j-MPEwH9LM4", "author": "amirali mirhashemian", "license": "Unsplash License" },
+  { "file": "products/burger-chicken.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/VFVnZfogE7s", "author": "David Foodphototasty", "license": "Unsplash License" },
+  { "file": "products/burger-big-ny.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/closeup-photo-of-burger-on-brown-surface-88YAXjnpvrM", "author": "amirali mirhashemian", "license": "Unsplash License" },
+
+  { "file": "products/hotdog-classic.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/hot-dog-with-ketchup-and-mustard-in-bun-DNDc3ZnK02o", "author": "Ricardo Costilla", "license": "Unsplash License" },
+  { "file": "products/hotdog-french.jpg", "source": "wikimedia", "page": "https://commons.wikimedia.org/wiki/File:Hot_dog_(France).jpg", "author": "Arnaud 25", "license": "CC0 1.0" },
+  { "file": "products/hotdog-kimchi.jpg", "source": "pexels", "page": "https://www.pexels.com/photo/close-up-photo-of-hotdog-sandwiches-4518653/", "author": "Polina Tankilevitch", "license": "Pexels License" },
+  { "file": "products/hotdog-big.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/a-close-up-of-a-hot-dog-with-toppings-9KC7p0BuTKw", "author": "Jarritos Mexican Soda", "license": "Unsplash License" },
+
+  { "file": "products/lavash-beef.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/a-cut-in-half-sandwich-sitting-on-top-of-a-cutting-board-xq04aTV-LVk", "author": "Bayuaji Abiyu", "license": "Unsplash License" },
+  { "file": "products/lavash-chicken.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/white-and-brown-food-on-white-ceramic-plate-Spp1G283dow", "author": "Max Griss", "license": "Unsplash License" },
+  { "file": "products/lavash-cheese.jpg", "source": "pexels", "page": "https://www.pexels.com/photo/delicious-melted-cheese-quesadilla-15662087/", "author": "The Castlebar", "license": "Pexels License" },
+  { "file": "products/lavash-spicy.jpg", "source": "pexels", "page": "https://www.pexels.com/photo/burritos-on-ceramic-plate-in-close-up-photography-5335751/", "author": "bams awey", "license": "Pexels License" },
+
+  { "file": "products/shawarma-beef.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/a-person-holding-a-sandwich-with-meat-and-vegetables-sPmF7MNzdnU", "author": "Yoad Shejtman", "license": "Unsplash License" },
+  { "file": "products/shawarma-chicken.jpg", "source": "pexels", "page": "https://www.pexels.com/photo/kebab-on-plate-18852568/", "author": "Valeria Boltneva", "license": "Pexels License" },
+  { "file": "products/shawarma-xl.jpg", "source": "pexels", "page": "https://www.pexels.com/photo/meat-and-fries-on-white-ceramic-plate-7564714/", "author": "Ahmed Bhutta", "license": "Pexels License" },
+
+  { "file": "products/fries.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/ChXHveqrb28", "author": "Mitchell Luo", "license": "Unsplash License" },
+  { "file": "products/potato-wedges.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/ZyhYzS-56JQ", "author": "Abby kale", "license": "Unsplash License" },
+  { "file": "products/nuggets-6.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/UmkODKl4E1M", "author": "Tyson", "license": "Unsplash License" },
+  { "file": "products/onion-rings.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/onion-rings-on-white-paper-AuXET-GaEqA", "author": "Nik", "license": "Unsplash License" },
+
+  { "file": "products/cola.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/Qvnohn4GyJA", "author": "Andrey Ilkevich", "license": "Unsplash License" },
+  { "file": "products/fanta.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/aKYu-H5pHJY", "author": "Brett Jordan", "license": "Unsplash License" },
+  { "file": "products/sprite.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/RH2ZA73kHiA", "author": "miheer tewari", "license": "Unsplash License" },
+  { "file": "products/water.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/edBR3b2JAuA", "author": "charlesdeluvio", "license": "Unsplash License" },
+  { "file": "products/tea.jpg", "source": "unsplash", "page": "https://unsplash.com/photos/bhKdRjYJ1CA", "author": "Yana", "license": "Unsplash License" },
+
+  { "file": "icons/*.png", "source": "github", "page": "https://github.com/microsoft/fluentui-emoji", "author": "Microsoft (Fluent Emoji, 3D)", "license": "MIT" }
+]
