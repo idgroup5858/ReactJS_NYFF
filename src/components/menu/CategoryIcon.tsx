@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import FoodImage from '@/components/ui/FoodImage'
 import type { Category } from '@/domain/types'
+import { assetUrl } from '@/lib/assetUrl'
 import { categoryIcon } from '@/lib/categoryIcons'
 import { useSettings } from '@/store/settingsStore'
 import { lineIconFor } from './foodIcons'
@@ -21,6 +22,6 @@ export default function CategoryIcon({ category, box, line }: Props) {
   const { iconStyle } = useSettings()
   const icon = categoryIcon(category)
   if (iconStyle === 'line') return createElement(lineIconFor(icon), { size: line, strokeWidth: 1.75, className: 'shrink-0' })
-  if (iconStyle === '3d' && icon) return <img src={icon} alt="" className={`shrink-0 object-contain ${box}`} />
+  if (iconStyle === '3d' && icon) return <img src={assetUrl(icon)} alt="" className={`shrink-0 object-contain ${box}`} />
   return <FoodImage src={category.image} alt="" className={`shrink-0 rounded-[6px] ${box}`} />
 }

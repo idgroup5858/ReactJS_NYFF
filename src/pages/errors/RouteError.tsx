@@ -12,7 +12,7 @@ export default function RouteError() {
 
   const reset = () => {
     resetDb()
-    window.location.assign('/')
+    window.location.assign(import.meta.env.BASE_URL)
   }
 
   return (

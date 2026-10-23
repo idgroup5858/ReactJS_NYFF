@@ -1,5 +1,6 @@
 import { ImageOff } from 'lucide-react'
 import { useT } from '@/i18n'
+import { assetUrl } from '@/lib/assetUrl'
 import { CATEGORY_ICONS } from '@/lib/categoryIcons'
 
 /** Kategoriya ikonkasini tanlash (3D ikonkalar to'plami) yoki ikonkasiz — unda kategoriya rasmi ko'rinadi. */
@@ -16,7 +17,7 @@ export default function IconPicker({ value, onChange }: { value: string; onChang
         </button>
         {CATEGORY_ICONS.map((src) => (
           <button key={src} type="button" onClick={() => onChange(src)} aria-pressed={src === value} className={cell(src === value)}>
-            <img src={src} alt="" className="h-full w-full object-contain" loading="lazy" />
+            <img src={assetUrl(src)} alt="" className="h-full w-full object-contain" loading="lazy" />
           </button>
         ))}
       </div>

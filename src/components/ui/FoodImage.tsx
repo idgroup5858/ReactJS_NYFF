@@ -1,5 +1,6 @@
 import { UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
+import { assetUrl } from '@/lib/assetUrl'
 
 type Props = {
   src: string
@@ -17,5 +18,5 @@ export default function FoodImage({ src, alt, className = '' }: Props) {
       </div>
     )
   }
-  return <img src={src} alt={alt} loading="lazy" draggable={false} onError={() => setFailedSrc(src)} className={`object-cover ${className}`} />
+  return <img src={assetUrl(src)} alt={alt} loading="lazy" draggable={false} onError={() => setFailedSrc(src)} className={`object-cover ${className}`} />
 }

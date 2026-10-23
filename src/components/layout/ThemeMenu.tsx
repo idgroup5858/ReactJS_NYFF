@@ -1,6 +1,7 @@
 import { Check, Hamburger, Palette } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
+import { assetUrl } from '@/lib/assetUrl'
 import { ICON_STYLES, setIconStyle, setTheme, THEMES, useSettings, type Theme } from '@/store/settingsStore'
 import { HEADER_BUTTON } from './headerButton'
 
@@ -89,9 +90,9 @@ export default function ThemeMenu() {
                 {value === 'line' ? (
                   <Hamburger size={16} strokeWidth={1.75} />
                 ) : value === '3d' ? (
-                  <img src="/images/icons/hamburger.png" alt="" className="h-5 w-5" />
+                  <img src={assetUrl('/images/icons/hamburger.png')} alt="" className="h-5 w-5" />
                 ) : (
-                  <img src="/images/categories/burgers.jpg" alt="" className="h-full w-full object-cover" />
+                  <img src={assetUrl('/images/categories/burgers.jpg')} alt="" className="h-full w-full object-cover" />
                 )}
               </span>
               <span className="flex-1">{t.theme.iconStyles[value]}</span>
