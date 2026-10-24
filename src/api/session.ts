@@ -6,7 +6,7 @@ import { SESSION_STORAGE_KEY } from '@/store/storageKeys'
 import { dbStore, useDb } from './db'
 import { api } from './index'
 
-/** Kirgan xodim. sessionStorage da — har bir tab alohida: bir tabda kassir, boshqasida oshxona ishlashi mumkin. */
+/** Kirgan xodim. sessionStorage da — har bir tab alohida: bir tabda kassir, boshqasida admin ishlashi mumkin. */
 export interface Session {
   userId: ID
   role: Role
@@ -108,8 +108,6 @@ export function homePathFor(role: Role): string {
   switch (role) {
     case 'cashier':
       return '/kassa'
-    case 'kitchen':
-      return '/oshxona'
     case 'supplier':
       return '/ombor'
     case 'admin':

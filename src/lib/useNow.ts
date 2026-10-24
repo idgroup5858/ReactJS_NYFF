@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { dateKey } from '@/domain/dates'
 import type { DateKey } from '@/domain/types'
 
-/** Har [intervalMs] da yangilanadigan joriy vaqt — taymerlar (oshxona), soat (TV). */
+/** Har [intervalMs] da yangilanadigan joriy vaqt — taymerlar (kassa), soat (TV). */
 export function useNow(intervalMs = 1000): Date {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {

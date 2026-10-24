@@ -19,7 +19,7 @@ type Props = {
   nav?: NavGroup[]
   /** "Chiqish" bosilganda (kassir uchun — smenani topshirish savoli); berilmasa darhol chiqadi */
   onLogout?: () => void
-  /** `page` — markazda cheklangan kenglik va chekka bo'shliqlar (admin, ombor); `fill` — butun ekran (kassa, oshxona) */
+  /** `page` — markazda cheklangan kenglik va chekka bo'shliqlar (admin, ombor); `fill` — butun ekran (kassa) */
   variant?: 'page' | 'fill'
 }
 

@@ -16,7 +16,7 @@ import { errorMessage, useT } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 
-/** Xodim qo'shish / tahrirlash: ism, rol, filial (kassir va oshxona uchun), PIN (tahrirda bo'sh — o'zgarmaydi), faollik. */
+/** Xodim qo'shish / tahrirlash: ism, rol, filial (kassir uchun), PIN (tahrirda bo'sh — o'zgarmaydi), faollik. */
 function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }) {
   const t = useT()
   const db = useDb()

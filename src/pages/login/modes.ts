@@ -1,16 +1,15 @@
-import { Calculator, ChefHat, LayoutDashboard, MonitorSmartphone, Tv, Warehouse, type LucideIcon } from 'lucide-react'
+import { Calculator, LayoutDashboard, MonitorSmartphone, Tv, Warehouse, type LucideIcon } from 'lucide-react'
 
-/** Kirish ekranidagi ish joylari: to'rttasi xodim roli (PIN bilan), ikkitasi ekran (faqat filial tanlanadi). */
-export type LoginMode = 'cashier' | 'kitchen' | 'supplier' | 'admin' | 'tv' | 'kiosk'
+/** Kirish ekranidagi ish joylari: uchtasi xodim roli (PIN bilan), ikkitasi ekran (faqat filial tanlanadi). */
+export type LoginMode = 'cashier' | 'supplier' | 'admin' | 'tv' | 'kiosk'
 export type ScreenMode = 'tv' | 'kiosk'
 
-export const STAFF_MODES: LoginMode[] = ['cashier', 'kitchen', 'supplier', 'admin']
+export const STAFF_MODES: LoginMode[] = ['cashier', 'supplier', 'admin']
 export const SCREEN_MODES: ScreenMode[] = ['tv', 'kiosk']
 const ALL_MODES: LoginMode[] = [...STAFF_MODES, ...SCREEN_MODES]
 
 export const MODE_ICONS: Record<LoginMode, LucideIcon> = {
   cashier: Calculator,
-  kitchen: ChefHat,
   supplier: Warehouse,
   admin: LayoutDashboard,
   tv: Tv,

@@ -2,9 +2,10 @@ import { RotateCcw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
+import ThemeMenu from '@/components/layout/ThemeMenu'
 import { useT } from '@/i18n'
 
-/** Kiosk tepa paneli: brend, o'rtada qo'shimcha element (buyurtma turi), til va "Boshidan". */
+/** Kiosk tepa paneli: brend, o'rtada qo'shimcha element (buyurtma turi), til, ko'rinish va "Boshidan". */
 export default function KioskTopBar({ center, onStartOver }: { center?: ReactNode; onStartOver: () => void }) {
   const t = useT()
   return (
@@ -17,6 +18,7 @@ export default function KioskTopBar({ center, onStartOver }: { center?: ReactNod
       </span>
       <div className="flex min-w-0 flex-1 justify-center">{center}</div>
       <LanguageSwitcher tone="light" />
+      <ThemeMenu tone="light" />
       <button
         type="button"
         onClick={onStartOver}

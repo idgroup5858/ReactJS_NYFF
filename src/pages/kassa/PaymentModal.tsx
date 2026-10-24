@@ -11,6 +11,8 @@ import { formatMoney, formatNumber, formatOrderNumber } from '@/lib/format'
 type Props = {
   total: number
   orderType: OrderType
+  /** sarlavha (kiosk buyurtmasini tasdiqlashda — uning raqami) */
+  title?: string
   /** buyurtmani yaratadi; xato bo'lsa (xabar ko'rsatilgan) — `null` */
   onConfirm: (payment: PaymentMethod, split?: PaymentSplit) => Promise<Order | null>
   onClose: () => void
@@ -33,9 +35,10 @@ type Mode = PaymentMethod | 'mixed'
 
 /**
  * To'lov: tur tanlanadi (naqdda — qaytim hisoblanadi; aralashda — naqd qismi kiritiladi, qolgani karta / Click) →
- * buyurtma oshxonaga ketadi → katta raqam ko'rsatiladi.
+ * buyurtma oshxonaga ketadi (chek chiqadi) → katta raqam ko'rsatiladi. Kassa savdosida ham, kiosk buyurtmasini
+ * tasdiqlashda ham shu oyna.
  */
-export default function PaymentModal({ total, orderType, onConfirm, onClose }: Props) {
+export default function PaymentModal({ total, orderType, title, onConfirm, onClose }: Props) {
   const t = useT()
   const [method, setMethod] = useState<Mode>('cash')
   const [received, setReceived] = useState('')
@@ -87,9 +90,11 @@ export default function PaymentModal({ total, orderType, onConfirm, onClose }: P
               ))}
             </p>
           ) : (
+            done.order.payment && (
             <p className="text-sm text-neutral-600">
               {t.payment[done.order.payment]} · <span className="font-bold text-neutral-950">{formatMoney(done.order.total, t)}</span>
             </p>
+            )
           )}
           {done.change > 0 && (
             <p className="rounded bg-brand-50 px-3 py-1.5 text-sm">
@@ -103,7 +108,7 @@ export default function PaymentModal({ total, orderType, onConfirm, onClose }: P
 
   return (
     <Modal
-      title={t.checkout.title}
+      title={title ?? t.checkout.title}
       onClose={onClose}
       footer={
         <button

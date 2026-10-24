@@ -7,6 +7,7 @@ import { branchPrice } from '@/domain/logic/orders'
 import type { ID, Order, OrderType, PaymentMethod, Product } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { addProduct, changeQty, removeLine, type CartLine } from '@/lib/cart'
+import { printReceipt } from '@/lib/printReceipt'
 import { showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { useIdle } from '@/lib/useIdle'
@@ -57,8 +58,9 @@ function IdleModal({ onStay, onReset }: { onStay: () => void; onReset: () => voi
 }
 
 /**
- * Kiosk (PINsiz, filial manzildan): bosh ekran → menyu → taom oynasi → savat → to'lov (demo) → raqam.
- * Buyurtma `source: kiosk` bo'lib oshxonaga ketadi; kassir uni "Buyurtmalar" panelida ko'radi.
+ * Kiosk (PINsiz, filial manzildan): bosh ekran → menyu → taom oynasi → savat → to'lov → raqam.
+ * Karta / Click bilan to'lansa buyurtma darhol tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan" ro'yxatiga
+ * tushadi, kassir pulini olib tasdiqlaguncha oshxonaga ketmaydi.
  */
 export default function KioskPage() {
   const t = useT()
@@ -104,7 +106,8 @@ export default function KioskPage() {
 
   if (!branch) return <Navigate to="/?mode=kiosk" replace />
 
-  const pay = async (payment: PaymentMethod): Promise<boolean> => {
+  /** `null` — kassada to'laydi: buyurtma kassirni kutadi. Karta / Click — to'langan, chek shu yerda chiqadi. */
+  const pay = async (payment: PaymentMethod | null): Promise<boolean> => {
     try {
       const created = await api.orders.create({
         branchId: branch.id,
@@ -114,6 +117,7 @@ export default function KioskPage() {
         payment,
         cashierId: null,
       })
+      if (created.payment) printReceipt(created, branch.name)
       setOrder(created)
       setLines([])
       setStep('done')

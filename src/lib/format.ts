@@ -32,7 +32,7 @@ export function formatStock(baseQty: number, unit: StockUnit, t: Dict): string {
   return `${formatNumber(fromBase(baseQty, unit), 3)}${NBSP}${t.units[unit]}`
 }
 
-/** Buyurtma raqami: 7 → "#007" — TV, oshxona va chekda bir xil. */
+/** Buyurtma raqami: 7 → "#007" — TV, kassa va chekda bir xil. */
 export function formatOrderNumber(number: number): string {
   return `#${String(number).padStart(3, '0')}`
 }

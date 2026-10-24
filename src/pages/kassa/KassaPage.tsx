@@ -1,5 +1,5 @@
-import { ClipboardList, Lock, Settings } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { ClipboardList, Lock, MonitorSmartphone, Settings } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api, useDb } from '@/api'
 import { closeCurrentShift, ensureCashierShift, lockSession, logout, useCurrentUser, useSession } from '@/api/session'
@@ -9,12 +9,13 @@ import type { ID, Order, OrderType, PaymentMethod, PaymentSplit, Shift } from '@
 import { errorMessage, useT } from '@/i18n'
 import { choiceDialog, showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
+import { printReceipt } from '@/lib/printReceipt'
 import { useIdle } from '@/lib/useIdle'
 import CartPanel, { type PricedLine } from './CartPanel'
 import KassaSettingsModal from './KassaSettingsModal'
 import LockScreen from './LockScreen'
 import MenuPanel from './MenuPanel'
-import OrdersDrawer from './OrdersDrawer'
+import OrdersDrawer, { type OrdersTab } from './OrdersDrawer'
 import PaymentModal from './PaymentModal'
 import ShiftReportModal from './ShiftReportModal'
 import { addProduct, changeQty, removeLine, setNote, type CartLine } from '@/lib/cart'
@@ -22,12 +23,12 @@ import { addProduct, changeQty, removeLine, setNote, type CartLine } from '@/lib
 /** Harakatsizlikdan keyin kassa bloklanadi (spec: 5 daqiqa). */
 const LOCK_AFTER_MS = 5 * 60 * 1000
 
-type Panel = 'pay' | 'orders' | 'settings' | null
+type Panel = 'pay' | OrdersTab | 'settings' | null
 
 /**
- * Kassa: chapda (yoki tepada) rasmli kategoriyalar, o'rtada taomlar, o'ngda savat. To'lovdan keyin buyurtma
- * oshxonaga ketadi va raqami ko'rsatiladi. Tepada — buyurtmalar (tayyorlari soni), sozlamalar, bloklash, chiqish
- * (smenani topshirish savoli bilan).
+ * Kassa: chapda (yoki tepada) rasmli kategoriyalar, o'rtada taomlar, o'ngda savat. To'lovdan keyin chek chiqadi (oshxona
+ * shundan tayyorlaydi) va raqam TV da «Tayyorlanmoqda» ga tushadi. Tepada — kioskdan kelgan to'lanmagan buyurtmalar,
+ * tayyorlanayotganlar (ovqat kelganda "Tayyor"), sozlamalar, bloklash, chiqish (smenani topshirish savoli bilan).
  */
 export default function KassaPage() {
   const t = useT()
@@ -65,7 +66,16 @@ export default function KassaPage() {
     return counts
   }, [lines])
 
-  const readyCount = db.orders.filter((o) => o.branchId === branchId && o.status === 'ready').length
+  const branchName = db.branches.find((b) => b.id === branchId)?.name ?? ''
+  const pendingCount = db.orders.filter((o) => o.branchId === branchId && o.status === 'pending').length
+  const preparingCount = db.orders.filter((o) => o.branchId === branchId && o.status === 'preparing').length
+
+  // kioskdan yangi buyurtma kelsa — kassir ko'rsin
+  const seenPending = useRef(pendingCount)
+  useEffect(() => {
+    if (pendingCount > seenPending.current) showToast(t.orders.kioskNew, 'info')
+    seenPending.current = pendingCount
+  }, [pendingCount, t])
 
   if (!user || !session) return null
 
@@ -90,6 +100,7 @@ export default function KassaPage() {
         cashierId: user.id,
       })
       resetCart()
+      printReceipt(order, branchName)
       return order
     } catch (error) {
       showToast(errorMessage(error), 'error')
@@ -118,7 +129,8 @@ export default function KassaPage() {
       onLogout={() => void onLogout()}
       actions={
         <>
-          <HeaderAction label={t.orders.title} icon={<ClipboardList size={16} />} badge={readyCount} onClick={() => setPanel('orders')} />
+          <HeaderAction label={t.orders.kioskTab} icon={<MonitorSmartphone size={16} />} badge={pendingCount} onClick={() => setPanel('kiosk')} />
+          <HeaderAction label={t.orders.preparingTab} icon={<ClipboardList size={16} />} badge={preparingCount} onClick={() => setPanel('preparing')} />
           <HeaderAction label={t.kassaSettings.open} icon={<Settings size={16} />} onClick={() => setPanel('settings')} />
           <HeaderAction label={t.lock.lockNow} icon={<Lock size={16} />} onClick={lockSession} />
         </>
@@ -145,7 +157,9 @@ export default function KassaPage() {
       </div>
 
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
-      {panel === 'orders' && <OrdersDrawer branchId={branchId} shiftId={session.shiftId} userId={user.id} onClose={() => setPanel(null)} />}
+      {(panel === 'kiosk' || panel === 'preparing' || panel === 'shift') && (
+        <OrdersDrawer branchId={branchId} branchName={branchName} shiftId={session.shiftId} userId={user.id} initialTab={panel} onClose={() => setPanel(null)} />
+      )}
       {panel === 'settings' && <KassaSettingsModal userId={user.id} onClose={() => setPanel(null)} />}
       {report && <ShiftReportModal shift={report} onDone={finish} />}
       {locked && !report && <LockScreen user={user} />}

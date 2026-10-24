@@ -5,7 +5,7 @@ import { useDb } from '@/api'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
-import { activeOrders } from '@/domain/logic/orders'
+import { activeOrders, recentReady } from '@/domain/logic/orders'
 import type { Order } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatOrderNumber, formatTime } from '@/lib/format'
@@ -65,7 +65,8 @@ function Tile({ order, tone, fresh = false }: { order: Order; tone: 'preparing' 
 /**
  * TV navbat ekrani (PINsiz, filial manzildan): chapda (60 %) tayyorlanayotganlar, o'ngda (40 %) tayyorlar — katta sariq
  * raqamlar.
- * Kassir "Berildi" bosgach raqam ekrandan tushadi. Baza boshqa tabda o'zgarsa darhol yangilanadi.
+ * Kassir "Tayyor" bosgach raqam o'ngga o'tadi va bir necha daqiqadan keyin o'zi tushadi. Kassada to'lanmagan kiosk
+ * buyurtmalari ko'rinmaydi. Baza boshqa tabda o'zgarsa darhol yangilanadi.
  */
 export default function TvPage() {
   const t = useT()
@@ -80,9 +81,8 @@ export default function TvPage() {
   useDocumentTitle(t.modes.tv.title)
   if (!branch) return <Navigate to="/?mode=tv" replace />
 
-  const active = activeOrders(db, branch.id)
-  const preparing = active.filter((o) => o.status === 'new' || o.status === 'preparing')
-  const ready = active.filter((o) => o.status === 'ready').sort((a, b) => (b.readyAt ?? '').localeCompare(a.readyAt ?? ''))
+  const preparing = activeOrders(db, branch.id).filter((o) => o.status === 'preparing')
+  const ready = recentReady(db, branch.id, now)
   const preparingFit = fit(preparing, preparingCapacity)
   const readyFit = fit(ready, readyCapacity)
 

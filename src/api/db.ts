@@ -7,7 +7,7 @@ import { DB_STORAGE_KEY } from '@/store/storageKeys'
 
 /**
  * Backend o'rnidagi baza: bitta obyekt, localStorage da saqlanadi. Boshqa tabda (masalan kassada) o'zgarsa, shu tab
- * (masalan oshxona) `storage` hodisasi orqali darhol yangilanadi — haqiqiy oqimni bir nechta oynada ko'rsatish mumkin.
+ * (masalan TV) `storage` hodisasi orqali darhol yangilanadi — haqiqiy oqimni bir nechta oynada ko'rsatish mumkin.
  */
 
 function isCurrent(raw: unknown): raw is Db {

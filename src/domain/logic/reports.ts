@@ -98,6 +98,7 @@ export function salesReport(db: Db, range: ReportRange): SalesReport {
     const created = new Date(order.createdAt)
     const index = dayIndex.get(dateKey(created))
     if (index === undefined) continue
+    if (order.status === 'pending') continue
     if (order.status === 'cancelled') {
       report.cancelled += 1
       report.cancelledAmount += order.total

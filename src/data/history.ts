@@ -1,14 +1,14 @@
 import { addDays, dateKey, parseDateKey } from '../domain/dates.ts'
 import { newId } from '../domain/ids.ts'
 import { createExpense } from '../domain/logic/expenses.ts'
-import { advanceOrder, branchPrice, createOrder } from '../domain/logic/orders.ts'
+import { branchPrice, createOrder, markReady } from '../domain/logic/orders.ts'
 import { approvePurchase, createPurchase } from '../domain/logic/purchases.ts'
 import { openOrResumeShift } from '../domain/logic/shifts.ts'
 import { createTransfer } from '../domain/logic/transfers.ts'
-import type { Db, ExpenseKind, ID, Order, OrderItem, OrderSource, OrderStatus, OrderType, PaymentMethod, Product, Shift } from '../domain/types.ts'
+import type { Db, ExpenseKind, ID, Order, OrderItem, OrderSource, OrderType, PaymentMethod, Product, Shift } from '../domain/types.ts'
 
 /**
- * Demo uchun "jonli" ma'lumot: o'tgan 30 kun savdosi (hisobotlar bo'sh turmasin), bugungi buyurtmalar (oshxona va
+ * Demo uchun "jonli" ma'lumot: o'tgan 30 kun savdosi (hisobotlar bo'sh turmasin), bugungi buyurtmalar (kassa va
  * TV da darhol ko'rinadi), kirim / ko'chirish hujjatlari va kommunal to'lovlar. Tasodifiy, lekin har safar bir xil
  * (o'zgarmas urug'li generator) — "tiklash" bosilganda ham xuddi shu manzara chiqadi.
  */
@@ -128,13 +128,12 @@ function seedHistory(db: Db, now: Date, rand: Random): Db {
           note: '',
           total: items.reduce((sum, item) => sum + item.price * item.qty, 0),
           payment,
-          status: cancelled ? 'cancelled' : 'served',
+          status: cancelled ? 'cancelled' : 'ready',
           cashierId: kiosk ? null : (shift?.cashierId ?? null),
           shiftId: kiosk ? null : (shift?.id ?? null),
           createdAt: created.toISOString(),
           preparingAt: cancelled ? null : plus(created, 60 + Math.floor(rand() * 90)).toISOString(),
           readyAt: cancelled ? null : ready.toISOString(),
-          servedAt: cancelled ? null : plus(ready, 60 + Math.floor(rand() * 120)).toISOString(),
           cancelledAt: cancelled ? plus(created, 120).toISOString() : null,
           cancelledBy: cancelled ? (shift?.cashierId ?? null) : null,
         })
@@ -202,33 +201,33 @@ type LiveOrder = {
   items: [productId: string, qty: number, note?: string][]
   type: OrderType
   source: OrderSource
-  payment: PaymentMethod
+  /** `null` — kioskdan, kassada hali to'lanmagan */
+  payment: PaymentMethod | null
   note?: string
-  status: OrderStatus
+  /** necha daqiqa oldin tayyor bo'lgan (yo'q bo'lsa — hali tayyorlanmoqda) */
+  ready?: number
 }
 
 const LIVE: Record<string, LiveOrder[]> = {
   br_chilonzor: [
-    { ago: 52, items: [['burger-cheese', 1], ['fries', 1], ['cola', 1]], type: 'dine_in', source: 'cashier', payment: 'cash', status: 'served' },
-    { ago: 44, items: [['lavash-beef', 2], ['fanta', 2]], type: 'takeaway', source: 'kiosk', payment: 'card', status: 'served' },
-    { ago: 31, items: [['shawarma-chicken', 1], ['tea', 1]], type: 'dine_in', source: 'cashier', payment: 'click', status: 'ready' },
-    { ago: 24, items: [['burger-double', 1, 'piyozsiz'], ['potato-wedges', 1], ['sprite', 1]], type: 'takeaway', source: 'cashier', payment: 'card', status: 'preparing' },
-    { ago: 17, items: [['hotdog-kimchi', 2], ['cola', 2]], type: 'dine_in', source: 'kiosk', payment: 'click', status: 'preparing' },
-    { ago: 11, items: [['lavash-spicy', 1, 'achchiq kamroq'], ['nuggets-6', 1]], type: 'delivery', source: 'cashier', payment: 'cash', note: "Ketchupni alohida qo'ying", status: 'preparing' },
-    { ago: 6, items: [['burger-big-ny', 1], ['fries', 2], ['cola', 2]], type: 'dine_in', source: 'cashier', payment: 'card', status: 'new' },
-    { ago: 4, items: [['shawarma-xl', 1], ['water', 1]], type: 'takeaway', source: 'kiosk', payment: 'card', status: 'new' },
-    { ago: 2, items: [['hotdog-classic', 3, 'gorchitsasiz']], type: 'dine_in', source: 'cashier', payment: 'cash', status: 'new' },
-    { ago: 1, items: [['burger-chicken', 1], ['onion-rings', 1], ['tea', 1]], type: 'dine_in', source: 'cashier', payment: 'click', status: 'new' },
+    { ago: 52, items: [['burger-cheese', 1], ['fries', 1], ['cola', 1]], type: 'dine_in', source: 'cashier', payment: 'cash', ready: 40 },
+    { ago: 44, items: [['lavash-beef', 2], ['fanta', 2]], type: 'takeaway', source: 'kiosk', payment: 'card', ready: 33 },
+    { ago: 14, items: [['shawarma-chicken', 1], ['tea', 1]], type: 'dine_in', source: 'cashier', payment: 'click', ready: 3 },
+    { ago: 12, items: [['burger-double', 1, 'piyozsiz'], ['potato-wedges', 1], ['sprite', 1]], type: 'takeaway', source: 'cashier', payment: 'card', ready: 1 },
+    { ago: 10, items: [['hotdog-kimchi', 2], ['cola', 2]], type: 'dine_in', source: 'kiosk', payment: 'click' },
+    { ago: 8, items: [['lavash-spicy', 1, 'achchiq kamroq'], ['nuggets-6', 1]], type: 'delivery', source: 'cashier', payment: 'cash', note: "Ketchupni alohida qo'ying" },
+    { ago: 6, items: [['burger-big-ny', 1], ['fries', 2], ['cola', 2]], type: 'dine_in', source: 'cashier', payment: 'card' },
+    { ago: 3, items: [['shawarma-xl', 1], ['water', 1]], type: 'takeaway', source: 'kiosk', payment: null },
+    { ago: 2, items: [['hotdog-classic', 3, 'gorchitsasiz']], type: 'dine_in', source: 'cashier', payment: 'cash' },
+    { ago: 1, items: [['burger-chicken', 1], ['onion-rings', 1], ['tea', 1]], type: 'dine_in', source: 'kiosk', payment: null },
   ],
   br_yunusobod: [
-    { ago: 38, items: [['burger-classic', 1], ['cola', 1]], type: 'dine_in', source: 'cashier', payment: 'cash', status: 'served' },
-    { ago: 20, items: [['lavash-chicken', 1], ['fries', 1]], type: 'takeaway', source: 'kiosk', payment: 'card', status: 'ready' },
-    { ago: 12, items: [['shawarma-beef', 2, 'piyozsiz']], type: 'dine_in', source: 'cashier', payment: 'click', status: 'preparing' },
-    { ago: 4, items: [['burger-chicken', 1], ['tea', 2]], type: 'takeaway', source: 'cashier', payment: 'cash', status: 'new' },
+    { ago: 38, items: [['burger-classic', 1], ['cola', 1]], type: 'dine_in', source: 'cashier', payment: 'cash', ready: 30 },
+    { ago: 9, items: [['lavash-chicken', 1], ['fries', 1]], type: 'takeaway', source: 'kiosk', payment: 'card', ready: 2 },
+    { ago: 7, items: [['shawarma-beef', 2, 'piyozsiz']], type: 'dine_in', source: 'cashier', payment: 'click' },
+    { ago: 2, items: [['burger-chicken', 1], ['tea', 2]], type: 'takeaway', source: 'kiosk', payment: null },
   ],
 }
-
-const STATUS_STEPS: OrderStatus[] = ['new', 'preparing', 'ready', 'served']
 
 /** Bugungi buyurtmalar haqiqiy mantiq orqali (ombordan ayriladi, raqamlar navbatda). Kassirlarning smenasi ochiq. */
 function seedToday(db: Db, now: Date): Db {
@@ -242,7 +241,6 @@ function seedToday(db: Db, now: Date): Db {
     next = openOrResumeShift(next, cashier.id, branchId, minutesAgo(180)).db
 
     for (const spec of specs) {
-      const created = minutesAgo(spec.ago)
       const order = createOrder(next, {
         branchId,
         type: spec.type,
@@ -251,13 +249,9 @@ function seedToday(db: Db, now: Date): Db {
         note: spec.note,
         payment: spec.payment,
         cashierId: spec.source === 'cashier' ? cashier.id : null,
-      }, created)
+      }, minutesAgo(spec.ago))
       next = order.db
-      const steps = STATUS_STEPS.indexOf(spec.status)
-      for (let step = 0; step < steps; step++) {
-        const stamp = new Date(Math.min(now.getTime(), created.getTime() + (step === 0 ? 1 : step === 1 ? 9 : 11) * 60_000))
-        next = advanceOrder(next, order.result.id, STATUS_STEPS[step], stamp).db
-      }
+      if (spec.ready !== undefined) next = markReady(next, order.result.id, minutesAgo(spec.ready)).db
     }
   }
   return next

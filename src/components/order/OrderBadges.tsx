@@ -2,7 +2,7 @@ import type { OrderStatus, OrderType } from '@/domain/types'
 import { useT } from '@/i18n'
 import { ORDER_TYPE_ICONS } from './orderIcons'
 
-/** Buyurtma turi: ikonka + nom (kassa, oshxona, TV — hamma joyda bir xil). */
+/** Buyurtma turi: ikonka + nom (kassa, kiosk, TV — hamma joyda bir xil). */
 export function OrderTypeBadge({ type, className = '' }: { type: OrderType; className?: string }) {
   const t = useT()
   const Icon = ORDER_TYPE_ICONS[type]
@@ -15,10 +15,9 @@ export function OrderTypeBadge({ type, className = '' }: { type: OrderType; clas
 }
 
 const STATUS_CLASSES: Record<OrderStatus, string> = {
-  new: 'bg-sky-50 text-sky-700',
+  pending: 'bg-sky-50 text-sky-700',
   preparing: 'bg-brand-100 text-brand-800',
   ready: 'bg-emerald-50 text-emerald-700',
-  served: 'bg-neutral-100 text-neutral-500',
   cancelled: 'bg-red-50 text-red-700',
 }
 

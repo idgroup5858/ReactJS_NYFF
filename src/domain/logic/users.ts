@@ -8,9 +8,9 @@ export function isValidPin(pin: string): boolean {
   return /^\d{4,8}$/.test(pin)
 }
 
-/** Kassir va oshxona filialga bog'lanadi; admin va ta'minotchi — butun tarmoq uchun. */
+/** Kassir filialga bog'lanadi; admin va ta'minotchi — butun tarmoq uchun. */
 export function roleNeedsBranch(role: Role): boolean {
-  return role === 'cashier' || role === 'kitchen'
+  return role === 'cashier'
 }
 
 export function verifyPin(db: Db, userId: ID, pin: string): User {

@@ -12,8 +12,12 @@ const SWATCHES: Record<Theme, [string, string, string]> = {
   modern: ['#eef0f4', '#ffffff', '#fe9a00'],
 }
 
+/** Oq panel ustidagi tugma (kiosk) — "Boshidan" tugmasi bilan bir xil. */
+const LIGHT_BUTTON =
+  'flex h-11 shrink-0 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white px-3.5 text-neutral-700 transition-colors hover:border-select'
+
 /** Header'dagi ko'rinish tanlovi: palitra tugmasi → mavzular ro'yxati. Tanlov shu qurilmada saqlanadi. */
-export default function ThemeMenu() {
+export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }) {
   const t = useT()
   const { theme, iconStyle } = useSettings()
   const [open, setOpen] = useState(false)
@@ -44,9 +48,9 @@ export default function ThemeMenu() {
         aria-expanded={open}
         title={t.theme.title}
         aria-label={t.theme.title}
-        className={HEADER_BUTTON}
+        className={tone === 'light' ? LIGHT_BUTTON : HEADER_BUTTON}
       >
-        <Palette size={16} />
+        <Palette size={tone === 'light' ? 18 : 16} />
       </button>
       {open && (
         <div role="menu" className="absolute top-full right-0 z-40 mt-2 w-56 rounded-card bg-white p-1.5 text-neutral-900 shadow-float">

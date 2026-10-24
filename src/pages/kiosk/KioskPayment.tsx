@@ -10,9 +10,12 @@ type Props = {
   total: number
   orderType: OrderType
   onBack: () => void
-  /** buyurtma yaratiladi; xato bo'lsa xabar ko'rsatilgan, `false` */
-  onPay: (method: PaymentMethod) => Promise<boolean>
+  /** buyurtma yaratiladi (`null` — kassada to'laydi); xato bo'lsa xabar ko'rsatilgan, `false` */
+  onPay: (method: PaymentMethod | null) => Promise<boolean>
 }
+
+/** Karta / Click — shu yerda; `counter` — kassada (naqd yoki karta), buyurtma kassirni kutadi. */
+type Method = 'card' | 'click' | 'counter'
 
 /** QR o'rnidagi bezak — 21×21 katakli naqsh (haqiqiy to'lov yo'q, demo). */
 function FakeQr() {
@@ -35,22 +38,23 @@ function FakeQr() {
 
 /**
  * To'lov (mobil ilovadagi "Order Confirmation"): karta yoki Click tanlanadi → ko'rsatma (terminal / QR) →
- * "To'lovni tasdiqlash". Naqd — faqat kassada.
+ * "To'lovni tasdiqlash". Yoki "Kassada to'layman" → "Buyurtma berish": raqam oladi va kassada to'laydi.
  */
 export default function KioskPayment({ total, orderType, onBack, onPay }: Props) {
   const t = useT()
-  const [method, setMethod] = useState<PaymentMethod | null>(null)
+  const [method, setMethod] = useState<Method | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const options: { value: PaymentMethod; icon: typeof CreditCard; title: string; hint: string }[] = [
+  const options: { value: Method; icon: typeof CreditCard; title: string; hint: string }[] = [
     { value: 'card', icon: CreditCard, title: t.kiosk.payCard, hint: t.kiosk.payCardHint },
     { value: 'click', icon: Smartphone, title: t.kiosk.payClick, hint: t.kiosk.payClickHint },
+    { value: 'counter', icon: Banknote, title: t.kiosk.payCounter, hint: t.kiosk.payCounterHint },
   ]
 
   const pay = async () => {
     if (!method || busy) return
     setBusy(true)
-    const ok = await onPay(method)
+    const ok = await onPay(method === 'counter' ? null : method)
     if (!ok) setBusy(false)
   }
 
@@ -93,10 +97,6 @@ export default function KioskPayment({ total, orderType, onBack, onPay }: Props)
               </button>
             )
           })}
-          <p className="flex items-center gap-2 px-1 text-sm text-neutral-500">
-            <Banknote size={18} />
-            {t.kiosk.cashHint}
-          </p>
         </div>
       </div>
 
@@ -105,6 +105,13 @@ export default function KioskPayment({ total, orderType, onBack, onPay }: Props)
           <>
             <FakeQr />
             <p className="text-xl font-bold">{t.kiosk.clickInstruction}</p>
+          </>
+        ) : method === 'counter' ? (
+          <>
+            <span className="flex h-40 w-40 items-center justify-center rounded-full bg-coal text-taxi">
+              <Banknote size={72} />
+            </span>
+            <p className="text-xl font-bold">{t.kiosk.counterInstruction}</p>
           </>
         ) : (
           <>
@@ -120,9 +127,9 @@ export default function KioskPayment({ total, orderType, onBack, onPay }: Props)
           disabled={!method || busy}
           className="btn-primary flex h-16 w-full max-w-sm items-center justify-center rounded text-lg font-extrabold"
         >
-          {t.kiosk.confirmPay}
+          {method === 'counter' ? t.kiosk.placeOrder : t.kiosk.confirmPay}
         </button>
-        <p className="text-xs text-neutral-400">{t.kiosk.demoNote}</p>
+        {method !== 'counter' && <p className="text-xs text-neutral-400">{t.kiosk.demoNote}</p>}
       </div>
     </div>
   )

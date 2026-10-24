@@ -11,12 +11,12 @@ import {
   type PriceInput,
   type ProductInput,
 } from '@/domain/logic/menu'
-import { advanceOrder, cancelOrder, createOrder, reopenOrder, type NewOrderInput } from '@/domain/logic/orders'
+import { cancelOrder, confirmOrder, createOrder, markReady, reopenOrder, type NewOrderInput } from '@/domain/logic/orders'
 import { approvePurchase, createPurchase, rejectPurchase, type NewPurchaseInput } from '@/domain/logic/purchases'
 import { closeShift, openOrResumeShift } from '@/domain/logic/shifts'
 import { createTransfer, type NewTransferInput } from '@/domain/logic/transfers'
 import { changeOwnPin, saveUser, type UserInput } from '@/domain/logic/users'
-import type { ID, OrderStatus } from '@/domain/types'
+import type { ID, PaymentMethod, PaymentSplit } from '@/domain/types'
 import { run } from './db'
 
 /**
@@ -26,7 +26,9 @@ import { run } from './db'
 export const api = {
   orders: {
     create: (input: NewOrderInput) => run((db, now) => createOrder(db, input, now)),
-    advance: (orderId: ID, from: OrderStatus) => run((db, now) => advanceOrder(db, orderId, from, now)),
+    confirm: (orderId: ID, cashierId: ID, payment: PaymentMethod, split?: PaymentSplit) =>
+      run((db, now) => confirmOrder(db, orderId, cashierId, payment, split, now)),
+    ready: (orderId: ID) => run((db, now) => markReady(db, orderId, now)),
     reopen: (orderId: ID) => run((db, now) => reopenOrder(db, orderId, now)),
     cancel: (orderId: ID, userId: ID) => run((db, now) => cancelOrder(db, orderId, userId, now)),
   },

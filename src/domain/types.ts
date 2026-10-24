@@ -39,14 +39,14 @@ export interface Warehouse {
   branchId: ID | null
 }
 
-export type Role = 'admin' | 'cashier' | 'kitchen' | 'supplier'
-export const ROLES: Role[] = ['admin', 'cashier', 'kitchen', 'supplier']
+export type Role = 'admin' | 'cashier' | 'supplier'
+export const ROLES: Role[] = ['admin', 'cashier', 'supplier']
 
 export interface User {
   id: ID
   name: string
   role: Role
-  /** kassir va oshxona — filialga bog'langan; admin va ta'minotchi — `null` */
+  /** kassir — filialga bog'langan; admin va ta'minotchi — `null` */
   branchId: ID | null
   /** 4–8 ta raqam */
   pin: string
@@ -186,8 +186,11 @@ export const ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery']
 
 export type OrderSource = 'cashier' | 'kiosk'
 
-/** new → preparing → ready → served; served bo'lmagan buyurtmani kassir bekor qila oladi. */
-export type OrderStatus = 'new' | 'preparing' | 'ready' | 'served' | 'cancelled'
+/**
+ * pending (kioskdan, kassada to'lanmagan) → preparing (to'langan, chek oshxonada) → ready (kassir "Tayyor" bosdi, TV da
+ * bir necha daqiqa turadi). Kassir istalgan bosqichda bekor qila oladi.
+ */
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'cancelled'
 
 export type PaymentMethod = 'cash' | 'card' | 'click'
 export const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'click']
@@ -207,7 +210,7 @@ export interface OrderItem {
 export interface Order {
   id: ID
   branchId: ID
-  /** filialda har kuni 1 dan boshlanadigan raqam — TV va oshxonada shu ko'rinadi */
+  /** filialda har kuni 1 dan boshlanadigan raqam — TV va chekda shu ko'rinadi */
   number: number
   type: OrderType
   source: OrderSource
@@ -215,17 +218,17 @@ export interface Order {
   /** butun buyurtmaga izoh */
   note: string
   total: number
-  /** to'lov turi; aralashda — eng katta qism */
-  payment: PaymentMethod
+  /** to'lov turi; aralashda — eng katta qism. Kassada to'lanmagan kiosk buyurtmasida `null` */
+  payment: PaymentMethod | null
   /** faqat aralash to'lovda: tur bo'yicha summalar */
   split?: PaymentSplit
   status: OrderStatus
   cashierId: ID | null
   shiftId: ID | null
   createdAt: Timestamp
+  /** to'langan va oshxonaga ketgan vaqt */
   preparingAt: Timestamp | null
   readyAt: Timestamp | null
-  servedAt: Timestamp | null
   cancelledAt: Timestamp | null
   cancelledBy: ID | null
 }

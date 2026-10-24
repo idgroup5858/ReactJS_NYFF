@@ -30,7 +30,7 @@ export interface ShiftSummary {
 export function shiftSummary(db: Db, shiftId: ID): ShiftSummary {
   const summary: ShiftSummary = { orderCount: 0, cancelledCount: 0, total: 0, byPayment: { cash: 0, card: 0, click: 0 } }
   for (const order of db.orders) {
-    if (order.shiftId !== shiftId) continue
+    if (order.shiftId !== shiftId || order.status === 'pending') continue
     if (order.status === 'cancelled') {
       summary.cancelledCount += 1
       continue

@@ -16,7 +16,7 @@ import { toBase } from '../domain/units.ts'
 import { seedActivity } from './history.ts'
 
 /** Sxema o'zgarsa oshiriladi — localStorage dagi eski baza tashlanib, shu boshlang'ich ma'lumot yoziladi. */
-export const DB_VERSION = 2
+export const DB_VERSION = 3
 
 const t = (uz: string, ru: string, en: string): LocalizedText => ({ uz, ru, en })
 
@@ -42,10 +42,8 @@ const USERS: Omit<User, 'createdAt' | 'active'>[] = [
   { id: 'usr_supplier', name: 'Bekzod', role: 'supplier', branchId: null, pin: '5555' },
   { id: 'usr_cashier_c1', name: 'Dilnoza', role: 'cashier', branchId: BRANCH_CHILONZOR, pin: '1234' },
   { id: 'usr_cashier_c2', name: 'Sardor', role: 'cashier', branchId: BRANCH_CHILONZOR, pin: '4321' },
-  { id: 'usr_kitchen_c', name: 'Oshxona (Chilonzor)', role: 'kitchen', branchId: BRANCH_CHILONZOR, pin: '1111' },
   { id: 'usr_cashier_y1', name: 'Malika', role: 'cashier', branchId: BRANCH_YUNUSOBOD, pin: '1234' },
   { id: 'usr_cashier_y2', name: 'Jasur', role: 'cashier', branchId: BRANCH_YUNUSOBOD, pin: '4321' },
-  { id: 'usr_kitchen_y', name: 'Oshxona (Yunusobod)', role: 'kitchen', branchId: BRANCH_YUNUSOBOD, pin: '1111' },
 ]
 
 // ───────────────────────── Ombor mahsulotlari ─────────────────────────
@@ -271,7 +269,7 @@ function buildStock(): StockItem[] {
 
 /**
  * Boshlang'ich baza: menyu, ombor, xodimlar + o'tgan 30 kunlik savdo tarixi, bugungi faol buyurtmalar, kirim /
- * ko'chirish hujjatlari va kommunal to'lovlar (hisobot, oshxona va TV darhol "jonli" ko'rinsin).
+ * ko'chirish hujjatlari va kommunal to'lovlar (hisobot, kassa va TV darhol "jonli" ko'rinsin).
  */
 export function createSeedDb(now: Date): Db {
   return seedActivity(createBaseDb(now), now)

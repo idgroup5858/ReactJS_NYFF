@@ -16,7 +16,6 @@ function guarded(roles: Role[], children: RouteObject[]): RouteObject {
  *
  *   /                    kirish: ish joyi → filial → xodim → PIN  (`?mode=&branch=&user=`)
  *   /kassa               kassir
- *   /oshxona             oshxona
  *   /tv/:branchId        navbat ekrani (PINsiz)
  *   /kiosk/:branchId     kiosk (PINsiz)
  *   /ombor/*             ta'minotchi (admin ham kiradi)
@@ -30,7 +29,6 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: LoginPage },
       guarded(['cashier'], [{ path: 'kassa', lazy: async () => ({ Component: (await import('@/pages/kassa/KassaPage')).default }) }]),
-      guarded(['kitchen'], [{ path: 'oshxona', lazy: async () => ({ Component: (await import('@/pages/kitchen/KitchenPage')).default }) }]),
       guarded(['supplier', 'admin'], [
         {
           path: 'ombor',

@@ -10,7 +10,18 @@ import { saveBranch } from '../src/domain/logic/branches.ts'
 import { createExpense, deleteExpense } from '../src/domain/logic/expenses.ts'
 import { saveIngredient, setMinQty } from '../src/domain/logic/ingredients.ts'
 import { moveCategory, moveProduct, saveCategory, saveProduct, setBranchPrice } from '../src/domain/logic/menu.ts'
-import { activeOrders, advanceOrder, branchPrice, cancelOrder, createOrder, orderPayments, reopenOrder } from '../src/domain/logic/orders.ts'
+import {
+  activeOrders,
+  branchPrice,
+  cancelOrder,
+  confirmOrder,
+  createOrder,
+  markReady,
+  orderPayments,
+  READY_SHOWN_MS,
+  recentReady,
+  reopenOrder,
+} from '../src/domain/logic/orders.ts'
 import { approvePurchase, createPurchase, purchaseTotal } from '../src/domain/logic/purchases.ts'
 import { salesReport } from '../src/domain/logic/reports.ts'
 import { closeShift, openOrResumeShift, shiftSummary } from '../src/domain/logic/shifts.ts'
@@ -30,7 +41,7 @@ function expectError(code: string, fn: () => unknown): void {
 // ── to'liq demo baza: tarix, bugungi buyurtmalar, hujjatlar ──
 const demo = createSeedDb(now)
 assert.ok(demo.orders.length > 1000, `tarix: ${demo.orders.length} buyurtma`)
-assert.equal(activeOrders(demo, BRANCH_CHILONZOR).length, 8, 'Chilonzorda 8 ta faol buyurtma')
+assert.equal(activeOrders(demo, BRANCH_CHILONZOR).length, 6, 'Chilonzorda 4 ta tayyorlanmoqda + 2 ta kassada to\'lanadigan kiosk')
 assert.equal(demo.orders.filter((o) => o.branchId === BRANCH_CHILONZOR && o.createdAt.startsWith('2026-10-23') && o.status !== 'cancelled').length >= 10, true)
 assert.equal(demo.purchases.filter((p) => p.status === 'pending').length, 1)
 assert.equal(demo.transfers.length, 3)
@@ -111,15 +122,40 @@ assert.deepEqual(orderPayments(mixed), { cash: 14000, card: 20000, click: 0 })
 expectError('invalid_amount', () => createOrder(db, { ...mixedInput, items: [...mixedInput.items], split: { cash: 10000, card: 20000 } }, now))
 expectError('invalid_amount', () => createOrder(db, { ...mixedInput, items: [...mixedInput.items], split: { cash: 34000 } }, now))
 
-// ── holatlar ──
-db = advanceOrder(db, first.result.id, 'new', now).db
-expectError('invalid_status', () => advanceOrder(db, first.result.id, 'new', now))
-db = advanceOrder(db, first.result.id, 'preparing', now).db
-const served = advanceOrder(db, first.result.id, 'ready', now)
-db = served.db
-assert.equal(served.result.status, 'served')
-assert.ok(served.result.preparingAt && served.result.readyAt && served.result.servedAt)
-expectError('invalid_status', () => cancelOrder(db, first.result.id, 'usr_cashier_c1', now))
+// ── holatlar: to'langan buyurtma darhol tayyorlanmoqda, ovqat kelganda kassir "Tayyor" bosadi ──
+assert.equal(first.result.status, 'preparing')
+assert.ok(first.result.preparingAt)
+const ready = markReady(db, first.result.id, now)
+db = ready.db
+assert.equal(ready.result.status, 'ready')
+expectError('invalid_status', () => markReady(db, first.result.id, now))
+assert.deepEqual(recentReady(db, BRANCH_CHILONZOR, now).map((o) => o.id), [first.result.id])
+assert.equal(recentReady(db, BRANCH_CHILONZOR, new Date(now.getTime() + READY_SHOWN_MS + 1000)).length, 0, 'TV dan o\'zi tushadi')
+
+// ── kiosk: "kassada to'layman" — kassir pulini olib tasdiqlaguncha oshxonaga ham, omborga ham tegmaydi ──
+const mince1 = stockQty(db, C, 'beef-mince')
+const kioskInput = { branchId: BRANCH_CHILONZOR, type: 'takeaway', source: 'kiosk', items: [{ productId: 'burger-classic', qty: 1 }], payment: null, cashierId: null } as const
+const kioskOrder = createOrder(db, { ...kioskInput, items: [...kioskInput.items] }, now)
+db = kioskOrder.db
+assert.equal(kioskOrder.result.status, 'pending')
+assert.equal(kioskOrder.result.payment, null)
+assert.equal(stockQty(db, C, 'beef-mince'), mince1)
+assert.ok(!activeOrders(db, BRANCH_CHILONZOR).some((o) => o.status === 'preparing' && o.id === kioskOrder.result.id))
+expectError('invalid_amount', () => createOrder(db, { ...kioskInput, items: [...kioskInput.items], source: 'cashier', cashierId: 'usr_cashier_c1' }, now))
+expectError('invalid_status', () => markReady(db, kioskOrder.result.id, now))
+expectError('shift_not_open', () => confirmOrder(db, kioskOrder.result.id, 'usr_cashier_c2', 'cash', undefined, now))
+const confirmed = confirmOrder(db, kioskOrder.result.id, 'usr_cashier_c1', 'cash', undefined, now)
+db = confirmed.db
+assert.equal(confirmed.result.status, 'preparing')
+assert.equal(confirmed.result.payment, 'cash')
+assert.equal(confirmed.result.shiftId, shift.result.id)
+assert.equal(confirmed.result.cashierId, 'usr_cashier_c1')
+assert.equal(stockQty(db, C, 'beef-mince'), mince1 - 120)
+expectError('invalid_status', () => confirmOrder(db, kioskOrder.result.id, 'usr_cashier_c1', 'cash', undefined, now))
+// to'lanmagan kiosk buyurtmasini bekor qilish omborga tegmaydi
+const unpaid = createOrder(db, { ...kioskInput, items: [...kioskInput.items] }, now)
+db = cancelOrder(unpaid.db, unpaid.result.id, 'usr_cashier_c1', now).db
+assert.equal(stockQty(db, C, 'beef-mince'), mince1 - 120)
 
 // ── bekor qilish: ombor aynan qaytadi ──
 const fries0 = stockQty(db, C, 'potato-fries')
@@ -128,7 +164,7 @@ assert.equal(stockQty(db, C, 'potato-fries'), fries0 + 150)
 
 // ── smena hisobi ──
 const summary = shiftSummary(db, shift.result.id)
-assert.deepEqual(summary, { orderCount: 1, cancelledCount: 0, total: 73000, byPayment: { cash: 73000, card: 0, click: 0 } })
+assert.deepEqual(summary, { orderCount: 2, cancelledCount: 0, total: 105000, byPayment: { cash: 105000, card: 0, click: 0 } })
 db = closeShift(db, shift.result.id, now).db
 expectError('shift_not_open', () => closeShift(db, shift.result.id, now))
 
@@ -163,11 +199,10 @@ expectError('invalid_pin', () => changeOwnPin(db, 'usr_cashier_c1', '1234', '12a
 db = changeOwnPin(db, 'usr_cashier_c1', '1234', '987654').db
 assert.equal(verifyPin(db, 'usr_cashier_c1', '987654').id, 'usr_cashier_c1')
 
-// ── oshxona: tayyorni qaytarish ──
-const kitchen = openOrResumeShift(db, 'usr_cashier_c2', BRANCH_CHILONZOR, now)
-db = kitchen.db
+// ── adashib "tayyor" deyilganini qaytarish ──
+db = openOrResumeShift(db, 'usr_cashier_c2', BRANCH_CHILONZOR, now).db
 const third = createOrder(db, { branchId: BRANCH_CHILONZOR, type: 'dine_in', source: 'cashier', items: [{ productId: 'tea', qty: 1 }], payment: 'cash', cashierId: 'usr_cashier_c2' }, now)
-db = advanceOrder(advanceOrder(third.db, third.result.id, 'new', now).db, third.result.id, 'preparing', now).db
+db = markReady(third.db, third.result.id, now).db
 const reopened = reopenOrder(db, third.result.id, now)
 db = reopened.db
 assert.equal(reopened.result.status, 'preparing')
@@ -232,11 +267,11 @@ expectError('invalid_amount', () => createExpense(db, { branchId: BRANCH_CHILONZ
 const gas = createExpense(db, { branchId: BRANCH_CHILONZOR, kind: 'gas', amount: 1_200_000, date: '2026-10-20', createdBy: 'usr_admin' }, now)
 db = gas.db
 const report = salesReport(db, { from: '2026-10-17', to: '2026-10-23', branchId: BRANCH_CHILONZOR })
-assert.equal(report.orders, 2, 'Chilonzor: berilgan + choy (bekor qilingani hisobga kirmaydi)')
-assert.equal(report.cancelled, 1)
-assert.equal(report.revenue, 73000 + 4000)
+assert.equal(report.orders, 3, "Chilonzor: birinchi + kassada to'langan kiosk + choy (bekor qilinganlar hisobga kirmaydi)")
+assert.equal(report.cancelled, 2)
+assert.equal(report.revenue, 73000 + 32000 + 4000)
 assert.equal(report.expenses, 1_200_000)
-assert.equal(report.net, 77000 - 1_200_000)
+assert.equal(report.net, 109000 - 1_200_000)
 assert.equal(report.days.length, 7)
 assert.equal(report.topProducts[0].productId, 'burger-classic')
 db = deleteExpense(db, gas.result.id).db
