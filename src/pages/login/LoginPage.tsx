@@ -1,11 +1,11 @@
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, LoaderCircle } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
-import { useDb } from '@/api'
+import { useBranches, useStaffList } from '@/api/queries'
 import { homePathFor, login, useCurrentUser } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
-import type { Branch, User } from '@/domain/types'
+import type { AuthUser, Branch, ID } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { setLastBranch } from '@/store/settingsStore'
@@ -15,9 +15,12 @@ import UserAvatar from '@/components/ui/UserAvatar'
 import BranchStep from './BranchStep'
 import ModeStep from './ModeStep'
 import UserStep from './UserStep'
-import { isScreenMode, needsBranch, parseMode, type LoginMode } from './modes'
+import { isScreenMode, isStaffMode, needsBranch, parseMode, type LoginMode, type ScreenMode, type StaffMode } from './modes'
+
+type Step = 'mode' | 'branch' | 'user' | 'pin'
 
 type Shell = {
+  step: Step
   title: string
   subtitle?: string
   /** oldingi qadamning manzil parametrlari; `undefined` — birinchi qadam */
@@ -26,30 +29,59 @@ type Shell = {
   content: ReactNode
 }
 
+/** Tanlangan ish joyi (va filial) xodimlari — kerakli tanlov bo'lmaguncha so'ralmaydi. */
+function useLoginStaff(role: StaffMode | null, branchId: ID | null) {
+  const branch = role && needsBranch(role) ? branchId : null
+  const ready = role !== null && (!needsBranch(role) || branch !== null)
+  return useStaffList({ branchId: branch, role }, { enabled: ready })
+}
+
+/** Qadam ma'lumoti yuklanmoqda yoki xato — bo'sh ro'yxat xabari o'rnida, balandligi bir xil (karta sakramaydi). */
+function StepStatus({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const t = useT()
+  if (!error) {
+    return (
+      <div className="flex justify-center py-8 text-neutral-300">
+        <LoaderCircle size={20} className="animate-spin" />
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-3 py-8 text-center">
+      <p className="text-sm font-semibold text-red-700">{errorMessage(error)}</p>
+      <button type="button" onClick={onRetry} className="btn-ghost h-10 rounded px-4 text-sm font-bold">
+        {t.login.retry}
+      </button>
+    </div>
+  )
+}
+
 /**
  * Kirish: ish joyi → (filial) → xodim → PIN. Har bir qadam manzilda (`?mode=&branch=&user=`), shuning uchun
- * brauzerning "orqaga" tugmasi ham qadamma-qadam qaytaradi. TV va kiosk — PINsiz, filial tanlangach ochiladi.
+ * brauzerning "orqaga" tugmasi ham qadamma-qadam qaytaradi. TV va kiosk — PINsiz va kodsiz: ish joyi → filial →
+ * ekran ochiladi (`/tv/:branchId`, `/kiosk/:branchId`).
  */
 export default function LoginPage() {
   const t = useT()
-  const db = useDb()
   const currentUser = useCurrentUser()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   useDocumentTitle()
 
-  if (currentUser) return <Navigate to={homePathFor(currentUser.role)} replace />
-
   const mode = parseMode(params.get('mode'))
-  const branches = db.branches.filter((b) => b.active)
-  const branch = branches.find((b) => b.id === params.get('branch'))
-  if (mode && isScreenMode(mode) && branch) return <Navigate to={`/${mode}/${branch.id}`} replace />
+  const branchParam = params.get('branch')
+  const userParam = params.get('user')
+  const branchesQuery = useBranches()
+  const staffQuery = useLoginStaff(mode && isStaffMode(mode) ? mode : null, branchParam)
 
+  // TV / kiosk sessiyasiz ishlaydi — shu tabda xodim kirgan bo'lsa ham ekran filialini tanlash mumkin
+  if (currentUser && !(mode && isScreenMode(mode))) return <Navigate to={homePathFor(currentUser.role)} replace />
+
+  const branches = (branchesQuery.data ?? []).filter((b) => b.active)
+  const branch = branches.find((b) => b.id === branchParam)
   // shu ish joyiga (va filialga) tegishli faol xodimlar — manzildagi `user` ham shu ro'yxatdan bo'lishi shart
-  const users = mode
-    ? db.users.filter((u) => u.active && u.role === mode && (!needsBranch(mode) || u.branchId === branch?.id))
-    : []
-  const user = users.find((u) => u.id === params.get('user'))
+  const users = staffQuery.data ?? []
+  const user = users.find((u) => u.id === userParam)
 
   const go = (next: Record<string, string>) => setParams(next)
 
@@ -57,11 +89,16 @@ export default function LoginPage() {
 
   const selectBranch = (selectedMode: LoginMode, selected: Branch) => {
     setLastBranch(selected.id)
-    if (isScreenMode(selectedMode)) void navigate(`/${selectedMode}/${selected.id}`)
-    else go({ mode: selectedMode, branch: selected.id })
+    go({ mode: selectedMode, branch: selected.id })
   }
 
-  const selectUser = (selected: User) => go({ ...Object.fromEntries(params), user: selected.id })
+  // TV va kiosk — filial tanlanishi bilan ekran ochiladi ("orqaga" — shu filial tanloviga qaytaradi)
+  const openScreen = (screen: ScreenMode, selected: Branch) => {
+    setLastBranch(selected.id)
+    void navigate(`/${screen}/${selected.id}`)
+  }
+
+  const selectUser = (selected: AuthUser) => go({ ...Object.fromEntries(params), user: selected.id })
 
   const submitPin = async (pin: string): Promise<string | null> => {
     if (!user) return null
@@ -74,30 +111,43 @@ export default function LoginPage() {
     }
   }
 
+  // ma'lumot kelguncha qadam manzildan aniqlanadi — yuklangach sarlavha va karta sakramaydi
+  const branchPending = !branchesQuery.data
+  const staffPending = !staffQuery.data
+  const subtitle = mode ? [t.modes[mode].title, branch?.name].filter(Boolean).join(' · ') : undefined
+
+  /** Filial tanlash qadami — kassir / oshpaz yordamchisi va TV / kiosk uchun bir xil. */
+  const branchStep = (selectedMode: LoginMode, onSelect: (selected: Branch) => void): Shell => ({
+    step: 'branch',
+    title: t.login.chooseBranch,
+    subtitle: t.modes[selectedMode].title,
+    back: {},
+    content: branchPending ? <StepStatus error={branchesQuery.error} onRetry={branchesQuery.reload} /> : <BranchStep branches={branches} onSelect={onSelect} />,
+  })
+
   let shell: Shell
   if (!mode) {
-    shell = { title: t.login.chooseMode, wide: true, content: <ModeStep onSelect={selectMode} /> }
-  } else if (needsBranch(mode) && !branch) {
+    shell = { step: 'mode', title: t.login.chooseMode, wide: true, content: <ModeStep onSelect={selectMode} /> }
+  } else if (isScreenMode(mode)) {
+    shell = branchStep(mode, (selected) => openScreen(mode, selected))
+  } else if (needsBranch(mode) && !branch && !(branchParam && branchPending)) {
+    shell = branchStep(mode, (selected) => selectBranch(mode, selected))
+  } else if (!user && !(userParam && staffPending)) {
     shell = {
-      title: t.login.chooseBranch,
-      subtitle: t.modes[mode].title,
-      back: {},
-      content: <BranchStep branches={branches} onSelect={(selected) => selectBranch(mode, selected)} />,
-    }
-  } else if (!user) {
-    shell = {
+      step: 'user',
       title: t.login.chooseUser,
-      subtitle: [t.modes[mode].title, branch?.name].filter(Boolean).join(' · '),
+      subtitle,
       back: needsBranch(mode) ? { mode } : {},
       wide: users.length > 2,
-      content: <UserStep users={users} onSelect={selectUser} />,
+      content: staffPending ? <StepStatus error={staffQuery.error} onRetry={staffQuery.reload} /> : <UserStep users={users} onSelect={selectUser} />,
     }
   } else {
     shell = {
+      step: 'pin',
       title: t.login.enterPin,
-      subtitle: [t.modes[mode].title, branch?.name].filter(Boolean).join(' · '),
-      back: branch ? { mode, branch: branch.id } : { mode },
-      content: (
+      subtitle,
+      back: branchParam ? { mode, branch: branchParam } : { mode },
+      content: user ? (
         <div className="space-y-5">
           <div className="flex items-center gap-3">
             <UserAvatar name={user.name} size="lg" />
@@ -108,11 +158,13 @@ export default function LoginPage() {
           </div>
           <PinPad key={user.id} onSubmit={submitPin} />
         </div>
+      ) : (
+        <StepStatus error={staffQuery.error} onRetry={staffQuery.reload} />
       ),
     }
   }
 
-  const stepKey = [mode, branch?.id, user?.id].join('|')
+  const stepKey = [shell.step, mode, branchParam, userParam].join('|')
 
   return (
     <div className="flex min-h-screen flex-col bg-coal">

@@ -1,24 +1,31 @@
-import { ChevronRight, MapPin, ShoppingBag, Utensils, X } from 'lucide-react'
+import { ArrowLeftRight, ChevronRight, MapPin, ShoppingBag, Utensils, X } from 'lucide-react'
 import { Link } from 'react-router'
 import Brand from '@/components/layout/Brand'
 import FoodImage from '@/components/ui/FoodImage'
-import { LANGS, type Branch, type Lang, type OrderType } from '@/domain/types'
+import { LANGS, type Branch, type Lang } from '@/domain/types'
 import { LANG_LABELS, useT } from '@/i18n'
 import { setLang, useSettings } from '@/store/settingsStore'
+import type { KioskOrderType } from './KioskCart'
 
-const HERO_IMAGES = ['/images/products/burger-big-ny.jpg', '/images/products/lavash-beef.jpg', '/images/products/fries.jpg']
+/** o'rtada — chizburger, tepada va pastda — hot-dog */
+const HERO_IMAGES = [
+  '/images/products/Screenshot_2-removebg-preview.png',
+  '/images/products/pngtree-hotdog-with-sausage-and-salad-ingredients-png-image_19086249-removebg-preview.png',
+  '/images/products/66e8a20acf4319d46fd00ddb276865da-removebg-preview.png',
+]
 /** oq (6px) + sariq (8px) halqa va soya */
 const SMALL_RING = 'shadow-[0_0_0_6px_#fff,0_0_0_14px_var(--color-taxi),0_24px_40px_-16px_rgba(0,0,0,0.45)]'
 
 /**
  * Kioskning bosh ekrani ("Och qoldingizmi? Buyurtma bering." — mobil ilova andozasi): katta sarlavha, taom rasmlari,
- * til tanlovi va "Shu yerda / Olib ketaman" tanlovi — bosilgach menyu ochiladi.
+ * til tanlovi va "Shu yerda / Olib ketaman" tanlovi — bosilgach menyu ochiladi. Filial (manzildagi) yuklanguncha
+ * nomi ko'rinmaydi.
  */
-export default function KioskWelcome({ branch, onStart }: { branch: Branch; onStart: (type: OrderType) => void }) {
+export default function KioskWelcome({ branch, onStart }: { branch: Branch | undefined; onStart: (type: KioskOrderType) => void }) {
   const t = useT()
   const { lang } = useSettings()
 
-  const choices: { type: OrderType; icon: typeof Utensils; title: string; hint: string }[] = [
+  const choices: { type: KioskOrderType; icon: typeof Utensils; title: string; hint: string }[] = [
     { type: 'dine_in', icon: Utensils, title: t.kiosk.dineIn, hint: t.kiosk.dineInHint },
     { type: 'takeaway', icon: ShoppingBag, title: t.kiosk.takeaway, hint: t.kiosk.takeawayHint },
   ]
@@ -28,10 +35,20 @@ export default function KioskWelcome({ branch, onStart }: { branch: Branch; onSt
       <div className="pointer-events-none absolute -top-40 -right-40 h-[38rem] w-[38rem] rounded-full bg-taxi/40 blur-3xl" />
       <header className="relative flex items-center justify-between gap-4 px-6 py-5 sm:px-10">
         <Brand tone="light" size="lg" />
-        <span className="flex items-center gap-1.5 text-sm font-semibold text-neutral-500">
-          <MapPin size={16} className="text-select" />
-          {branch.name}
-        </span>
+        {/* "Olib ketaman" tugmasi uslubida: sariq blok, qora doirada sariq ikonka, qalin nom + manzil (bosilmaydi — strelkasiz) */}
+        {/* filial yuklanguncha — xuddi shu balandlikdagi bo'sh joy (sarlavha sakramasin) */}
+        {!branch && <span aria-hidden="true" className="h-15" />}
+        {branch && (
+          <div className="flex items-center gap-3 rounded-card bg-taxi py-2 pr-5 pl-2 text-coal shadow-card">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-coal text-taxi">
+              <MapPin size={20} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-lg leading-tight font-extrabold whitespace-nowrap">{branch.name}</span>
+              {branch.address && <span className="block text-xs text-coal/70">{branch.address}</span>}
+            </span>
+          </div>
+        )}
       </header>
 
       <main className="relative grid flex-1 items-center gap-10 px-6 pb-10 sm:px-10 lg:grid-cols-[1.1fr_1fr]">
@@ -85,20 +102,33 @@ export default function KioskWelcome({ branch, onStart }: { branch: Branch; onSt
 
         <div className="relative mx-auto hidden aspect-square w-full max-w-xl lg:block">
           <div className="absolute inset-[8%] rounded-full bg-taxi" />
-          <FoodImage src={HERO_IMAGES[0]} alt="" className="absolute inset-[14%] h-[72%] w-[72%] rounded-full shadow-2xl ring-8 ring-white" />
+          {/* dumaloq bezak rasmlar — foni shaffof PNG, oq doirada: o'rtadagi doirani to'ldiradi, kichiklari butunligicha */}
+          <FoodImage src={HERO_IMAGES[0]} alt="" fit="cover" className="absolute inset-[14%] h-[72%] w-[72%] rounded-full bg-white shadow-2xl ring-8 ring-white" />
           {/* kichik rasmlar ham o'rtadagidek: ichida oq, tashqarisida sariq chegara */}
-          <FoodImage src={HERO_IMAGES[1]} alt="" className={`absolute top-[2%] left-[2%] h-[26%] w-[26%] rounded-full ${SMALL_RING}`} />
-          <FoodImage src={HERO_IMAGES[2]} alt="" className={`absolute right-[0%] bottom-[6%] h-[28%] w-[28%] rounded-full ${SMALL_RING}`} />        </div>
+          <FoodImage src={HERO_IMAGES[1]} alt="" fit="contain" className={`absolute top-[2%] left-[2%] h-[26%] w-[26%] rounded-full bg-white p-[3%] ${SMALL_RING}`} />
+          <FoodImage src={HERO_IMAGES[2]} alt="" fit="contain" className={`absolute right-[0%] bottom-[6%] h-[28%] w-[28%] rounded-full bg-white p-[3%] ${SMALL_RING}`} />
+        </div>
       </main>
 
-      <Link
-        to="/"
-        aria-label={t.kiosk.exit}
-        title={t.kiosk.exit}
-        className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
-      >
-        <X size={16} />
-      </Link>
+      {/* xodim uchun (mijozga ko'zga tashlanmaydi): ish joyini va filialni almashtirish */}
+      <div className="absolute bottom-3 left-3 flex gap-1">
+        <Link
+          to="/"
+          aria-label={t.kiosk.exit}
+          title={t.kiosk.exit}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
+        >
+          <X size={16} />
+        </Link>
+        <Link
+          to="/?mode=kiosk"
+          aria-label={t.login.changeBranch}
+          title={t.login.changeBranch}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
+        >
+          <ArrowLeftRight size={16} />
+        </Link>
+      </div>
     </div>
   )
 }

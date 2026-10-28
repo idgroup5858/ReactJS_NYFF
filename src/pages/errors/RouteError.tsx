@@ -1,17 +1,17 @@
-import { RefreshCw, RotateCcw, TriangleAlert } from 'lucide-react'
+import { LogOut, RefreshCw, TriangleAlert } from 'lucide-react'
 import { useRouteError } from 'react-router'
-import { resetDb } from '@/api'
+import { logout } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import { useT } from '@/i18n'
 
-/** Sahifada kutilmagan xato bo'lsa — oq ekran o'rniga tushunarli oyna: qayta yuklash yoki demo ma'lumotni tiklash. */
+/** Sahifada kutilmagan xato bo'lsa — oq ekran o'rniga tushunarli oyna: qayta yuklash yoki chiqib, qaytadan kirish. */
 export default function RouteError() {
   const t = useT()
   const error = useRouteError()
   const message = error instanceof Error ? error.message : String(error)
 
-  const reset = () => {
-    resetDb()
+  const signOut = () => {
+    logout()
     window.location.assign(import.meta.env.BASE_URL)
   }
 
@@ -29,9 +29,9 @@ export default function RouteError() {
             <RefreshCw size={16} />
             {t.errorPage.reload}
           </button>
-          <button type="button" onClick={reset} className="btn-ghost flex h-11 flex-[1_1_auto] items-center justify-center gap-2 rounded px-4 text-xs font-bold uppercase">
-            <RotateCcw size={16} />
-            {t.common.resetData}
+          <button type="button" onClick={signOut} className="btn-ghost flex h-11 flex-[1_1_auto] items-center justify-center gap-2 rounded px-4 text-xs font-bold uppercase">
+            <LogOut size={16} />
+            {t.errorPage.signOut}
           </button>
         </div>
       </div>

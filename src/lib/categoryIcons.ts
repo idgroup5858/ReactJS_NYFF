@@ -32,19 +32,7 @@ export const CATEGORY_ICONS = [
   'hot-beverage',
 ].map((name) => `/images/icons/${name}.png`)
 
-/** Boshlang'ich kategoriyalarning ikonkasi — ikonka maydoni qo'shilishidan oldin saqlangan bazalar uchun ham. */
-const DEFAULT_ICONS: Record<string, string> = {
-  burgers: 'hamburger',
-  hotdogs: 'hot-dog',
-  lavash: 'burrito',
-  shawarma: 'stuffed-flatbread',
-  snacks: 'french-fries',
-  drinks: 'cup-with-straw',
-}
-
-/** Kategoriya ikonkasi; yo'q bo'lsa `null` (unda rasmi ko'rsatiladi). */
-export function categoryIcon(category: Category): string | null {
-  if (category.icon !== undefined) return category.icon || null
-  const name = DEFAULT_ICONS[category.id]
-  return name ? `/images/icons/${name}.png` : null
+/** Kategoriya ikonkasi; bo'sh satr — ikonkasiz, `null` (unda rasmi ko'rsatiladi). */
+export function categoryIcon(category: Pick<Category, 'icon'>): string | null {
+  return category.icon || null
 }

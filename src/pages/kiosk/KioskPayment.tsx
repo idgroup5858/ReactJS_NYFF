@@ -2,7 +2,7 @@ import { ArrowLeft, Banknote, CreditCard, Nfc, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { OrderTypeBadge } from '@/components/order/OrderBadges'
 import { SectionTitle } from '@/components/ui/Card'
-import type { OrderType, PaymentMethod } from '@/domain/types'
+import type { OrderType } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatMoney } from '@/lib/format'
 
@@ -11,7 +11,7 @@ type Props = {
   orderType: OrderType
   onBack: () => void
   /** buyurtma yaratiladi (`null` — kassada to'laydi); xato bo'lsa xabar ko'rsatilgan, `false` */
-  onPay: (method: PaymentMethod | null) => Promise<boolean>
+  onPay: (method: 'card' | 'click' | null) => Promise<boolean>
 }
 
 /** Karta / Click — shu yerda; `counter` — kassada (naqd yoki karta), buyurtma kassirni kutadi. */

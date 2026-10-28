@@ -1,7 +1,7 @@
 import { LogOut, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { useDb } from '@/api'
+import { useBranches } from '@/api/queries'
 import { logout, useCurrentUser } from '@/api/session'
 import { useT } from '@/i18n'
 import Brand from './Brand'
@@ -60,10 +60,10 @@ export function HeaderAction({ label, icon, onClick, badge, compact = true }: Ac
  */
 export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page' }: Props) {
   const t = useT()
-  const db = useDb()
+  const branches = useBranches().data
   const user = useCurrentUser()
   const navigate = useNavigate()
-  const branch = user?.branchId ? db.branches.find((b) => b.id === user.branchId) : undefined
+  const branch = user?.branchId ? branches?.find((b) => b.id === user.branchId) : undefined
 
   const defaultLogout = () => {
     logout()

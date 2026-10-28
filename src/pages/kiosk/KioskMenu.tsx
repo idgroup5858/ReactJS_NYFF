@@ -1,21 +1,20 @@
 import { ArrowRight, Search, ShoppingBag, X } from 'lucide-react'
 import { useState } from 'react'
-import { useDb } from '@/api'
 import CategoryTile from '@/components/menu/CategoryTile'
 import { compositionText } from '@/components/menu/composition'
 import ProductCard from '@/components/menu/ProductCard'
 import { SectionTitle } from '@/components/ui/Card'
-import { branchPrice } from '@/domain/logic/orders'
-import type { ID, Product } from '@/domain/types'
+import type { ID, Menu, MenuProduct } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatMoney } from '@/lib/format'
 
 type Props = {
-  branchId: ID
+  /** filial menyusi (faqat sotuvdagilar, tartiblangan); `undefined` — hali yuklanmoqda */
+  menu: Menu | undefined
   cartCounts: Map<ID, number>
   cartQty: number
   cartTotal: number
-  onOpen: (product: Product) => void
+  onOpen: (product: MenuProduct) => void
   onCart: () => void
 }
 
@@ -23,22 +22,20 @@ type Props = {
  * Kiosk menyusi: katta sarlavha, qidiruv, rasmli kategoriyalar qatori va taomlar to'ri. Savatda taom bo'lsa pastda
  * suzuvchi qora "savat" kapsulasi.
  */
-export default function KioskMenu({ branchId, cartCounts, cartQty, cartTotal, onOpen, onCart }: Props) {
+export default function KioskMenu({ menu, cartCounts, cartQty, cartTotal, onOpen, onCart }: Props) {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<ID | null>(null)
 
-  const categories = db.categories.filter((c) => c.active).sort((a, b) => a.sortOrder - b.sortOrder)
+  const categories = menu?.categories ?? []
   const categoryId = categories.some((c) => c.id === selectedId) ? selectedId : (categories[0]?.id ?? null)
   const category = categories.find((c) => c.id === categoryId)
   const search = query.trim().toLowerCase()
 
-  const products = db.products
-    .filter((p) => p.active && categories.some((c) => c.id === p.categoryId))
-    .filter((p) => (search ? Object.values(p.name).some((name) => name.toLowerCase().includes(search)) : p.categoryId === categoryId))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const products = (menu?.products ?? []).filter((p) =>
+    search ? Object.values(p.name).some((name) => name.toLowerCase().includes(search)) : p.categoryId === categoryId,
+  )
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -82,24 +79,22 @@ export default function KioskMenu({ branchId, cartCounts, cartQty, cartTotal, on
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-32 sm:px-8">
         <SectionTitle className="mb-4">{search ? t.kiosk.allResults(query.trim()) : category ? localize(category.name) : ''}</SectionTitle>
-        {products.length === 0 ? (
+        {/* menyu yuklanguncha bo'sh — "hech narsa topilmadi" chaqnab ketmasin */}
+        {!menu ? null : products.length === 0 ? (
           <p className="py-16 text-center text-lg text-neutral-500">{t.kiosk.noResults}</p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
-            {products.map((product) => {
-              const price = branchPrice(db, branchId, product.id)
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  price={price}
-                  size="lg"
-                  subtitle={compositionText(db, product, localize, 3)}
-                  badge={cartCounts.get(product.id)}
-                  onClick={price !== null ? () => onOpen(product) : undefined}
-                />
-              )
-            })}
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                price={product.price}
+                size="lg"
+                subtitle={compositionText(product, localize, 3)}
+                badge={cartCounts.get(product.id)}
+                onClick={product.price !== null ? () => onOpen(product) : undefined}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -1,29 +1,36 @@
-import { Check, CircleCheck, X } from 'lucide-react'
+import { Check, CircleCheck, ClipboardList, X } from 'lucide-react'
 import { useState } from 'react'
-import { api, useDb } from '@/api'
-import { useCurrentUser } from '@/api/session'
+import { api } from '@/api'
+import { usePurchases } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
+import Pagination from '@/components/ui/Pagination'
+import SegmentedControl from '@/components/ui/SegmentedControl'
 import type { ID, Purchase } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { confirmDialog, showToast } from '@/lib/swal'
 import PurchaseDetails from '@/pages/warehouse/PurchaseDetails'
 import { PurchaseRow } from '@/pages/warehouse/PurchasesPage'
+import { usePageState, useServerPage } from '@/pages/warehouse/serverPagination'
+
+/** Ko'rib chiqilganlar tarixi — holat bo'yicha alohida (server bitta holat bilan sahifalaydi). */
+type Decided = 'approved' | 'rejected'
+
+/** Kutilayotganlar hammasi bitta ro'yxatda ko'rinadi (ish) — amalda bundan ko'p bo'lmaydi. */
+const PENDING_LIMIT = 200
 
 /** Kutilayotgan kirim: narxlar (oldingi kirimdan yozilgan) tekshiriladi / o'zgartiriladi → tasdiqlash yoki rad etish. */
 function PendingPurchase({ purchase }: { purchase: Purchase }) {
   const t = useT()
-  const user = useCurrentUser()
   const [prices, setPrices] = useState<Record<ID, string>>(() =>
     Object.fromEntries(purchase.items.map((item) => [item.ingredientId, item.price !== null ? String(item.price) : ''])),
   )
   const missing = purchase.items.some((item) => !prices[item.ingredientId])
 
   const approve = async () => {
-    if (!user) return
     try {
-      await api.purchases.approve(purchase.id, Object.fromEntries(Object.entries(prices).map(([id, value]) => [id, Number(value)])), user.id)
+      await api.purchases.approve(purchase.id, Object.fromEntries(Object.entries(prices).map(([id, value]) => [id, Number(value)])))
       showToast(t.admin.purchases.approved)
     } catch (error) {
       showToast(errorMessage(error), 'error')
@@ -31,9 +38,9 @@ function PendingPurchase({ purchase }: { purchase: Purchase }) {
   }
 
   const reject = async () => {
-    if (!user || !(await confirmDialog(t.admin.purchases.rejectTitle(t.purchase.number(purchase.number)), t.admin.purchases.rejectText, t.admin.purchases.reject))) return
+    if (!(await confirmDialog(t.admin.purchases.rejectTitle(t.purchase.number(purchase.number)), t.admin.purchases.rejectText, t.admin.purchases.reject))) return
     try {
-      await api.purchases.reject(purchase.id, user.id)
+      await api.purchases.reject(purchase.id)
       showToast(t.admin.purchases.rejected)
     } catch (error) {
       showToast(errorMessage(error), 'error')
@@ -58,20 +65,32 @@ function PendingPurchase({ purchase }: { purchase: Purchase }) {
   )
 }
 
-/** Kirimlarni tasdiqlash: yuqorida kutilayotganlar (narx maydonlari bilan), pastda ko'rib chiqilganlar tarixi. */
+/**
+ * Kirimlarni tasdiqlash: yuqorida kutilayotganlar (narx maydonlari bilan, hammasi), pastda ko'rib chiqilganlar tarixi —
+ * "Tasdiqlangan / Rad etilgan" tanlovi bilan, 10 tadan (server sahifalaydi). Ikkala ro'yxat ham yangisi birinchi.
+ */
 export default function PurchaseApprovalPage() {
   const t = useT()
-  const db = useDb()
-  const sorted = [...db.purchases].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const pending = sorted.filter((p) => p.status === 'pending')
-  const decided = sorted.filter((p) => p.status !== 'pending')
+  const pendingQuery = usePurchases({ status: 'pending', limit: PENDING_LIMIT })
+  const pending = pendingQuery.data?.items
+  const [decided, setDecided] = useState<Decided>('approved')
+  const paging = usePageState(decided)
+  const historyQuery = usePurchases({ status: decided, page: paging.page, limit: paging.limit })
+  const history = useServerPage(historyQuery.data, paging)
 
   return (
     <div className="space-y-5">
       <PageHeader title={t.admin.purchases.title} description={t.admin.purchases.hint} />
       <Card>
-        <CardHeader title={`${t.purchase.statuses.pending} · ${pending.length}`} />
-        {pending.length === 0 ? (
+        {/* soni — kelgach (yuklanayotganda "0" ko'rinib qolmasin) */}
+        <CardHeader title={pendingQuery.data ? `${t.purchase.statuses.pending} · ${pendingQuery.data.total}` : t.purchase.statuses.pending} />
+        {!pending ? (
+          pendingQuery.error ? (
+            <div className="p-4">
+              <EmptyState icon={CircleCheck} title={errorMessage(pendingQuery.error)} />
+            </div>
+          ) : null
+        ) : pending.length === 0 ? (
           <div className="p-4">
             <EmptyState icon={CircleCheck} title={t.admin.purchases.nonePending} />
           </div>
@@ -84,12 +103,40 @@ export default function PurchaseApprovalPage() {
         )}
       </Card>
       <Card>
-        <CardHeader title={t.admin.purchases.history} />
-        <ul className="divide-y divide-neutral-100">
-          {decided.map((purchase) => (
-            <PurchaseRow key={purchase.id} purchase={purchase} />
-          ))}
-        </ul>
+        <CardHeader
+          title={t.admin.purchases.history}
+          actions={
+            <SegmentedControl<Decided>
+              label={t.admin.purchases.history}
+              value={decided}
+              onChange={setDecided}
+              options={[
+                { value: 'approved', label: t.purchase.statuses.approved },
+                { value: 'rejected', label: t.purchase.statuses.rejected },
+              ]}
+            />
+          }
+        />
+        {!history.list ? (
+          historyQuery.error ? (
+            <div className="p-4">
+              <EmptyState icon={ClipboardList} title={errorMessage(historyQuery.error)} />
+            </div>
+          ) : null
+        ) : history.list.total === 0 ? (
+          <div className="p-4">
+            <EmptyState icon={ClipboardList} title={t.purchase.empty} />
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y divide-neutral-100">
+              {history.list.items.map((purchase) => (
+                <PurchaseRow key={purchase.id} purchase={purchase} />
+              ))}
+            </ul>
+            <Pagination {...history.pagination} />
+          </>
+        )}
       </Card>
     </div>
   )

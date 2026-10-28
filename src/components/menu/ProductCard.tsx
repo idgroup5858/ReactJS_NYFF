@@ -5,7 +5,8 @@ import { useLocalize, useT } from '@/i18n'
 import { formatNumber } from '@/lib/format'
 
 type Props = {
-  product: Product
+  /** admin — `Product`, kassa / kiosk — menyudagi `MenuProduct` */
+  product: Pick<Product, 'name' | 'image'>
   /** filial narxi; `null` — shu filialda sotilmaydi */
   price: number | null
   onClick?: () => void

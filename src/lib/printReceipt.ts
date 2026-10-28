@@ -5,13 +5,19 @@ import { formatDateTime, formatMoney, formatOrderNumber } from './format'
 
 const escape = (text: string) => text.replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char] ?? char)
 
+/**
+ * Chekka kerak maydonlar: kassa buyurtmasi (`Order`) yoki kiosk javobi — `CustomerOrder` da manba yo'q, kiosk
+ * `{ ...order, source: 'kiosk' }` beradi. `online` — faqat mobil buyurtmada (aks holda `null`).
+ */
+export type ReceiptOrder = Pick<Order, 'number' | 'type' | 'source' | 'items' | 'note' | 'total' | 'payment' | 'online' | 'createdAt'>
+
 /** 80 mm termochek: oshxona shu qog'ozdan tayyorlaydi — raqam, zal / olib ketish va izohlar katta. */
-function receiptHtml(order: Order, branchName: string): string {
+function receiptHtml(order: ReceiptOrder, branchName: string): string {
   const t = currentDict()
   const lang = settingsStore.get().lang
   const items = order.items
     .map(
-      (item) => `<tr><td class="qty">${item.qty}×</td><td>${escape(item.name[lang] || item.name.uz)}${item.note ? `<div class="note">» ${escape(item.note)}</div>` : ''}</td><td class="sum">${formatMoney(item.price * item.qty, t)}</td></tr>`,
+      (item) => `<tr><td class="qty">${item.qty}×</td><td>${escape(item.name[lang] || item.name.uz)}</td><td class="sum">${formatMoney(item.price * item.qty, t)}</td></tr>`,
     )
     .join('')
   const payment = order.payment ? t.payment[order.payment] : t.orderStatus.pending
@@ -28,15 +34,16 @@ table { width: 100%; border-collapse: collapse }
 td { vertical-align: top; padding: .8mm 0 }
 .qty { width: 9mm; font-weight: 700; font-size: 14px }
 .sum { text-align: right; white-space: nowrap; padding-left: 2mm }
-.note, .order-note { font-weight: 700 }
+.order-note { font-weight: 700 }
 .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900 }
 .muted { font-size: 11px }
 </style></head><body>
 <div class="center"><div class="brand">${escape(t.appName.toUpperCase())}</div><div class="muted">${escape(branchName)}</div>
 <div class="number">${formatOrderNumber(order.number)}</div>
-<div class="type">${escape(t.orderType[order.type])}</div>${order.source === 'kiosk' ? `<div class="muted">${escape(t.orders.kiosk)}</div>` : ''}
+<div class="type">${escape(t.orderType[order.type])}</div>${order.source !== 'cashier' ? `<div class="muted">${escape(order.source === 'kiosk' ? t.orders.kiosk : t.orders.online)}</div>` : ''}
 <div class="muted">${formatDateTime(order.createdAt)}</div></div>
 <hr><table>${items}</table>
+${order.online ? `<hr><div>${escape([order.online.name, order.online.phone].filter(Boolean).join(' · '))}</div>${order.online.address ? `<div class="order-note">${escape(order.online.address)}</div>` : ''}` : ''}
 ${order.note ? `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>` : ''}
 <hr><div class="total"><span>${escape(t.kassa.total)}</span><span>${formatMoney(order.total, t)}</span></div>
 <div class="muted">${escape(payment)}</div>
@@ -47,7 +54,7 @@ ${order.note ? `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escap
  * Chekni yashirin oynada chop etadi (brauzerning standart printeri — kassadagi termoprinter). Chrome `--kiosk-printing`
  * bilan ochilsa, oyna so'ramasdan darhol chiqadi.
  */
-export function printReceipt(order: Order, branchName: string): void {
+export function printReceipt(order: ReceiptOrder, branchName: string): void {
   const frame = document.createElement('iframe')
   frame.setAttribute('aria-hidden', 'true')
   frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'

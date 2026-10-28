@@ -1,53 +1,48 @@
-import { useDb } from '@/api'
+import { useBranches, useIngredients, useMovements, useWarehouses } from '@/api/queries'
 import Modal from '@/components/ui/Modal'
+import Pagination from '@/components/ui/Pagination'
 import { tdClass, thClass } from '@/components/ui/styles'
-import type { ID, StockMovement } from '@/domain/types'
-import { useLocalize, useT } from '@/i18n'
+import type { ID, MovementWithRef } from '@/domain/types'
+import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatOrderNumber, formatStock } from '@/lib/format'
 import { warehouseLabel } from '@/lib/warehouses'
+import { usePageState, useServerPage } from './serverPagination'
 
-/** Harakatlarning eng ko'pi shuncha ko'rsatiladi (eng yangilari). */
-const LIMIT = 150
-
-/** Bitta mahsulotning bitta ombordagi harakatlari: kirim, ko'chirish, sotuv, bekor qilish — hujjat raqami bilan. */
+/** Bitta mahsulotning bitta ombordagi harakatlari (10 tadan, eng yangisi birinchi): kirim, ko'chirish, sotuv, bekor qilish — hujjat raqami bilan. */
 export default function MovementsModal({ warehouseId, ingredientId, onClose }: { warehouseId: ID; ingredientId: ID; onClose: () => void }) {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
-  const ingredient = db.ingredients.find((i) => i.id === ingredientId)
+  const warehouses = useWarehouses().data ?? []
+  const branches = useBranches().data ?? []
+  const paging = usePageState()
+  const movements = useMovements({ warehouseId, ingredientId, page: paging.page, limit: paging.limit })
+  const { list, pagination } = useServerPage(movements.data, paging)
+  const ingredient = useIngredients().data?.find((i) => i.id === ingredientId)
   if (!ingredient) return null
 
-  const movements = db.movements
-    .filter((m) => m.warehouseId === warehouseId && m.ingredientId === ingredientId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, LIMIT)
-
-  const reference = (movement: StockMovement): string => {
+  // hujjat raqami va ko'chirishdagi ikkinchi ombor — server javobida (`refNumber`, `refWarehouseId`)
+  const reference = (movement: MovementWithRef): string => {
+    if (movement.refNumber === null) return '—'
     switch (movement.kind) {
       case 'sale':
-      case 'sale_cancel': {
-        const order = db.orders.find((o) => o.id === movement.refId)
-        return order ? t.stock.refOrder(formatOrderNumber(order.number)) : '—'
-      }
-      case 'purchase': {
-        const purchase = db.purchases.find((p) => p.id === movement.refId)
-        return purchase ? t.purchase.number(purchase.number) : '—'
-      }
+      case 'sale_cancel':
+        return t.stock.refOrder(formatOrderNumber(movement.refNumber))
+      case 'purchase':
+        return t.purchase.number(movement.refNumber)
       case 'transfer_in':
       case 'transfer_out': {
-        const transfer = db.transfers.find((tr) => tr.id === movement.refId)
-        if (!transfer) return '—'
-        const other = movement.kind === 'transfer_in' ? transfer.fromWarehouseId : transfer.toWarehouseId
-        return `${t.transfer.number(transfer.number)} · ${warehouseLabel(db, other, t)}`
+        const other = movement.refWarehouseId ? warehouseLabel(warehouses, branches, movement.refWarehouseId, t) : '—'
+        return `${t.transfer.number(movement.refNumber)} · ${other}`
       }
     }
   }
 
   return (
     <Modal title={t.stock.historyTitle(localize(ingredient.name))} onClose={onClose} size="lg">
-      <p className="mb-3 text-sm text-neutral-500">{warehouseLabel(db, warehouseId, t)}</p>
-      {movements.length === 0 ? (
-        <p className="py-10 text-center text-sm text-neutral-500">{t.stock.noMovements}</p>
+      <p className="mb-3 text-sm text-neutral-500">{warehouseLabel(warehouses, branches, warehouseId, t)}</p>
+      {!list || list.total === 0 ? (
+        // yuklanayotganda — bo'sh joy (balandligi "harakat yo'q" bilan bir xil), xato bo'lsa — uning matni
+        <p className="py-10 text-center text-sm text-neutral-500">{list ? t.stock.noMovements : movements.error ? errorMessage(movements.error) : ' '}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -60,7 +55,7 @@ export default function MovementsModal({ warehouseId, ingredientId, onClose }: {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {movements.map((movement) => (
+              {list.items.map((movement) => (
                 <tr key={movement.id}>
                   <td className={`${tdClass} whitespace-nowrap text-neutral-500 tabular-nums`}>{formatDateTime(movement.createdAt)}</td>
                   <td className={tdClass}>{t.stock.kinds[movement.kind]}</td>
@@ -73,6 +68,7 @@ export default function MovementsModal({ warehouseId, ingredientId, onClose }: {
               ))}
             </tbody>
           </table>
+          <Pagination {...pagination} />
         </div>
       )}
     </Modal>

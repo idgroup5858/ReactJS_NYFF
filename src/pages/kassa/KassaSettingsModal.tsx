@@ -3,19 +3,21 @@ import { useState, type FormEvent } from 'react'
 import { api } from '@/api'
 import Modal from '@/components/ui/Modal'
 import SegmentedControl from '@/components/ui/SegmentedControl'
-import { isValidPin } from '@/domain/logic/users'
-import type { ID } from '@/domain/types'
+import { isValidPin } from '@/domain/rules'
 import { errorMessage, useT } from '@/i18n'
 import { showToast } from '@/lib/swal'
 import {
   ICON_STYLES,
+  IMAGE_FITS,
   setCategoryPosition,
   setIconStyle,
+  setImageFit,
   setTheme,
   THEMES,
   useSettings,
   type CategoryPosition,
   type IconStyle,
+  type ImageFit,
   type Theme,
 } from '@/store/settingsStore'
 
@@ -39,9 +41,9 @@ function PinField({ id, label, value, onChange }: { id: string; label: string; v
 }
 
 /** Kassa sozlamalari: kategoriyalar joyi va ko'rinish (shu qurilma uchun), kassirning o'z PIN'ini almashtirish. */
-export default function KassaSettingsModal({ userId, onClose }: { userId: ID; onClose: () => void }) {
+export default function KassaSettingsModal({ onClose }: { onClose: () => void }) {
   const t = useT()
-  const { categoryPosition, theme, iconStyle } = useSettings()
+  const { categoryPosition, theme, iconStyle, imageFit } = useSettings()
   const [oldPin, setOldPin] = useState('')
   const [newPin, setNewPin] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -52,7 +54,7 @@ export default function KassaSettingsModal({ userId, onClose }: { userId: ID; on
     if (!isValidPin(newPin)) return setError(t.errors.invalid_pin)
     if (newPin !== repeat) return setError(t.kassaSettings.mismatch)
     try {
-      await api.users.changeOwnPin(userId, oldPin, newPin)
+      await api.users.changeOwnPin(oldPin, newPin)
       setOldPin('')
       setNewPin('')
       setRepeat('')
@@ -96,6 +98,16 @@ export default function KassaSettingsModal({ userId, onClose }: { userId: ID; on
             value={iconStyle}
             onChange={setIconStyle}
             options={ICON_STYLES.map((value) => ({ value, label: t.theme.iconStyles[value] }))}
+          />
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.imageFit}</h3>
+          <SegmentedControl<ImageFit>
+            label={t.theme.imageFit}
+            value={imageFit}
+            onChange={setImageFit}
+            options={IMAGE_FITS.map((value) => ({ value, label: t.theme.imageFits[value] }))}
           />
         </section>
 

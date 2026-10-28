@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { api, useDb } from '@/api'
+import { api } from '@/api'
+import { useBranches, useCategories, useIngredients } from '@/api/queries'
 import Field from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import { inputClass, selectClass } from '@/components/ui/styles'
@@ -8,6 +9,7 @@ import Toggle from '@/components/ui/Toggle'
 import { INGREDIENT_GROUPS, type ID, type LocalizedText, type Product } from '@/domain/types'
 import { baseUnitOf } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
+import { formatNumber } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import ImagePicker from './ImagePicker'
 
@@ -17,44 +19,53 @@ let seq = 0
 const recipeRow = (ingredientId: ID = '', qty = ''): RecipeDraft => ({ key: ++seq, ingredientId, qty })
 
 /**
- * Taom qo'shish / tahrirlash: kategoriya, nomi 3 tilda, rasmi, retsepti (mahsulot + miqdor asosiy birlikda: g / ml /
- * dona) va faolligi. Yangi taomga boshlang'ich narx berilsa — barcha faol filiallarga yoziladi.
+ * Taom qo'shish / tahrirlash: kategoriya, nomi 3 tilda, rasmi, narxi (barcha filiallarda bir xil), qaysi faol
+ * filiallarda sotuvda, retsepti (mahsulot + miqdor asosiy birlikda: g / ml / dona) va faolligi — hammasi bitta
+ * so'rovda saqlanadi.
  */
 export default function ProductForm({ product, categoryId, onClose }: { product: Product | null; categoryId: ID; onClose: () => void }) {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
+  const categories = useCategories().data ?? []
+  const branches = (useBranches().data ?? []).filter((b) => b.active)
+  const allIngredients = useIngredients().data ?? []
   const [category, setCategory] = useState(product?.categoryId ?? categoryId)
   const [name, setName] = useState<LocalizedText>(product?.name ?? { uz: '', ru: '', en: '' })
   const [image, setImage] = useState(product?.image ?? '')
   const [active, setActive] = useState(product?.active ?? true)
   const [recipe, setRecipe] = useState<RecipeDraft[]>(() => (product ? product.recipe.map((line) => recipeRow(line.ingredientId, String(line.qty))) : [recipeRow()]))
-  const [price, setPrice] = useState('')
-  const ingredients = db.ingredients.filter((i) => i.active || recipe.some((line) => line.ingredientId === i.id))
+  // faqat raqamlar; bo'sh yoki 0 — server `invalid_price` qaytaradi
+  const [price, setPrice] = useState(product && product.price > 0 ? String(product.price) : '')
+  // nofaol filiallar ham ro'yxatda qoladi — ular bu yerda ko'rinmaydi, lekin belgisi o'chib ketmasin
+  const [unavailable, setUnavailable] = useState<ID[]>(product?.unavailableBranchIds ?? [])
+  const [saving, setSaving] = useState(false)
+  const ingredients = allIngredients.filter((i) => i.active || recipe.some((line) => line.ingredientId === i.id))
 
   const updateLine = (key: number, patch: Partial<RecipeDraft>) => setRecipe(recipe.map((line) => (line.key === key ? { ...line, ...patch } : line)))
+  const setSoldIn = (branchId: ID, sold: boolean) =>
+    setUnavailable(sold ? unavailable.filter((id) => id !== branchId) : [...unavailable, branchId])
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
+    if (saving) return
+    setSaving(true)
     try {
-      const saved = await api.menu.saveProduct({
+      await api.menu.saveProduct({
         id: product?.id,
         categoryId: category,
         name,
         image,
         active,
+        price: Number(price),
+        unavailableBranchIds: unavailable,
         recipe: recipe.filter((line) => line.ingredientId).map((line) => ({ ingredientId: line.ingredientId, qty: Number(line.qty) })),
       })
-      const initial = Number(price)
-      if (!product && initial > 0) {
-        for (const branch of db.branches.filter((b) => b.active)) {
-          await api.menu.setPrice({ branchId: branch.id, productId: saved.id, price: initial, available: true })
-        }
-      }
       showToast(t.common.saved)
       onClose()
     } catch (error) {
       showToast(errorMessage(error), 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -64,16 +75,16 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
       onClose={onClose}
       size="xl"
       footer={
-        <button type="submit" form="product-form" className="btn-primary h-11 w-full rounded text-sm font-bold">
+        <button type="submit" form="product-form" disabled={saving} className="btn-primary h-11 w-full rounded text-sm font-bold">
           {t.common.save}
         </button>
       }
     >
-      <form id="product-form" onSubmit={(event) => void save(event)} className="grid gap-5 lg:grid-cols-2">
+      <form id="product-form" onSubmit={(event) => void save(event)} className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-3">
           <Field label={t.admin.menu.category} htmlFor="prd-category">
             <select id="prd-category" value={category} onChange={(event) => setCategory(event.target.value)} className={selectClass}>
-              {db.categories.map((item) => (
+              {categories.map((item) => (
                 <option key={item.id} value={item.id}>
                   {localize(item.name)}
                 </option>
@@ -85,22 +96,38 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
               <input id={`prd-${lang}`} autoFocus={lang === 'uz'} value={name[lang]} onChange={(event) => setName({ ...name, [lang]: event.target.value })} className={inputClass} />
             </Field>
           ))}
-          <Field label={t.common.image}>
-            <ImagePicker value={image} onChange={setImage} />
-          </Field>
-          {!product && (
-            <Field label={t.admin.menu.initialPrice} htmlFor="prd-price" hint={t.admin.menu.initialPriceHint}>
-              <input id="prd-price" value={price} onChange={(event) => setPrice(event.target.value.replace(/\D/g, '').slice(0, 9))} inputMode="numeric" className={`${inputClass} text-right font-bold tabular-nums`} />
-            </Field>
-          )}
           <Toggle checked={active} onChange={setActive} label={t.common.active} />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <Field label={t.common.image}>
+            <ImagePicker value={image} onChange={setImage} folder="products" />
+          </Field>
+          <Field label={t.admin.menu.price} htmlFor="prd-price" hint={t.admin.menu.priceHint}>
+            <input
+              id="prd-price"
+              value={price === '' ? '' : formatNumber(Number(price))}
+              onChange={(event) => setPrice(event.target.value.replace(/\D/g, '').slice(0, 9))}
+              inputMode="numeric"
+              className={`${inputClass} text-right font-bold tabular-nums`}
+            />
+          </Field>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-neutral-600">{t.admin.menu.soldIn}</p>
+            <p className="text-xs text-neutral-500">{t.admin.menu.soldInHint}</p>
+            {branches.map((branch) => (
+              <div key={branch.id}>
+                <Toggle checked={!unavailable.includes(branch.id)} onChange={(sold) => setSoldIn(branch.id, sold)} label={branch.name} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2 md:col-span-2 lg:col-span-1">
           <p className="text-xs font-semibold text-neutral-600">{t.menu.recipe}</p>
           <p className="text-xs text-neutral-500">{t.admin.menu.recipeHint}</p>
           {recipe.map((line) => {
-            const ingredient = db.ingredients.find((i) => i.id === line.ingredientId)
+            const ingredient = allIngredients.find((i) => i.id === line.ingredientId)
             return (
               <div key={line.key} className="flex items-center gap-2">
                 <select value={line.ingredientId} onChange={(event) => updateLine(line.key, { ingredientId: event.target.value })} aria-label={t.purchase.chooseIngredient} className={`${selectClass} min-w-0 flex-1`}>

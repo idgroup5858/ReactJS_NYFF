@@ -1,52 +1,67 @@
 import { Plus, Receipt, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { api, useDb } from '@/api'
-import { useCurrentUser } from '@/api/session'
+import { api } from '@/api'
+import { useBranches, useExpenses } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import Field from '@/components/ui/Field'
 import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/styles'
 import PageHeader from '@/components/ui/PageHeader'
-import { EXPENSE_KINDS, type ExpenseKind } from '@/domain/types'
+import Pagination from '@/components/ui/Pagination'
+import { usePagination } from '@/components/ui/usePagination'
+import { EXPENSE_KINDS, type DateKey, type ExpenseKind } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatMoney, formatNumber } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useToday } from '@/lib/useNow'
 
+/** Oyning oxirgi kuni: `2026-02` → `2026-02-28`. */
+function monthEnd(month: string): DateKey {
+  const [year, monthNo] = month.split('-').map(Number)
+  return `${month}-${String(new Date(year, monthNo, 0).getDate()).padStart(2, '0')}`
+}
+
 /**
- * Rasxodlar (hozircha faqat kommunal: svet, gaz, suv, internet, boshqa): chapda qo'shish formasi, o'ngda tanlangan
- * oy va filial bo'yicha ro'yxat va turlar bo'yicha jami. Hisobotda tushumdan ayriladi.
+ * Chiqimlar (hozircha faqat kommunal: svet, gaz, suv, internet, boshqa): chapda qo'shish formasi, o'ngda tanlangan
+ * oy va filial bo'yicha ro'yxat (10 tadan sahifalab) va turlar bo'yicha jami. Hisobotda tushumdan ayriladi.
  */
 export default function ExpensesPage() {
   const t = useT()
-  const db = useDb()
-  const user = useCurrentUser()
   const today = useToday()
-  const branches = db.branches.filter((b) => b.active)
+  const allBranches = useBranches().data ?? []
+  const branches = allBranches.filter((b) => b.active)
 
-  const [branchId, setBranchId] = useState(branches[0]?.id ?? '')
+  const [branchChoice, setBranchChoice] = useState('')
+  // tanlanmagan bo'lsa — birinchi faol filial (filiallar keyinroq yuklanishi mumkin)
+  const branchId = branchChoice || branches[0]?.id || ''
   const [kind, setKind] = useState<ExpenseKind>('electricity')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(today)
   const [note, setNote] = useState('')
   const [month, setMonth] = useState(today.slice(0, 7))
   const [filterBranch, setFilterBranch] = useState('all')
+  const [saving, setSaving] = useState(false)
 
-  const list = db.expenses
-    .filter((e) => e.date.startsWith(month) && (filterBranch === 'all' || e.branchId === filterBranch))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+  // tanlangan oy (1-kunidan oxirgi kunigacha) va filial — serverda filtrlanadi
+  const expenses = useExpenses({ branchId: filterBranch === 'all' ? undefined : filterBranch, from: `${month}-01`, to: monthEnd(month) })
+  const list = [...(expenses.data ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
   const total = list.reduce((sum, e) => sum + e.amount, 0)
+  const { pageItems, pagination, reset } = usePagination(list, `${month}|${filterBranch}`)
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    if (!user) return
+    if (saving) return
+    setSaving(true)
     try {
-      await api.expenses.create({ branchId, kind, amount: Number(amount), date, note, createdBy: user.id })
+      await api.expenses.create({ branchId, kind, amount: Number(amount), date, note })
       setAmount('')
       setNote('')
+      reset()
       showToast(t.admin.expenses.added)
     } catch (error) {
       showToast(errorMessage(error), 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -67,7 +82,7 @@ export default function ExpensesPage() {
           <CardHeader title={t.admin.expenses.add} />
           <form onSubmit={(event) => void save(event)} className="space-y-3 p-4">
             <Field label={t.common.branch} htmlFor="ex-branch">
-              <select id="ex-branch" value={branchId} onChange={(event) => setBranchId(event.target.value)} className={selectClass}>
+              <select id="ex-branch" value={branchId} onChange={(event) => setBranchChoice(event.target.value)} className={selectClass}>
                 {branches.map((branch) => (
                   <option key={branch.id} value={branch.id}>
                     {branch.name}
@@ -101,7 +116,7 @@ export default function ExpensesPage() {
             <Field label={t.common.note} htmlFor="ex-note">
               <input id="ex-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={120} className={inputClass} />
             </Field>
-            <button type="submit" disabled={!amount || !date} className="btn-primary flex h-11 w-full items-center justify-center gap-2 rounded text-sm font-bold">
+            <button type="submit" disabled={!amount || !date || !branchId || saving} className="btn-primary flex h-11 w-full items-center justify-center gap-2 rounded text-sm font-bold">
               <Plus size={16} />
               {t.admin.expenses.add}
             </button>
@@ -116,7 +131,7 @@ export default function ExpensesPage() {
                 <input type="month" value={month} max={today.slice(0, 7)} onChange={(event) => event.target.value && setMonth(event.target.value)} aria-label={t.admin.expenses.month} className={`${inputClass} h-9! w-40!`} />
                 <select value={filterBranch} onChange={(event) => setFilterBranch(event.target.value)} aria-label={t.common.branch} className={`${selectClass} h-9! w-40!`}>
                   <option value="all">{t.admin.reports.allBranches}</option>
-                  {db.branches.map((branch) => (
+                  {allBranches.map((branch) => (
                     <option key={branch.id} value={branch.id}>
                       {branch.name}
                     </option>
@@ -127,7 +142,8 @@ export default function ExpensesPage() {
           />
           {list.length === 0 ? (
             <div className="p-4">
-              <EmptyState icon={Receipt} title={t.admin.expenses.empty} />
+              {/* yuklanayotganda — xuddi shu bo'sh kartochka (matnsiz), sahifa sakramasin */}
+              <EmptyState icon={Receipt} title={expenses.data ? t.admin.expenses.empty : expenses.error ? errorMessage(expenses.error) : '\u00a0'} />
             </div>
           ) : (
             <>
@@ -155,10 +171,10 @@ export default function ExpensesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {list.map((expense) => (
+                    {pageItems.map((expense) => (
                       <tr key={expense.id}>
                         <td className={`${tdClass} whitespace-nowrap tabular-nums`}>{expense.date.split('-').reverse().join('.')}</td>
-                        <td className={tdClass}>{db.branches.find((b) => b.id === expense.branchId)?.name ?? '—'}</td>
+                        <td className={tdClass}>{allBranches.find((b) => b.id === expense.branchId)?.name ?? '—'}</td>
                         <td className={tdClass}>
                           {t.admin.expenses.kinds[expense.kind]}
                           {expense.note && <span className="block text-xs text-neutral-500">{expense.note}</span>}
@@ -174,6 +190,7 @@ export default function ExpensesPage() {
                   </tbody>
                 </table>
               </div>
+              <Pagination {...pagination} />
             </>
           )}
         </Card>

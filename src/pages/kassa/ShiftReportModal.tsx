@@ -1,21 +1,24 @@
-import { useDb } from '@/api'
+import { useBranches } from '@/api/queries'
+import { useSession } from '@/api/session'
 import { PAYMENT_ICONS } from '@/components/order/orderIcons'
 import Modal from '@/components/ui/Modal'
-import { shiftSummary } from '@/domain/logic/shifts'
-import { PAYMENT_METHODS, type Shift } from '@/domain/types'
+import { PAYMENT_METHODS, type ShiftWithSummary } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatDateTime, formatMoney, formatNumber } from '@/lib/format'
 
-/** Smena topshirilgach chiqadigan tushum hisoboti; faqat "Chiqish" tugmasi bilan yopiladi. */
-export default function ShiftReportModal({ shift, onDone }: { shift: Shift; onDone: () => void }) {
+/**
+ * Smena topshirilgach chiqadigan tushum hisoboti (server yopilgan smenani jami bilan qaytaradi); faqat "Chiqish"
+ * tugmasi bilan yopiladi.
+ */
+export default function ShiftReportModal({ shift, onDone }: { shift: ShiftWithSummary; onDone: () => void }) {
   const t = useT()
-  const db = useDb()
-  const summary = shiftSummary(db, shift.id)
-  const cashier = db.users.find((u) => u.id === shift.cashierId)
-  const branch = db.branches.find((b) => b.id === shift.branchId)
+  const session = useSession()
+  const { data: branches } = useBranches()
+  const { summary } = shift
+  const branch = branches?.find((b) => b.id === shift.branchId)
 
   const rows: [string, string][] = [
-    [t.report.cashier, cashier?.name ?? '—'],
+    [t.report.cashier, session?.name ?? '—'],
     [t.common.branch, branch?.name ?? '—'],
     [t.report.opened, formatDateTime(shift.openedAt)],
     [t.report.closed, shift.closedAt ? formatDateTime(shift.closedAt) : '—'],

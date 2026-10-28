@@ -1,4 +1,5 @@
-import { AppError } from '@/domain/errors'
+import { ApiError } from '@/api/http'
+import { AppError, type ErrorCode } from '@/domain/errors'
 import type { Lang, LocalizedText } from '@/domain/types'
 import { settingsStore, useSettings } from '@/store/settingsStore'
 import { en } from './en'
@@ -19,9 +20,10 @@ export function useLocalize(): (text: LocalizedText) => string {
   return (text) => text[lang] || text.uz
 }
 
-/** React tashqarisida (masalan, catch ichida) xato matni. */
+/** React tashqarisida (masalan, catch ichida) xato matni: server xato kodi bo'yicha joriy tilda. */
 export function errorMessage(error: unknown): string {
   const dict = DICTS[settingsStore.get().lang]
+  if (error instanceof ApiError && error.code in dict.errors) return dict.errors[error.code as ErrorCode]
   if (error instanceof AppError) return dict.errors[error.code]
   console.error(error)
   return dict.unknownError

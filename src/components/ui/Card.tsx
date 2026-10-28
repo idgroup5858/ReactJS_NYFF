@@ -32,11 +32,14 @@ type CardHeaderProps = {
   actions?: ReactNode
 }
 
-/** Kartochka sarlavhasi: nom, ostida izoh, o'ngda qo'shimcha element. */
+/**
+ * Kartochka sarlavhasi: nom, ostida izoh, o'ngda qo'shimcha element. Uzun izoh tugma yonida qatorlarga bo'linadi
+ * (tugmani pastga surmaydi); faqat juda tor ekranda tugma keyingi qatorga tushadi.
+ */
 export function CardHeader({ title, hint, actions }: CardHeaderProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-[1_1_8rem]">
         <SectionTitle>{title}</SectionTitle>
         {hint && <p className="mt-0.5 pl-3 text-xs text-neutral-500 gomeal:pl-0 gomeal:text-neutral-400">{hint}</p>}
       </div>

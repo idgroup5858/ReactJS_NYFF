@@ -1,7 +1,6 @@
-import { ArrowLeftRight, BarChart3, Boxes, ClipboardCheck, Package, PackagePlus, Receipt, Store, Tags, Users, UtensilsCrossed } from 'lucide-react'
-import { useDb } from '@/api'
+import { ArrowLeftRight, BarChart3, Boxes, ClipboardCheck, Clock, Package, PackagePlus, Receipt, ShoppingBag, Store, Users, UtensilsCrossed } from 'lucide-react'
+import { useLowStock, useOverview } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
-import { lowStockItems } from '@/domain/logic/stock'
 import { useT } from '@/i18n'
 import type { NavGroup } from './Sidebar'
 
@@ -11,30 +10,34 @@ import type { NavGroup } from './Sidebar'
  */
 export function useBackOfficeNav(): NavGroup[] {
   const t = useT()
-  const db = useDb()
   const user = useCurrentUser()
+  const isAdmin = user?.role === 'admin'
+  // belgilar: admin — umumiy ko'rsatkichlardan; ta'minotchiga overview yopiq (403) — kam qolganlar ro'yxatidan
+  const overview = useOverview({ enabled: isAdmin }).data
+  const lowStock = useLowStock(undefined, { enabled: user !== null && !isAdmin }).data
 
   const warehouse: NavGroup = {
     title: t.modes.supplier.title,
     items: [
-      { to: '/ombor', label: t.stock.nav, icon: Boxes, end: true, badge: lowStockItems(db).length },
+      { to: '/ombor', label: t.stock.nav, icon: Boxes, end: true, badge: isAdmin ? overview?.lowStock : lowStock?.length },
       { to: '/ombor/kirim', label: t.purchase.title, icon: PackagePlus },
       { to: '/ombor/kochirish', label: t.transfer.title, icon: ArrowLeftRight },
       { to: '/ombor/mahsulotlar', label: t.ingredients.nav, icon: Package },
     ],
   }
-  if (user?.role !== 'admin') return [warehouse]
+  if (!isAdmin) return [warehouse]
 
   const admin: NavGroup = {
     title: t.modes.admin.title,
     items: [
       { to: '/admin', label: t.admin.nav.reports, icon: BarChart3, end: true },
-      { to: '/admin/kirimlar', label: t.admin.nav.purchases, icon: ClipboardCheck, badge: db.purchases.filter((p) => p.status === 'pending').length },
+      { to: '/admin/buyurtmalar', label: t.admin.nav.orders, icon: ShoppingBag },
+      { to: '/admin/smenalar', label: t.admin.nav.shifts, icon: Clock },
+      { to: '/admin/kirimlar', label: t.admin.nav.purchases, icon: ClipboardCheck, badge: overview?.pendingPurchases },
       { to: '/admin/menyu', label: t.admin.nav.menu, icon: UtensilsCrossed },
-      { to: '/admin/narxlar', label: t.admin.nav.prices, icon: Tags },
       { to: '/admin/filiallar', label: t.admin.nav.branches, icon: Store },
       { to: '/admin/xodimlar', label: t.admin.nav.staff, icon: Users },
-      { to: '/admin/rasxodlar', label: t.admin.nav.expenses, icon: Receipt },
+      { to: '/admin/chiqimlar', label: t.admin.nav.expenses, icon: Receipt },
     ],
   }
   return [admin, warehouse]

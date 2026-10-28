@@ -1,12 +1,14 @@
-import { ChefHat, ChevronLeft, Maximize, MapPin, PartyPopper } from 'lucide-react'
+import { ArrowLeftRight, ChefHat, ChevronLeft, Maximize, MapPin, PartyPopper } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
-import { useDb } from '@/api'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import { ApiError } from '@/api/http'
+import { useBranches, useTvQueue } from '@/api/queries'
+import { useRealtime } from '@/api/realtime'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
-import { activeOrders, recentReady } from '@/domain/logic/orders'
-import type { Order } from '@/domain/types'
+import { READY_SHOWN_MS } from '@/domain/rules'
+import type { TvOrder } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatOrderNumber, formatTime } from '@/lib/format'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
@@ -16,6 +18,10 @@ import { minutesSince, useNow } from '@/lib/useNow'
 const FRESH_SECONDS = 20
 /** Plitka balandligi (`h-28`) — ekranga nechta raqam sig'ishini hisoblash uchun. */
 const TILE_HEIGHT = 112
+/** Filial tanlash — kirish ekranining TV qadami. */
+const CHOOSE_BRANCH_PATH = '/?mode=tv'
+
+type Queue = { preparing: TvOrder[]; ready: TvOrder[] }
 
 /**
  * To'rga nechta plitka to'liq sig'adi (ustunlar × qatorlar). TV o'lchamlari har xil — qat'iy son bo'lsa, kichik ekranda
@@ -45,7 +51,7 @@ function fit<T>(items: T[], capacity: number): { shown: T[]; hidden: number } {
   return { shown, hidden: items.length - shown.length }
 }
 
-function Tile({ order, tone, fresh = false }: { order: Order; tone: 'preparing' | 'ready'; fresh?: boolean }) {
+function Tile({ order, tone, fresh = false }: { order: TvOrder; tone: 'preparing' | 'ready'; fresh?: boolean }) {
   const t = useT()
   const Icon = ORDER_TYPE_ICONS[order.type]
   const ready = tone === 'ready'
@@ -62,27 +68,25 @@ function Tile({ order, tone, fresh = false }: { order: Order; tone: 'preparing' 
   )
 }
 
+const headerButtonClass =
+  'flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-coal-line text-white/60 transition-colors hover:border-taxi hover:text-taxi'
+
 /**
- * TV navbat ekrani (PINsiz, filial manzildan): chapda (60 %) tayyorlanayotganlar, o'ngda (40 %) tayyorlar — katta sariq
- * raqamlar.
- * Kassir "Tayyor" bosgach raqam o'ngga o'tadi va bir necha daqiqadan keyin o'zi tushadi. Kassada to'lanmagan kiosk
- * buyurtmalari ko'rinmaydi. Baza boshqa tabda o'zgarsa darhol yangilanadi.
+ * Navbat ekrani: chapda (60 %) tayyorlanayotganlar, o'ngda (40 %) tayyorlar — katta sariq raqamlar. Oshpaz yordamchisi
+ * "Tayyor" bosgach raqam o'ngga o'tadi va 5 daqiqadan keyin o'zi tushadi (server bu haqda xabar yubormaydi). Navbatda
+ * faqat kassa va kioskdagi zalda / olib ketish buyurtmalari — saralashni server qiladi.
  */
-export default function TvPage() {
+function TvScreen({ branchName, queue }: { branchName: string; queue: Queue | undefined }) {
   const t = useT()
-  const db = useDb()
   const now = useNow(1000)
-  const { branchId } = useParams()
-  const branch = db.branches.find((b) => b.id === branchId && b.active)
   const [preparingGrid, setPreparingGrid] = useState<HTMLDivElement | null>(null)
   const [readyGrid, setReadyGrid] = useState<HTMLDivElement | null>(null)
   const preparingCapacity = useCapacity(preparingGrid)
   const readyCapacity = useCapacity(readyGrid)
   useDocumentTitle(t.modes.tv.title)
-  if (!branch) return <Navigate to="/?mode=tv" replace />
 
-  const preparing = activeOrders(db, branch.id).filter((o) => o.status === 'preparing')
-  const ready = recentReady(db, branch.id, now)
+  const preparing = queue?.preparing ?? []
+  const ready = (queue?.ready ?? []).filter((o) => o.readyAt && now.getTime() - new Date(o.readyAt).getTime() < READY_SHOWN_MS)
   const preparingFit = fit(preparing, preparingCapacity)
   const readyFit = fit(ready, readyCapacity)
 
@@ -96,29 +100,23 @@ export default function TvPage() {
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-6 py-3">
         <div className="flex items-center gap-5">
           <Brand size="lg" />
-          <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
-            <MapPin size={16} className="text-taxi" />
-            {branch.name}
-          </span>
+          {branchName && (
+            <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
+              <MapPin size={16} className="text-taxi" />
+              {branchName}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-3xl font-black text-taxi tabular-nums">{formatTime(now.toISOString())}</span>
           <LanguageSwitcher tone="dark" />
-          <button
-            type="button"
-            onClick={fullscreen}
-            title={t.tv.fullscreen}
-            aria-label={t.tv.fullscreen}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-coal-line text-white/60 transition-colors hover:border-taxi hover:text-taxi"
-          >
+          <button type="button" onClick={fullscreen} title={t.tv.fullscreen} aria-label={t.tv.fullscreen} className={headerButtonClass}>
             <Maximize size={16} />
           </button>
-          <Link
-            to="/"
-            title={t.common.back}
-            aria-label={t.common.back}
-            className="flex h-9 w-9 items-center justify-center rounded border border-coal-line text-white/60 transition-colors hover:border-taxi hover:text-taxi"
-          >
+          <Link to={CHOOSE_BRANCH_PATH} title={t.login.changeBranch} aria-label={t.login.changeBranch} className={headerButtonClass}>
+            <ArrowLeftRight size={16} />
+          </Link>
+          <Link to="/" title={t.common.back} aria-label={t.common.back} className={headerButtonClass}>
             <ChevronLeft size={16} />
           </Link>
         </div>
@@ -171,4 +169,30 @@ export default function TvPage() {
       <footer className="shrink-0 bg-taxi px-6 py-3 text-center text-lg font-bold text-coal">{t.tv.hint}</footer>
     </div>
   )
+}
+
+/**
+ * `/tv/:branchId` — PINsiz va kodsiz: filial manzildan, navbat socket orqali jonli (xodim ham, TV ham bir xil ko'radi).
+ * Filial noma'lum yoki faol emas (ekran ochiq turganda admin o'chirgan bo'lsa ham) — kirishdagi filial tanlashga.
+ */
+export default function TvPage() {
+  const { branchId = null } = useParams()
+  const navigate = useNavigate()
+  const queue = useTvQueue(branchId)
+  const branches = useBranches()
+  const reloadBranches = branches.reload
+  useRealtime(branchId ? { tvBranchId: branchId } : null, {
+    // server filialni tanimadi
+    onAuthError: () => void navigate(CHOOSE_BRANCH_PATH, { replace: true }),
+  })
+
+  // navbat 404 — ekran ochiq turganda filial o'chirilgan bo'lishi mumkin: qaror filiallar ro'yxatidan (qaytadan olinadi)
+  const notFound = queue.error instanceof ApiError && queue.error.status === 404
+  useEffect(() => {
+    if (notFound) reloadBranches()
+  }, [notFound, reloadBranches])
+
+  const branch = branches.data?.find((b) => b.id === branchId && b.active)
+  if (!branchId || (branches.data && !branch)) return <Navigate to={CHOOSE_BRANCH_PATH} replace />
+  return <TvScreen branchName={branch?.name ?? ''} queue={queue.data} />
 }

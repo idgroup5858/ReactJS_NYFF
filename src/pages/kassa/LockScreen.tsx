@@ -5,20 +5,21 @@ import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import PinPad from '@/components/ui/PinPad'
 import UserAvatar from '@/components/ui/UserAvatar'
-import type { User } from '@/domain/types'
+import type { AuthUser } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 
 /**
- * 5 daqiqa harakatsizlikdan keyin kassa ustini to'liq yopadi. Faqat shu kassirning PIN'i bilan ochiladi;
- * boshqa xodim kirmoqchi bo'lsa — chiqish (smena yopilmaydi).
+ * 5 daqiqa harakatsizlikdan keyin kassa ustini to'liq yopadi. Faqat shu kassirning PIN'i bilan ochiladi (server
+ * tekshiradi, token yangilanadi); boshqa xodim kirmoqchi bo'lsa — chiqish (smena yopilmaydi).
  */
-export default function LockScreen({ user }: { user: User }) {
+export default function LockScreen({ user }: { user: AuthUser }) {
   const t = useT()
   const navigate = useNavigate()
 
+  // xato matni PIN pad ostida chiqadi (kirish ekranidagi kabi)
   const unlock = async (pin: string): Promise<string | null> => {
     try {
-      unlockSession(pin)
+      await unlockSession(pin)
       return null
     } catch (error) {
       return errorMessage(error)

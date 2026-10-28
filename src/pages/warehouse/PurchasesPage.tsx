@@ -1,15 +1,16 @@
 import { ChevronDown, ClipboardList, Send } from 'lucide-react'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router'
-import { api, useDb } from '@/api'
-import { useCurrentUser } from '@/api/session'
+import { api } from '@/api'
+import { useBranches, usePurchases, useUsers, useWarehouses } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import Field from '@/components/ui/Field'
+import Pagination from '@/components/ui/Pagination'
 import SegmentedControl from '@/components/ui/SegmentedControl'
 import { selectClass, textareaClass } from '@/components/ui/styles'
-import { purchaseTotal } from '@/domain/logic/purchases'
-import type { Purchase, PurchaseStatus } from '@/domain/types'
+import { purchaseTotal } from '@/domain/rules'
+import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatDateTime, formatMoney } from '@/lib/format'
 import { showToast } from '@/lib/swal'
@@ -17,22 +18,25 @@ import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
 import { newDraftLine, readyLines, type DraftLine } from './draftLines'
 import LinesEditor from './LinesEditor'
 import PurchaseDetails, { PurchaseStatusBadge } from './PurchaseDetails'
+import { usePageState, useServerPage } from './serverPagination'
 
 type Filter = PurchaseStatus | 'all'
 
 /** Ro'yxatdagi kirim: sarlavha (raqam, ombor, holat, summa) bosilsa tarkibi ochiladi. */
 export function PurchaseRow({ purchase, defaultOpen = false, children }: { purchase: Purchase; defaultOpen?: boolean; children?: ReactNode }) {
   const t = useT()
-  const db = useDb()
+  const users = useUsers().data ?? []
+  const warehouses = useWarehouses().data ?? []
+  const branches = useBranches().data ?? []
   const [open, setOpen] = useState(defaultOpen)
-  const author = db.users.find((u) => u.id === purchase.createdBy)
-  const decider = db.users.find((u) => u.id === purchase.decidedBy)
+  const author = users.find((u) => u.id === purchase.createdBy)
+  const decider = users.find((u) => u.id === purchase.decidedBy)
   return (
     <li>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="flex w-full cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-left hover:bg-neutral-50">
         <span className="font-extrabold text-neutral-950">{t.purchase.number(purchase.number)}</span>
         <PurchaseStatusBadge status={purchase.status} />
-        <span className="text-sm text-neutral-500">{warehouseLabel(db, purchase.warehouseId, t)}</span>
+        <span className="text-sm text-neutral-500">{warehouseLabel(warehouses, branches, purchase.warehouseId, t)}</span>
         <span className="flex-1" />
         <span className="text-sm font-bold tabular-nums">{purchase.status === 'rejected' ? '—' : formatMoney(Math.round(purchaseTotal(purchase)), t)}</span>
         <ChevronDown size={16} className={`text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -57,29 +61,33 @@ export function PurchaseRow({ purchase, defaultOpen = false, children }: { purch
  */
 export default function PurchasesPage() {
   const t = useT()
-  const db = useDb()
-  const user = useCurrentUser()
   const [params] = useSearchParams()
-  const warehouses = activeWarehouses(db)
-  const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? '')
+  const allWarehouses = useWarehouses().data ?? []
+  const branches = useBranches().data ?? []
+  const warehouses = activeWarehouses(allWarehouses, branches)
+  // omborlar serverdan keladi: tanlanmaguncha (yoki yuklanguncha) — birinchisi (markaziy)
+  const [chosenWarehouse, setWarehouseId] = useState<ID>('')
+  const warehouseId = warehouses.find((w) => w.id === chosenWarehouse)?.id ?? warehouses[0]?.id ?? ''
   const [lines, setLines] = useState<DraftLine[]>(() => [newDraftLine(params.get('item') ?? '', params.get('qty') ?? '')])
   const [note, setNote] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [busy, setBusy] = useState(false)
 
   const ready = readyLines(lines)
-  const purchases = db.purchases
-    .filter((p) => filter === 'all' || p.status === filter)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // yangisi birinchi, 10 tadan — server sahifalaydi
+  const paging = usePageState(filter)
+  const purchases = usePurchases({ status: filter === 'all' ? undefined : filter, page: paging.page, limit: paging.limit })
+  const { list, pagination } = useServerPage(purchases.data, paging)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!user || ready.length === 0 || busy) return
+    if (!warehouseId || ready.length === 0 || busy) return
     setBusy(true)
     try {
-      await api.purchases.create({ warehouseId, items: ready, note, createdBy: user.id })
+      await api.purchases.create({ warehouseId, items: ready, note })
       setLines([newDraftLine()])
       setNote('')
+      paging.reset()
       showToast(t.purchase.created)
     } catch (error) {
       showToast(errorMessage(error), 'error')
@@ -97,7 +105,7 @@ export default function PurchasesPage() {
             <select id="purchase-warehouse" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)} className={selectClass}>
               {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {warehouseLabel(db, w.id, t)}
+                  {warehouseLabel(allWarehouses, branches, w.id, t)}
                 </option>
               ))}
             </select>
@@ -130,16 +138,25 @@ export default function PurchasesPage() {
             />
           }
         />
-        {purchases.length === 0 ? (
+        {!list ? (
+          purchases.error ? (
+            <div className="p-4">
+              <EmptyState icon={ClipboardList} title={errorMessage(purchases.error)} />
+            </div>
+          ) : null
+        ) : list.total === 0 ? (
           <div className="p-4">
             <EmptyState icon={ClipboardList} title={t.purchase.empty} />
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-100">
-            {purchases.map((purchase) => (
-              <PurchaseRow key={purchase.id} purchase={purchase} />
-            ))}
-          </ul>
+          <>
+            <ul className="divide-y divide-neutral-100">
+              {list.items.map((purchase) => (
+                <PurchaseRow key={purchase.id} purchase={purchase} />
+              ))}
+            </ul>
+            <Pagination {...pagination} />
+          </>
         )}
       </Card>
     </div>

@@ -7,12 +7,13 @@ type Props = {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  /** wide — md dan biroz keng (to'lov oynasi: 4 ta to'lov turi bir qatorda sig'sin) */
+  size?: 'sm' | 'md' | 'wide' | 'lg' | 'xl'
   /** false — fon va Esc bilan yopilmaydi (masalan smena hisoboti: faqat tugma bilan) */
   dismissable?: boolean
 }
 
-const WIDTHS = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-2xl', xl: 'max-w-4xl' }
+const WIDTHS = { sm: 'max-w-sm', md: 'max-w-md', wide: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-6xl' }
 
 /** Ilova oynasi — SweetAlert dialoglari bilan bir xil anatomiya: sarlavha · ✕ → matn → tugmalar. */
 export default function Modal({ title, onClose, children, footer, size = 'md', dismissable = true }: Props) {

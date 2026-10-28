@@ -1,8 +1,8 @@
 import UserAvatar from '@/components/ui/UserAvatar'
-import type { User } from '@/domain/types'
+import type { AuthUser } from '@/domain/types'
 import { useT } from '@/i18n'
 
-export default function UserStep({ users, onSelect }: { users: User[]; onSelect: (user: User) => void }) {
+export default function UserStep({ users, onSelect }: { users: AuthUser[]; onSelect: (user: AuthUser) => void }) {
   const t = useT()
   if (users.length === 0) return <p className="py-8 text-center text-sm text-neutral-500">{t.login.noUsers}</p>
 

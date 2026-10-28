@@ -1,21 +1,25 @@
-import { MessageSquareText, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { ChevronRight, Plus, ShoppingCart, Trash2, Wallet, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
-import { SectionTitle } from '@/components/ui/Card'
 import FoodImage from '@/components/ui/FoodImage'
 import QtyStepper from '@/components/ui/QtyStepper'
-import { ORDER_TYPES, type OrderType, type Product } from '@/domain/types'
+import type { MenuProduct, OrderType } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatMoney } from '@/lib/format'
 import type { CartLine } from '@/lib/cart'
 
 export interface PricedLine extends CartLine {
-  product: Product
-  /** `null` — taom savatga qo'shilgandan keyin sotuvdan olingan */
+  product: Pick<MenuProduct, 'name' | 'image'>
+  /** `null` — taom savatga qo'shilgandan keyin sotuvdan olingan (yoki menyudan butunlay chiqarilgan) */
   price: number | null
 }
 
+/** Kassada dostavka yo'q — u faqat mobil ilovadan keladi (manzil, joylashuv, kuryer). */
+const KASSA_ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway']
+
 type Props = {
+  /** tepadagi ochiq cheklar tablari */
+  tabs: ReactNode
   lines: PricedLine[]
   total: number
   orderType: OrderType
@@ -23,47 +27,36 @@ type Props = {
   orderNote: string
   onOrderNote: (note: string) => void
   onChangeQty: (key: string, delta: number) => void
-  onNote: (key: string, note: string) => void
   onRemove: (key: string) => void
   onClear: () => void
   onPay: () => void
 }
 
-/** O'ng panel: buyurtma turi, taomlar (soni, izohi), buyurtmaga izoh, jami va "To'lash". */
+/** O'ng panel: ochiq cheklar, buyurtma turi, taomlar (ixcham qatorlar), buyurtmaga izoh va jami summali "To'lash" — faol chek uchun. */
 export default function CartPanel(props: Props) {
-  const { lines, total, orderType, onOrderType, orderNote, onOrderNote, onChangeQty, onNote, onRemove, onClear, onPay } = props
+  const { tabs, lines, total, orderType, onOrderType, orderNote, onOrderNote, onChangeQty, onRemove, onClear, onPay } = props
   const t = useT()
   const localize = useLocalize()
-  const [openNotes, setOpenNotes] = useState<Set<string>>(new Set())
   const [orderNoteOpen, setOrderNoteOpen] = useState(false)
-
-  const toggleNote = (key: string) =>
-    setOpenNotes((current) => {
-      const next = new Set(current)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0)
   const blocked = lines.length === 0 || lines.some((line) => line.price === null)
 
   return (
     <aside className="surface m-3 flex max-h-[55vh] shrink-0 flex-col overflow-hidden rounded-card border border-line shadow-card lg:mb-3 lg:ml-0 lg:max-h-none lg:w-[360px] xl:w-[400px] 2xl:w-[440px]">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200/70 px-4 py-3">
-        <SectionTitle>{t.kassa.newOrder}</SectionTitle>
+      <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200/70 px-3 py-2.5">
+        {tabs}
         {lines.length > 0 && (
-          <button type="button" onClick={onClear} className="btn-ghost flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold">
+          <button type="button" onClick={onClear} aria-label={t.kassa.clearCart} title={t.kassa.clearCart} className="btn-icon-danger flex h-8 w-8 shrink-0 items-center justify-center rounded">
             <Trash2 size={14} />
-            {t.kassa.clearCart}
           </button>
         )}
       </div>
 
-      <div className="shrink-0 border-b border-neutral-200/70 px-4 py-3">
-        <p className="mb-2 text-[10px] font-semibold tracking-[0.2em] text-neutral-400 uppercase">{t.kassa.orderType}</p>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={t.kassa.orderType}>
-          {ORDER_TYPES.map((type) => {
+      {/* buyurtma turi — ixcham segmentli tanlov (boshqa sahifalardagi SegmentedControl uslubida, to'liq kenglikda) */}
+      <div className="shrink-0 border-b border-neutral-200/70 px-3 py-2">
+        <div className="grid grid-cols-2 gap-1 rounded bg-neutral-200/70 p-1" role="radiogroup" aria-label={t.kassa.orderType}>
+          {KASSA_ORDER_TYPES.map((type) => {
             const Icon = ORDER_TYPE_ICONS[type]
             const active = type === orderType
             return (
@@ -73,9 +66,9 @@ export default function CartPanel(props: Props) {
                 role="radio"
                 aria-checked={active}
                 onClick={() => onOrderType(type)}
-                className={`flex h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-card border text-xs font-bold transition-colors ${active ? 'border-select bg-brand-50 text-neutral-950 ring-1 ring-select' : 'border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400'}`}
+                className={`flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded text-xs font-bold transition-colors ${active ? 'bg-taxi text-coal shadow-sm' : 'text-neutral-500 hover:text-neutral-900'}`}
               >
-                <Icon size={18} className={active ? 'text-select' : 'text-neutral-400'} />
+                <Icon size={15} />
                 {t.orderType[type]}
               </button>
             )
@@ -91,62 +84,41 @@ export default function CartPanel(props: Props) {
             <p className="text-xs text-neutral-500">{t.kassa.emptyCartHint}</p>
           </div>
         ) : (
-          <ul className="space-y-2 p-3">
-            {lines.map((line) => {
-              const noteOpen = openNotes.has(line.key) || line.note !== ''
-              return (
-                <li key={line.key} className="rounded-card bg-white p-3 shadow-card">
-                  <div className="flex items-start gap-3">
-                    <FoodImage src={line.product.image} alt="" className="h-12 w-12 shrink-0 rounded-media" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm leading-snug font-semibold text-neutral-950">{localize(line.product.name)}</p>
-                      <p className="text-xs text-neutral-500 tabular-nums">
-                        {line.price !== null ? `${formatMoney(line.price, t)} × ${line.qty}` : t.menu.unavailable}
-                      </p>
-                    </div>
-                    <p className={`shrink-0 text-sm font-bold tabular-nums ${line.price === null ? 'text-red-700' : 'text-neutral-950'}`}>
+          // qatorlar ingichka chiziq bilan ajratilgan — mavzuda kartochka soyasi bo'lmasa ham taomlar qo'shilib ketmasin
+          <ul className="divide-y divide-neutral-200 px-3">
+            {lines.map((line) => (
+              <li key={line.key} className="flex gap-2.5 py-2">
+                <FoodImage src={line.product.image} alt="" className="h-11 w-11 shrink-0 rounded-media" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate text-sm leading-tight font-semibold text-neutral-950">{localize(line.product.name)}</p>
+                    <p className={`shrink-0 text-sm leading-tight font-bold tabular-nums ${line.price === null ? 'text-red-700' : 'text-neutral-950'}`}>
                       {line.price !== null ? formatMoney(line.price * line.qty, t) : '—'}
                     </p>
                   </div>
-                  <div className="mt-2 flex items-center gap-1.5">
-                    <QtyStepper value={line.qty} onChange={(delta) => onChangeQty(line.key, delta)} />
-                    <span className="flex-1" />
-                    <button
-                      type="button"
-                      onClick={() => toggleNote(line.key)}
-                      aria-label={t.kassa.itemNote}
-                      title={t.kassa.itemNote}
-                      className={`btn-icon flex h-9 w-9 items-center justify-center rounded ${line.note ? 'border-red-200! bg-red-50! text-red-700!' : ''}`}
-                    >
-                      <MessageSquareText size={16} />
-                    </button>
+                  <div className="mt-1 flex items-center gap-2">
+                    <QtyStepper size="sm" value={line.qty} onChange={(delta) => onChangeQty(line.key, delta)} />
+                    <span className={`min-w-0 flex-1 truncate text-xs tabular-nums ${line.price === null ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
+                      {line.price !== null ? formatMoney(line.price, t) : t.menu.unavailable}
+                    </span>
                     <button
                       type="button"
                       onClick={() => onRemove(line.key)}
                       aria-label={t.kassa.remove}
                       title={t.kassa.remove}
-                      className="btn-icon-danger flex h-9 w-9 items-center justify-center rounded"
+                      className="btn-icon-danger flex h-7 w-7 shrink-0 items-center justify-center rounded"
                     >
-                      <X size={16} />
+                      <X size={14} />
                     </button>
                   </div>
-                  {noteOpen && (
-                    <input
-                      value={line.note}
-                      onChange={(event) => onNote(line.key, event.target.value)}
-                      placeholder={t.kassa.itemNotePlaceholder}
-                      maxLength={120}
-                      className="mt-2 h-9 w-full rounded border border-neutral-300 bg-white px-3 text-sm text-red-700 placeholder:text-neutral-400"
-                    />
-                  )}
-                </li>
-              )
-            })}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>
 
-      <div className="shrink-0 space-y-3 border-t border-neutral-200/70 px-4 py-3">
+      <div className="shrink-0 space-y-2.5 border-t border-neutral-200/70 px-3 py-2.5">
         {orderNoteOpen || orderNote ? (
           <textarea
             value={orderNote}
@@ -166,20 +138,22 @@ export default function CartPanel(props: Props) {
             {t.kassa.orderNote}
           </button>
         )}
-        <div className="flex items-end justify-between gap-3">
-          <span className="text-xs text-neutral-500">{t.kassa.itemsCount(count)}</span>
-          <span className="text-right">
-            <span className="block text-[10px] font-semibold tracking-[0.2em] text-neutral-400 uppercase">{t.kassa.total}</span>
-            <span className="block text-2xl font-extrabold text-neutral-950 tabular-nums">{formatMoney(total, t)}</span>
-          </span>
-        </div>
+        {/* menyu ostidagi "Kioskdan" tugmasi uslubida: sariq blok, qora doirada sariq ikonka; jami summa — tugmaning o'zida */}
         <button
           type="button"
           onClick={onPay}
           disabled={blocked}
-          className="btn-primary flex h-14 w-full items-center justify-center rounded text-sm font-bold tracking-[0.14em] uppercase"
+          className="group flex w-full cursor-pointer items-center gap-3 rounded-card bg-taxi p-3 text-left text-coal shadow-card transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
-          {t.kassa.pay}
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-coal text-taxi">
+            <Wallet size={20} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-lg leading-tight font-extrabold">{t.kassa.pay}</span>
+            <span className="block truncate text-xs text-coal/70">{t.kassa.itemsCount(count)}</span>
+          </span>
+          <span className="shrink-0 text-xl font-extrabold whitespace-nowrap tabular-nums">{formatMoney(total, t)}</span>
+          <ChevronRight size={22} className="shrink-0 transition-transform group-enabled:group-hover:translate-x-1" />
         </button>
       </div>
     </aside>

@@ -2,7 +2,7 @@ import { Check, Hamburger, Palette } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
 import { assetUrl } from '@/lib/assetUrl'
-import { ICON_STYLES, setIconStyle, setTheme, THEMES, useSettings, type Theme } from '@/store/settingsStore'
+import { ICON_STYLES, IMAGE_FITS, setIconStyle, setImageFit, setTheme, THEMES, useSettings, type Theme } from '@/store/settingsStore'
 import { HEADER_BUTTON } from './headerButton'
 
 /** Mavzu namunasi: fon · kartochka · aksent. */
@@ -19,7 +19,7 @@ const LIGHT_BUTTON =
 /** Header'dagi ko'rinish tanlovi: palitra tugmasi → mavzular ro'yxati. Tanlov shu qurilmada saqlanadi. */
 export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }) {
   const t = useT()
-  const { theme, iconStyle } = useSettings()
+  const { theme, iconStyle, imageFit } = useSettings()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -101,6 +101,27 @@ export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }
               </span>
               <span className="flex-1">{t.theme.iconStyles[value]}</span>
               {value === iconStyle && <Check size={16} className="text-select" />}
+            </button>
+          ))}
+          {/* taom rasmlari ramkada: to'ldirish (qirqiladi) yoki butunligicha */}
+          <p className="mt-1 border-t border-neutral-100 px-2.5 pt-2.5 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{t.theme.imageFit}</p>
+          {IMAGE_FITS.map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="menuitemradio"
+              aria-checked={value === imageFit}
+              onClick={() => {
+                setImageFit(value)
+                setOpen(false)
+              }}
+              className="flex w-full cursor-pointer items-center gap-3 rounded px-2.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-neutral-100"
+            >
+              <span className="flex h-6 w-9 shrink-0 overflow-hidden rounded-chip bg-neutral-100 ring-1 ring-neutral-200">
+                <img src={assetUrl('/images/categories/burgers.jpg')} alt="" className={`h-full w-full ${value === 'contain' ? 'object-contain' : 'object-cover'}`} />
+              </span>
+              <span className="flex-1">{t.theme.imageFits[value]}</span>
+              {value === imageFit && <Check size={16} className="text-select" />}
             </button>
           ))}
         </div>

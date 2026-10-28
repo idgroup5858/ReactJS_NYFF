@@ -1,21 +1,25 @@
 import { Check, History, PackageSearch, Pencil, Search, Truck, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { api, useDb } from '@/api'
+import { api } from '@/api'
+import { useBranches, useIngredients, useStock, useWarehouses } from '@/api/queries'
 import { Card } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import SegmentedControl from '@/components/ui/SegmentedControl'
-import { inputClass } from '@/components/ui/styles'
+import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
-import { stockItem } from '@/domain/logic/stock'
+import ViewToggle from '@/components/ui/ViewToggle'
 import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup, type StockItem } from '@/domain/types'
 import { fromBase, toBase } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatNumber, formatStock } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, parseQty, warehouseLabel } from '@/lib/warehouses'
+import { setWarehouseView, useSettings } from '@/store/settingsStore'
+import GroupHeading from './GroupHeading'
 import MovementsModal from './MovementsModal'
+import { useLastData } from './serverPagination'
 
 type Row = { ingredient: Ingredient; stock: StockItem | undefined; qty: number; min: number; low: boolean }
 
@@ -61,25 +65,74 @@ function MinEditor({ row, warehouseId, onDone }: { row: Row; warehouseId: ID; on
   )
 }
 
+type ItemProps = { row: Row; warehouseId: ID; refillTo: string; onHistory: () => void }
+
+/** Qoldiq qiymati oxirgi kirim narxida; narx hali noma'lum bo'lsa — `null`. */
+function rowValue(row: Row): number | null {
+  const { ingredient } = row
+  return ingredient.lastPrice !== null ? Math.round(Math.max(0, fromBase(row.qty, ingredient.unit)) * ingredient.lastPrice) : null
+}
+
+/** "Kam" / "Tugagan" belgisi; qoldiq yetarli bo'lsa — hech narsa. */
+function LowBadge({ row }: { row: Row }) {
+  const t = useT()
+  if (!row.low) return null
+  const out = row.qty <= 0
+  return (
+    <span className={`shrink-0 rounded-chip px-2 py-0.5 text-[11px] font-bold tracking-wide uppercase ${out ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700'}`}>
+      {out ? t.stock.out : t.stock.low}
+    </span>
+  )
+}
+
+/** Ogohlantirish chegarasi — bosilsa joyida tahrirlash ochiladi. */
+function MinButton({ row, onEdit }: { row: Row; onEdit: () => void }) {
+  const t = useT()
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      title={t.stock.editMin}
+      className="group flex cursor-pointer items-center gap-1.5 font-semibold whitespace-nowrap text-neutral-700 tabular-nums hover:text-neutral-950"
+    >
+      {row.min > 0 ? formatStock(row.min, row.ingredient.unit, t) : '—'}
+      <Pencil size={12} className="text-neutral-300 group-hover:text-select" />
+    </button>
+  )
+}
+
+/** Amallar: kam bo'lsa — "To'ldirish" (kartochkada butun kenglikda), har doim — harakatlar tarixi. */
+function RowActions({ row, refillTo, onHistory, stretch = false }: Omit<ItemProps, 'warehouseId'> & { stretch?: boolean }) {
+  const t = useT()
+  return (
+    <div className="flex justify-end gap-1.5">
+      {row.low && (
+        <Link to={refillTo} className={`btn-primary flex h-8 items-center justify-center gap-1.5 rounded px-2.5 text-xs font-bold whitespace-nowrap ${stretch ? 'flex-1' : ''}`}>
+          <Truck size={14} />
+          {t.stock.refill}
+        </Link>
+      )}
+      <button type="button" onClick={onHistory} title={t.stock.history} aria-label={t.stock.history} className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded">
+        <History size={14} />
+      </button>
+    </div>
+  )
+}
+
 /** Mahsulot kartochkasi: nomi, holati (faqat kam / tugagan), katta qoldiq, chegara (bosib tahrirlanadi), qiymati, amallar. */
-function StockCard({ row, warehouseId, refillTo, onHistory }: { row: Row; warehouseId: ID; refillTo: string; onHistory: () => void }) {
+function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
   const t = useT()
   const localize = useLocalize()
   const [editing, setEditing] = useState(false)
-  const { ingredient } = row
-  const out = row.qty <= 0
+  const value = rowValue(row)
 
   return (
     <div className={`flex flex-col gap-3 rounded-card border-2 p-3.5 shadow-card ${row.low ? 'border-red-200 bg-red-50' : 'border-transparent bg-white'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 leading-snug font-semibold text-neutral-950">{localize(ingredient.name)}</p>
-        {row.low && (
-          <span className={`shrink-0 rounded-chip px-2 py-0.5 text-[11px] font-bold tracking-wide uppercase ${out ? 'bg-red-600 text-white' : 'bg-red-100 text-red-700'}`}>
-            {out ? t.stock.out : t.stock.low}
-          </span>
-        )}
+        <p className="min-w-0 leading-snug font-semibold text-neutral-950">{localize(row.ingredient.name)}</p>
+        <LowBadge row={row} />
       </div>
-      <p className={`text-2xl leading-none font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, ingredient.unit, t)}</p>
+      <p className={`text-2xl leading-none font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient.unit, t)}</p>
       {editing ? (
         <MinEditor row={row} warehouseId={warehouseId} onDone={() => setEditing(false)} />
       ) : (
@@ -87,58 +140,81 @@ function StockCard({ row, warehouseId, refillTo, onHistory }: { row: Row; wareho
           <dt className="text-neutral-500">{t.stock.min}</dt>
           <dt className="text-right text-neutral-500">{t.stock.value}</dt>
           <dd>
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              title={t.stock.editMin}
-              className="group flex cursor-pointer items-center gap-1.5 font-semibold whitespace-nowrap text-neutral-700 tabular-nums hover:text-neutral-950"
-            >
-              {row.min > 0 ? formatStock(row.min, ingredient.unit, t) : '—'}
-              <Pencil size={12} className="text-neutral-300 group-hover:text-select" />
-            </button>
+            <MinButton row={row} onEdit={() => setEditing(true)} />
           </dd>
-          <dd className="text-right font-semibold whitespace-nowrap text-neutral-700 tabular-nums">
-            {ingredient.lastPrice !== null ? formatMoney(Math.round(Math.max(0, fromBase(row.qty, ingredient.unit)) * ingredient.lastPrice), t) : '—'}
-          </dd>
+          <dd className="text-right font-semibold whitespace-nowrap text-neutral-700 tabular-nums">{value !== null ? formatMoney(value, t) : '—'}</dd>
         </dl>
       )}
-      <div className="mt-auto flex justify-end gap-1.5">
-        {row.low && (
-          <Link to={refillTo} className="btn-primary flex h-8 flex-1 items-center justify-center gap-1.5 rounded px-2.5 text-xs font-bold whitespace-nowrap">
-            <Truck size={14} />
-            {t.stock.refill}
-          </Link>
-        )}
-        <button type="button" onClick={onHistory} title={t.stock.history} aria-label={t.stock.history} className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded">
-          <History size={14} />
-        </button>
+      <div className="mt-auto">
+        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} stretch />
       </div>
     </div>
   )
 }
 
+/** ixcham jadval katagi — kartochkadagidan pastroq qatorlar */
+const cellClass = `${tdClass} py-1.5!`
+
+/** Ixcham ko'rinishdagi qator: nomi + holati, qoldiq, chegara (bosib tahrirlanadi), qiymati, amallar. */
+function StockRow({ row, warehouseId, refillTo, onHistory }: ItemProps) {
+  const t = useT()
+  const localize = useLocalize()
+  const [editing, setEditing] = useState(false)
+  const value = rowValue(row)
+
+  return (
+    <tr className={row.low ? 'bg-red-50/70' : ''}>
+      <td className={cellClass}>
+        <span className="flex items-center gap-2">
+          <span className="font-semibold text-neutral-950">{localize(row.ingredient.name)}</span>
+          <LowBadge row={row} />
+        </span>
+      </td>
+      <td className={`${cellClass} text-right font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient.unit, t)}</td>
+      <td className={cellClass}>{editing ? <MinEditor row={row} warehouseId={warehouseId} onDone={() => setEditing(false)} /> : <MinButton row={row} onEdit={() => setEditing(true)} />}</td>
+      <td className={`${cellClass} text-right font-semibold text-neutral-700 tabular-nums`}>{value !== null ? formatMoney(value, t) : '—'}</td>
+      <td className={cellClass}>
+        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} />
+      </td>
+    </tr>
+  )
+}
+
 /**
- * Qoldiqlar: ombor tanlanadi → mahsulotlar guruhlar bo'yicha kartochkalar to'rida (uzun jadvalni aylantirib o'tirmaslik
- * uchun): qoldiq, ogohlantirish chegarasi (tahrirlanadi), qiymati. Kam qolganlar guruh boshida, "To'ldirish" —
+ * Qoldiqlar: ombor tanlanadi → mahsulotlar guruhlar bo'yicha kartochkalar to'rida yoki ixcham jadvalda (ko'rinish shu
+ * qurilmada saqlanadi): qoldiq, ogohlantirish chegarasi (tahrirlanadi), qiymati. Kam qolganlar guruh boshida, "To'ldirish" —
  * ko'chirish (filial) yoki kirim (markaziy) formasi tayyor holda ochiladi.
  */
 export default function StockPage() {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
   const [params, setParams] = useSearchParams()
-  const warehouses = activeWarehouses(db)
+  const warehousesQuery = useWarehouses()
+  const ingredientsQuery = useIngredients()
+  const allWarehouses = warehousesQuery.data ?? []
+  const branches = useBranches().data ?? []
+  const warehouses = activeWarehouses(allWarehouses, branches)
   const warehouseId = warehouses.find((w) => w.id === params.get('wh'))?.id ?? warehouses[0]?.id ?? ''
   const warehouse = warehouses.find((w) => w.id === warehouseId)
+  const stockQuery = useStock(warehouseId || undefined, { enabled: !!warehouseId })
   const [query, setQuery] = useState('')
   const [group, setGroup] = useState<IngredientGroup | 'all'>('all')
   const [onlyLow, setOnlyLow] = useState(false)
   const [history, setHistory] = useState<ID | null>(null)
+  const view = useSettings().warehouseView
 
-  const rows: Row[] = db.ingredients
+  // boshqa ombor tanlanganda uning qoldig'i kelguncha oldingisi turadi (ro'yxat yo'qolib-qaytmasin)
+  const stockItems = useLastData(stockQuery.data)
+
+  // mahsulotlar va qoldiq birinchi marta kelguncha ro'yxat ham, ko'rsatkichlar ham chiqmaydi (noldan sakramasin)
+  const loaded = ingredientsQuery.data !== undefined && stockItems !== undefined
+  const loadError = warehousesQuery.error ?? ingredientsQuery.error ?? stockQuery.error
+  // qoldiq yozuvi yo'q mahsulot — qoldiq 0, chegara yo'q
+  const stockById = new Map((stockItems ?? []).map((item) => [item.ingredientId, item]))
+  const rows: Row[] = (stockItems ? (ingredientsQuery.data ?? []) : [])
     .filter((i) => i.active)
     .map((ingredient) => {
-      const stock = stockItem(db, warehouseId, ingredient.id)
+      const stock = stockById.get(ingredient.id)
       const qty = stock?.qty ?? 0
       const min = stock?.minQty ?? 0
       return { ingredient, stock, qty, min, low: min > 0 && qty < min }
@@ -173,7 +249,7 @@ export default function StockPage() {
             label={t.stock.warehouse}
             value={warehouseId}
             onChange={(id) => setParams({ wh: id }, { replace: true })}
-            options={warehouses.map((w) => ({ value: w.id, label: warehouseLabel(db, w.id, t) }))}
+            options={warehouses.map((w) => ({ value: w.id, label: warehouseLabel(allWarehouses, branches, w.id, t) }))}
           />
         }
       />
@@ -181,9 +257,9 @@ export default function StockPage() {
       {/* uchtasi sig'masa — keyingi qatorga (yozuv bo'linmaydi) */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,19rem),1fr))] gap-3">
         {[
-          { label: t.stock.itemsCount, value: formatNumber(rows.length) },
-          { label: t.stock.lowCount, value: formatNumber(lowCount), tone: lowCount > 0 ? 'text-red-700' : '' },
-          { label: t.stock.totalValue, value: formatMoney(Math.round(totalValue), t) },
+          { label: t.stock.itemsCount, value: loaded ? formatNumber(rows.length) : '—' },
+          { label: t.stock.lowCount, value: loaded ? formatNumber(lowCount) : '—', tone: lowCount > 0 ? 'text-red-700' : '' },
+          { label: t.stock.totalValue, value: loaded ? formatMoney(Math.round(totalValue), t) : '—' },
         ].map((stat) => (
           <Card key={stat.label} className="px-4 py-3">
             <p className="text-[11px] font-semibold tracking-[0.1em] whitespace-nowrap text-neutral-500 uppercase">{stat.label}</p>
@@ -207,19 +283,53 @@ export default function StockPage() {
             ))}
           </select>
           <Toggle checked={onlyLow} onChange={setOnlyLow} label={t.stock.onlyLow} />
+          <ViewToggle value={view} onChange={setWarehouseView} />
         </div>
       </Card>
 
-      {visible.length === 0 ? (
+      {!loaded ? (
+        loadError ? (
+          <Card className="p-4">
+            <EmptyState icon={PackageSearch} title={errorMessage(loadError)} />
+          </Card>
+        ) : null
+      ) : visible.length === 0 ? (
         <Card className="p-4">
           <EmptyState icon={PackageSearch} title={t.stock.emptySearch} />
+        </Card>
+      ) : view === 'list' ? (
+        // bitta jadval, guruhlar — sarlavha qatorlari: ustunlar hamma guruhda bir tekis
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b border-neutral-200">
+                <tr>
+                  <th className={thClass}>{t.stock.name}</th>
+                  <th className={`${thClass} text-right`}>{t.stock.qty}</th>
+                  <th className={thClass}>{t.stock.min}</th>
+                  <th className={`${thClass} text-right`}>{t.stock.value}</th>
+                  <th className={thClass} />
+                </tr>
+              </thead>
+              {sections.map((section) => (
+                <tbody key={section.group} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
+                  <tr className="bg-neutral-50">
+                    <td colSpan={5} className="px-3 py-1.5">
+                      <GroupHeading group={section.group} count={section.rows.length} compact />
+                    </td>
+                  </tr>
+                  {section.rows.map((row) => (
+                    <StockRow key={row.ingredient.id} row={row} warehouseId={warehouseId} refillTo={refillLink(row)} onHistory={() => setHistory(row.ingredient.id)} />
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
         </Card>
       ) : (
         sections.map((section) => (
           <section key={section.group} className="space-y-2.5">
-            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
-              {t.stock.groups[section.group]} <span className="tabular-nums">· {section.rows.length}</span>
-            </h3>
+            <GroupHeading group={section.group} count={section.rows.length} />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
               {section.rows.map((row) => (
                 <StockCard

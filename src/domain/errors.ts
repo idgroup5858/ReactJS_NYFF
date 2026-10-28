@@ -18,6 +18,31 @@ export type ErrorCode =
   | 'invalid_amount'
   | 'self_action'
   | 'recipe_required'
+  | 'phone_required'
+  | 'address_required'
+  | 'zone_too_small'
+  | 'invalid_location'
+  | 'forbidden'
+  | 'invalid_image'
+  // ── faqat backend (NestJS_NYFF `src/common/errors.ts`) ──
+  | 'unauthorized'
+  | 'invalid_input'
+  | 'too_many_attempts'
+  | 'branch_closed'
+  | 'location_required'
+  // ── kuryer (asosan Android ilovasida; vebda — xodim kuryer ishiga aralashganda) ──
+  | 'off_duty'
+  | 'already_taken'
+  | 'other_branch'
+  | 'courier_busy'
+  | 'not_ready'
+  // ── kuryer login va paroli (admin "Xodimlar" da ochadi) ──
+  | 'wrong_login'
+  | 'invalid_login'
+  | 'invalid_password'
+  | 'login_taken'
+  /** server javob bermadi (tarmoq / server o'chiq) */
+  | 'network'
 
 export class AppError extends Error {
   readonly code: ErrorCode

@@ -1,4 +1,5 @@
-import type { OrderStatus, OrderType } from '@/domain/types'
+import { Smartphone } from 'lucide-react'
+import type { OrderSource, OrderStatus, OrderType } from '@/domain/types'
 import { useT } from '@/i18n'
 import { ORDER_TYPE_ICONS } from './orderIcons'
 
@@ -14,27 +15,39 @@ export function OrderTypeBadge({ type, className = '' }: { type: OrderType; clas
   )
 }
 
-const STATUS_CLASSES: Record<OrderStatus, string> = {
-  pending: 'bg-sky-50 text-sky-700',
-  preparing: 'bg-brand-100 text-brand-800',
-  ready: 'bg-emerald-50 text-emerald-700',
-  cancelled: 'bg-red-50 text-red-700',
+/** Holat ranglari: to'ldirilgan fon + to'q matn + rangli nuqta — jadvalda bir qarashda ajralib tursin (yozuv ham bor). */
+const STATUS_CLASSES: Record<OrderStatus, { pill: string; dot: string }> = {
+  pending: { pill: 'bg-sky-100 text-sky-800 ring-sky-300', dot: 'bg-sky-500' },
+  preparing: { pill: 'bg-amber-100 text-amber-900 ring-amber-300', dot: 'bg-amber-500' },
+  ready: { pill: 'bg-emerald-100 text-emerald-800 ring-emerald-300', dot: 'bg-emerald-500' },
+  cancelled: { pill: 'bg-red-100 text-red-800 ring-red-300', dot: 'bg-red-500' },
 }
 
-/** GoMeal'da — ichi bo'sh, rangli chegarali kapsula ("Completed", "Delivering to you" kabi). */
-const STATUS_GOMEAL = 'gomeal:rounded-full gomeal:border gomeal:border-current gomeal:bg-transparent gomeal:px-2.5 gomeal:font-medium gomeal:tracking-normal gomeal:normal-case'
+/** GoMeal'da — kapsula shakli, oddiy yozuv (KATTA HARF emas). */
+const STATUS_GOMEAL = 'gomeal:rounded-full gomeal:px-2.5 gomeal:tracking-normal gomeal:normal-case'
 
-export function StatusPill({ status }: { status: OrderStatus }) {
+/** `online` — mobil buyurtma: kutish holati "To'lanmagan" emas, "Qabul kutilmoqda" (Click bilan to'langan bo'lishi mumkin). */
+export function StatusPill({ status, online = false }: { status: OrderStatus; online?: boolean }) {
   const t = useT()
+  const { pill, dot } = STATUS_CLASSES[status]
   return (
-    <span className={`inline-flex items-center rounded-chip px-1.5 py-0.5 text-[11px] font-bold tracking-wide uppercase ${STATUS_CLASSES[status]} ${STATUS_GOMEAL}`}>
-      {t.orderStatus[status]}
+    <span className={`inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-[11px] font-bold tracking-wide whitespace-nowrap uppercase ring-1 ring-inset ${pill} ${STATUS_GOMEAL}`}>
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+      {status === 'pending' && online ? t.orders.awaitingAccept : t.orderStatus[status]}
     </span>
   )
 }
 
-/** Kiosk orqali kelgan buyurtma belgisi. */
-export function KioskBadge() {
+/** Buyurtma qayerdan kelgani: kiosk yoki mobil ilova ("Online"); kassadan bo'lsa — hech narsa. */
+export function SourceBadge({ source }: { source: OrderSource }) {
   const t = useT()
-  return <span className="rounded-chip bg-coal px-1.5 py-0.5 text-[11px] font-semibold text-taxi">{t.orders.kiosk}</span>
+  if (source === 'kiosk') return <span className="rounded-chip bg-coal px-1.5 py-0.5 text-[11px] font-semibold text-taxi">{t.orders.kiosk}</span>
+  if (source === 'mobile')
+    return (
+      <span className="inline-flex items-center gap-1 rounded-chip bg-sky-600 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+        <Smartphone size={11} />
+        {t.orders.online}
+      </span>
+    )
+  return null
 }

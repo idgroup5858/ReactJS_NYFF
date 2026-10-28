@@ -1,43 +1,79 @@
 import { Pencil, Plus } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
-import { api, useDb } from '@/api'
+import { api } from '@/api'
+import { useBranches, useUsers } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { Card } from '@/components/ui/Card'
 import Field from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import PageHeader from '@/components/ui/PageHeader'
+import Pagination from '@/components/ui/Pagination'
 import SegmentedControl from '@/components/ui/SegmentedControl'
 import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
+import { usePagination } from '@/components/ui/usePagination'
 import UserAvatar from '@/components/ui/UserAvatar'
-import { roleNeedsBranch } from '@/domain/logic/users'
+import { isValidLogin, isValidPassword, isValidPin, roleNeedsBranch } from '@/domain/rules'
 import { ROLES, type Role, type User } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
 import { showToast } from '@/lib/swal'
+import CouriersCard from './CouriersCard'
 
-/** Xodim qo'shish / tahrirlash: ism, rol, filial (kassir uchun), PIN (tahrirda bo'sh — o'zgarmaydi), faollik. */
+/**
+ * Xodim qo'shish / tahrirlash: ism, rol, filial (kassir uchun), PIN (tahrirda bo'sh — o'zgarmaydi), faollik. Kuryer —
+ * PIN o'rniga login va parol (ilovadagi yashirin oynadan shu bilan kiradi).
+ */
 function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }) {
   const t = useT()
-  const db = useDb()
   const actor = useCurrentUser()
-  const branches = db.branches.filter((b) => b.active)
+  const branches = (useBranches().data ?? []).filter((b) => b.active)
   const [name, setName] = useState(user?.name ?? '')
   const [role, setRole] = useState<Role>(user?.role ?? 'cashier')
-  const [branchId, setBranchId] = useState(user?.branchId ?? branches[0]?.id ?? '')
+  const [branchChoice, setBranchChoice] = useState(user?.branchId ?? '')
+  // tanlanmagan bo'lsa — birinchi faol filial (filiallar forma ochilgandan keyin kelishi ham mumkin)
+  const branchId = branchChoice || branches[0]?.id || ''
   const [pin, setPin] = useState('')
+  const [login, setLogin] = useState(user?.login ?? '')
+  const [password, setPassword] = useState('')
   const [active, setActive] = useState(user?.active ?? true)
+  const [saving, setSaving] = useState(false)
   const self = user?.id === actor?.id
+  const courier = role === 'courier'
+  // kuryerlik o'zgarsa (kuryer ↔ boshqa rol) eski PIN / parol yaramaydi — yangisi majburiy (server ham tekshiradi)
+  const secretRequired = !user || (user.role === 'courier') !== courier
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
-    if (!actor) return
+    if (saving) return
+    if (courier && !isValidLogin(login)) {
+      showToast(t.errors.invalid_login, 'error')
+      return
+    }
+    if (courier && (secretRequired || password) && !isValidPassword(password)) {
+      showToast(t.errors.invalid_password, 'error')
+      return
+    }
+    if (!courier && (secretRequired || pin) && !isValidPin(pin)) {
+      showToast(t.errors.invalid_pin, 'error')
+      return
+    }
+    setSaving(true)
     try {
-      await api.users.save({ id: user?.id, name, role, branchId: roleNeedsBranch(role) ? branchId : null, pin, active }, actor.id)
+      await api.users.save({
+        id: user?.id,
+        name,
+        role,
+        branchId: roleNeedsBranch(role) ? branchId : null,
+        ...(courier ? { login, password } : { pin }),
+        active,
+      })
       showToast(t.common.saved)
       onClose()
     } catch (error) {
       showToast(errorMessage(error), 'error')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -46,7 +82,7 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
       title={user ? t.admin.staff.edit : t.admin.staff.add}
       onClose={onClose}
       footer={
-        <button type="submit" form="staff-form" className="btn-primary h-11 w-full rounded text-sm font-bold">
+        <button type="submit" form="staff-form" disabled={saving} className="btn-primary h-11 w-full rounded text-sm font-bold">
           {t.common.save}
         </button>
       }
@@ -67,7 +103,7 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
           </Field>
           {roleNeedsBranch(role) && (
             <Field label={t.common.branch} htmlFor="st-branch">
-              <select id="st-branch" value={branchId} onChange={(event) => setBranchId(event.target.value)} className={selectClass}>
+              <select id="st-branch" value={branchId} onChange={(event) => setBranchChoice(event.target.value)} className={selectClass}>
                 {branches.map((branch) => (
                   <option key={branch.id} value={branch.id}>
                     {branch.name}
@@ -77,17 +113,51 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
             </Field>
           )}
         </div>
-        <Field label={user ? t.admin.staff.newPin : t.admin.staff.pin} htmlFor="st-pin" hint={user ? t.admin.staff.pinKeep : t.login.pinHint}>
-          <input
-            id="st-pin"
-            type="password"
-            inputMode="numeric"
-            autoComplete="new-password"
-            value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 8))}
-            className={`${inputClass} text-lg tracking-[0.3em]`}
-          />
-        </Field>
+        {courier ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label={t.admin.staff.login} htmlFor="st-login" hint={t.admin.staff.loginHint}>
+              <input
+                id="st-login"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={login}
+                onChange={(event) => setLogin(event.target.value.toLowerCase().replace(/\s/g, '').slice(0, 40))}
+                className={inputClass}
+              />
+            </Field>
+            <Field
+              label={secretRequired ? t.admin.staff.password : t.admin.staff.newPassword}
+              htmlFor="st-password"
+              hint={secretRequired ? t.admin.staff.passwordHint : t.admin.staff.passwordKeep}
+            >
+              <input
+                id="st-password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value.slice(0, 64))}
+                className={inputClass}
+              />
+            </Field>
+          </div>
+        ) : (
+          <Field
+            label={secretRequired ? t.admin.staff.pin : t.admin.staff.newPin}
+            htmlFor="st-pin"
+            hint={secretRequired ? t.login.pinHint : t.admin.staff.pinKeep}
+          >
+            <input
+              id="st-pin"
+              type="password"
+              inputMode="numeric"
+              autoComplete="new-password"
+              value={pin}
+              onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 8))}
+              className={`${inputClass} text-lg tracking-[0.3em]`}
+            />
+          </Field>
+        )}
         <Toggle checked={active} onChange={setActive} label={t.admin.staff.canLogin} />
         {self && <p className="text-xs text-neutral-500">{t.admin.staff.selfHint}</p>}
       </form>
@@ -98,10 +168,14 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
 /** Xodimlar: rol bo'yicha filtr, jadval (rol, filial, holat, qo'shilgan sana), qo'shish va tahrirlash. */
 export default function StaffPage() {
   const t = useT()
-  const db = useDb()
+  const usersQuery = useUsers()
+  const branches = useBranches().data ?? []
   const [filter, setFilter] = useState<Role | 'all'>('all')
   const [editing, setEditing] = useState<User | 'new' | null>(null)
-  const users = db.users.filter((u) => filter === 'all' || u.role === filter).sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role) || a.name.localeCompare(b.name))
+  const users = (usersQuery.data ?? [])
+    .filter((u) => filter === 'all' || u.role === filter)
+    .sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role) || a.name.localeCompare(b.name))
+  const { pageItems, pagination } = usePagination(users, filter)
 
   return (
     <div className="space-y-5">
@@ -115,6 +189,7 @@ export default function StaffPage() {
           </button>
         }
       />
+      <CouriersCard />
       <SegmentedControl<Role | 'all'>
         label={t.admin.staff.role}
         value={filter}
@@ -135,16 +210,19 @@ export default function StaffPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {users.map((user) => (
+              {pageItems.map((user) => (
                 <tr key={user.id} className={user.active ? '' : 'opacity-50'}>
                   <td className={tdClass}>
                     <span className="flex items-center gap-3">
                       <UserAvatar name={user.name} />
-                      <span className="font-semibold">{user.name}</span>
+                      <span>
+                        <span className="block font-semibold">{user.name}</span>
+                        {user.login && <span className="block text-xs text-neutral-500">{user.login}</span>}
+                      </span>
                     </span>
                   </td>
                   <td className={tdClass}>{t.roles[user.role]}</td>
-                  <td className={tdClass}>{db.branches.find((b) => b.id === user.branchId)?.name ?? t.admin.staff.allBranches}</td>
+                  <td className={tdClass}>{user.branchId ? (branches.find((b) => b.id === user.branchId)?.name ?? '—') : t.admin.staff.allBranches}</td>
                   <td className={tdClass}>
                     <span className={`rounded-chip px-2 py-0.5 text-[11px] font-bold uppercase ${user.active ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-200 text-neutral-600'}`}>
                       {user.active ? t.common.active : t.admin.staff.blocked}
@@ -158,9 +236,17 @@ export default function StaffPage() {
                   </td>
                 </tr>
               ))}
+              {!usersQuery.data && !!usersQuery.error && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-neutral-500">
+                    {errorMessage(usersQuery.error)}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+        <Pagination {...pagination} />
       </Card>
       {editing && <StaffForm user={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </div>

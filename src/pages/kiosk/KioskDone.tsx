@@ -1,7 +1,7 @@
 import { Banknote, CircleCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { OrderTypeBadge } from '@/components/order/OrderBadges'
-import type { Order } from '@/domain/types'
+import type { CustomerOrder } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatMoney, formatOrderNumber } from '@/lib/format'
 
@@ -12,7 +12,7 @@ const AUTO_RETURN_SECONDS = 20
  * Buyurtma qabul qilindi: katta raqam (TV da shu chiqadi), "Rahmat", avtomatik bosh ekranga qaytish. Kassada to'lanadigan
  * buyurtmada — "Kassaga boring": raqamni aytib to'laydi.
  */
-export default function KioskDone({ order, onDone }: { order: Order; onDone: () => void }) {
+export default function KioskDone({ order, onDone }: { order: CustomerOrder; onDone: () => void }) {
   const t = useT()
   const [left, setLeft] = useState(AUTO_RETURN_SECONDS)
   const unpaid = order.status === 'pending'

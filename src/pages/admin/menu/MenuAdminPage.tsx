@@ -1,11 +1,11 @@
 import { ChevronDown, ChevronUp, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
-import { api, useDb } from '@/api'
+import { api, type ProductInput } from '@/api'
+import { useBranches, useCategories, useIngredients, useProducts } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import FoodImage from '@/components/ui/FoodImage'
 import PageHeader from '@/components/ui/PageHeader'
 import Toggle from '@/components/ui/Toggle'
-import { branchPrice } from '@/domain/logic/orders'
 import type { Category, ID, Product } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatRecipeQty } from '@/lib/format'
@@ -15,23 +15,43 @@ import ProductForm from './ProductForm'
 
 const iconButton = 'btn-icon flex h-8 w-8 items-center justify-center rounded'
 
+/** Taomni ro'yxatdan turib bitta maydonini o'zgartirib saqlash (qolgani — o'sha holicha). */
+const productInput = (product: Product, patch: Partial<ProductInput>): ProductInput => ({
+  id: product.id,
+  categoryId: product.categoryId,
+  name: product.name,
+  image: product.image,
+  recipe: product.recipe,
+  price: product.price,
+  unavailableBranchIds: product.unavailableBranchIds,
+  active: product.active,
+  ...patch,
+})
+
 /**
- * Menyu boshqaruvi: chapda kategoriyalar (tartib, faollik, tahrir), o'ngda tanlangan kategoriya taomlari — retsepti,
- * filial narxlari, tartibi va faolligi. Narxlarni o'zgartirish — "Narxlar" bo'limida.
+ * Menyu boshqaruvi: chapda kategoriyalar (tartib, faollik, tahrir), o'ngda tanlangan kategoriya taomlari — narxi
+ * (barcha filiallarda bir xil), retsepti, tartibi va faolligi. Har bir faol filial uchun tugmacha — taomni shu
+ * filialda vaqtincha sotuvdan olish.
  */
 export default function MenuAdminPage() {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
-  const categories = [...db.categories].sort((a, b) => a.sortOrder - b.sortOrder)
+  const categoriesQuery = useCategories()
+  const productsQuery = useProducts()
+  const branches = (useBranches().data ?? []).filter((b) => b.active)
+  const ingredients = useIngredients().data ?? []
+  const allProducts = productsQuery.data ?? []
+  const categories = [...(categoriesQuery.data ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
   const [selectedId, setSelectedId] = useState<ID | null>(null)
   const categoryId = categories.some((c) => c.id === selectedId) ? (selectedId as ID) : (categories[0]?.id ?? '')
   const [categoryForm, setCategoryForm] = useState<Category | 'new' | null>(null)
   const [productForm, setProductForm] = useState<Product | 'new' | null>(null)
   const [openRecipe, setOpenRecipe] = useState<ID | null>(null)
-  const branches = db.branches.filter((b) => b.active)
+  // yuklanguncha bo'sh ro'yxat o'rnida "taom yo'q" chiqmasin; yuklab bo'lmasa — xato matni
+  const loaded = categoriesQuery.data !== undefined && productsQuery.data !== undefined
+  const loadError = (!categoriesQuery.data && categoriesQuery.error) || (!productsQuery.data && productsQuery.error)
 
-  const products = db.products.filter((p) => p.categoryId === categoryId).sort((a, b) => a.sortOrder - b.sortOrder)
+  const products = allProducts.filter((p) => p.categoryId === categoryId).sort((a, b) => a.sortOrder - b.sortOrder)
 
   const attempt = async (action: () => Promise<unknown>) => {
     try {
@@ -57,7 +77,7 @@ export default function MenuAdminPage() {
           />
           <ul className="space-y-1.5 p-2">
             {categories.map((category, index) => {
-              const count = db.products.filter((p) => p.categoryId === category.id).length
+              const count = allProducts.filter((p) => p.categoryId === category.id).length
               const selected = category.id === categoryId
               return (
                 <li
@@ -91,7 +111,7 @@ export default function MenuAdminPage() {
             title={localize(categories.find((c) => c.id === categoryId)?.name ?? { uz: '', ru: '', en: '' })}
             hint={t.admin.menu.productsHint}
             actions={
-              <button type="button" onClick={() => setProductForm('new')} className="btn-primary flex h-8 items-center gap-1.5 rounded px-3 text-xs font-bold">
+              <button type="button" disabled={!categoryId} onClick={() => setProductForm('new')} className="btn-primary flex h-8 items-center gap-1.5 rounded px-3 text-xs font-bold">
                 <Plus size={14} />
                 {t.admin.menu.addProduct}
               </button>
@@ -107,50 +127,60 @@ export default function MenuAdminPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-neutral-950">{localize(product.name)}</p>
                       <p className="text-xs text-neutral-400">{[product.name.ru, product.name.en].filter(Boolean).join(' · ')}</p>
-                      <p className="mt-1 flex flex-wrap gap-x-3 text-xs text-neutral-600">
-                        {branches.map((branch) => {
-                          const price = branchPrice(db, branch.id, product.id)
-                          return (
-                            <span key={branch.id} className="whitespace-nowrap">
-                              {branch.name}: <span className={`font-semibold tabular-nums ${price === null ? 'text-red-700' : 'text-neutral-950'}`}>{price !== null ? formatMoney(price, t) : t.menu.unavailable}</span>
-                            </span>
-                          )
-                        })}
-                      </p>
+                      <p className="mt-1 text-sm font-bold text-neutral-950 tabular-nums">{formatMoney(product.price, t)}</p>
                     </div>
                   </div>
-                  <div className="ml-auto flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setOpenRecipe(openRecipe === product.id ? null : product.id)}
-                      className="btn-ghost h-8 rounded px-3 text-xs font-semibold"
-                      aria-expanded={openRecipe === product.id}
-                    >
-                      {t.menu.recipe} · {product.recipe.length}
-                    </button>
-                    <Toggle
-                      checked={product.active}
-                      hideLabel
-                      label={t.common.active}
-                      onChange={(active) => void attempt(() => api.menu.saveProduct({ ...product, active }))}
-                    />
-                    <span className="flex gap-1">
-                      <button type="button" disabled={index === 0} onClick={() => void attempt(() => api.menu.moveProduct(product.id, -1))} aria-label={t.common.up} className={iconButton}>
-                        <ChevronUp size={14} />
+                  <div className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
+                    {/* filialda vaqtincha sotuvdan olish — har faol filialga bittadan */}
+                    <span className="mr-2 flex flex-wrap gap-x-5 gap-y-2">
+                      {branches.map((branch) => {
+                        const others = product.unavailableBranchIds.filter((id) => id !== branch.id)
+                        return (
+                          <Toggle
+                            key={branch.id}
+                            checked={!product.unavailableBranchIds.includes(branch.id)}
+                            label={branch.name}
+                            onChange={(sold) =>
+                              void attempt(() => api.menu.saveProduct(productInput(product, { unavailableBranchIds: sold ? others : [...others, branch.id] })))
+                            }
+                          />
+                        )
+                      })}
+                    </span>
+                    {/* qolgan amallar birga — joy yetmasa filial tugmachalaridan keyin butunligicha keyingi qatorga o'tadi */}
+                    <span className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setOpenRecipe(openRecipe === product.id ? null : product.id)}
+                        className="btn-ghost h-8 rounded px-3 text-xs font-semibold"
+                        aria-expanded={openRecipe === product.id}
+                      >
+                        {t.menu.recipe} · {product.recipe.length}
                       </button>
-                      <button type="button" disabled={index === products.length - 1} onClick={() => void attempt(() => api.menu.moveProduct(product.id, 1))} aria-label={t.common.down} className={iconButton}>
-                        <ChevronDown size={14} />
-                      </button>
-                      <button type="button" onClick={() => setProductForm(product)} aria-label={t.common.edit} className={iconButton}>
-                        <Pencil size={14} />
-                      </button>
+                      <Toggle
+                        checked={product.active}
+                        hideLabel
+                        label={t.common.active}
+                        onChange={(active) => void attempt(() => api.menu.saveProduct(productInput(product, { active })))}
+                      />
+                      <span className="flex gap-1">
+                        <button type="button" disabled={index === 0} onClick={() => void attempt(() => api.menu.moveProduct(product.id, -1))} aria-label={t.common.up} className={iconButton}>
+                          <ChevronUp size={14} />
+                        </button>
+                        <button type="button" disabled={index === products.length - 1} onClick={() => void attempt(() => api.menu.moveProduct(product.id, 1))} aria-label={t.common.down} className={iconButton}>
+                          <ChevronDown size={14} />
+                        </button>
+                        <button type="button" onClick={() => setProductForm(product)} aria-label={t.common.edit} className={iconButton}>
+                          <Pencil size={14} />
+                        </button>
+                      </span>
                     </span>
                   </div>
                 </div>
                 {openRecipe === product.id && (
                   <ul className="grid gap-x-6 border-t border-neutral-100 bg-neutral-50/60 px-4 py-2 sm:grid-cols-2">
                     {product.recipe.map((line) => {
-                      const ingredient = db.ingredients.find((i) => i.id === line.ingredientId)
+                      const ingredient = ingredients.find((i) => i.id === line.ingredientId)
                       if (!ingredient) return null
                       return (
                         <li key={line.ingredientId} className="flex justify-between gap-3 border-b border-dashed border-neutral-200 py-1.5 text-sm last:border-b-0">
@@ -163,7 +193,9 @@ export default function MenuAdminPage() {
                 )}
               </li>
             ))}
-            {products.length === 0 && <li className="px-4 py-10 text-center text-sm text-neutral-500">{t.admin.menu.noProducts}</li>}
+            {products.length === 0 && (
+              <li className="px-4 py-10 text-center text-sm text-neutral-500">{loadError ? errorMessage(loadError) : loaded ? t.admin.menu.noProducts : '\u00a0'}</li>
+            )}
           </ul>
         </Card>
       </div>

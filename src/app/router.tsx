@@ -1,4 +1,4 @@
-import { createBrowserRouter, type RouteObject } from 'react-router'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
 import AppLoading from '@/components/layout/AppLoading'
 import RequireRole from '@/components/layout/RequireRole'
 import type { Role } from '@/domain/types'
@@ -14,10 +14,11 @@ function guarded(roles: Role[], children: RouteObject[]): RouteObject {
 /**
  * Sahifalar (kirishdan boshqalari kerak bo'lganda yuklanadi — har bir bo'lim alohida fayl):
  *
- *   /                    kirish: ish joyi → filial → xodim → PIN  (`?mode=&branch=&user=`)
+ *   /                    kirish: ish joyi → filial → xodim → PIN  (`?mode=&branch=&user=`); TV / kiosk — ish joyi → filial
  *   /kassa               kassir
- *   /tv/:branchId        navbat ekrani (PINsiz)
- *   /kiosk/:branchId     kiosk (PINsiz)
+ *   /oshxona             oshpaz yordamchisi — "Tayyor" / "Qaytarish"
+ *   /tv/:branchId        navbat ekrani — shu filialniki (PINsiz va kodsiz); `/tv` — kirishdagi filial tanlashga
+ *   /kiosk/:branchId     kiosk — shu filialniki (PINsiz va kodsiz); `/kiosk` — kirishdagi filial tanlashga
  *   /ombor/*             ta'minotchi (admin ham kiradi)
  *   /admin/*             admin panel
  */
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: LoginPage },
       guarded(['cashier'], [{ path: 'kassa', lazy: async () => ({ Component: (await import('@/pages/kassa/KassaPage')).default }) }]),
+      guarded(['kitchen'], [{ path: 'oshxona', lazy: async () => ({ Component: (await import('@/pages/kitchen/KitchenPage')).default }) }]),
       guarded(['supplier', 'admin'], [
         {
           path: 'ombor',
@@ -47,17 +49,34 @@ export const router = createBrowserRouter([
           lazy: async () => ({ Component: (await import('@/pages/admin/AdminLayout')).default }),
           children: [
             { index: true, lazy: async () => ({ Component: (await import('@/pages/admin/reports/ReportsPage')).default }) },
+            { path: 'buyurtmalar', lazy: async () => ({ Component: (await import('@/pages/admin/orders/OrdersPage')).default }) },
+            {
+              // ro'yxat → smena → smenadagi buyurtma: ro'yxat ota sahifa bo'lib qoladi (filtrlari saqlanadi)
+              path: 'smenalar',
+              lazy: async () => ({ Component: (await import('@/pages/admin/shifts/ShiftsPage')).default }),
+              children: [
+                { path: ':shiftId', lazy: async () => ({ Component: (await import('@/pages/admin/shifts/ShiftDetailPage')).default }) },
+                { path: ':shiftId/:orderId', lazy: async () => ({ Component: (await import('@/pages/admin/shifts/ShiftOrderPage')).default }) },
+              ],
+            },
             { path: 'kirimlar', lazy: async () => ({ Component: (await import('@/pages/admin/PurchaseApprovalPage')).default }) },
             { path: 'menyu', lazy: async () => ({ Component: (await import('@/pages/admin/menu/MenuAdminPage')).default }) },
-            { path: 'narxlar', lazy: async () => ({ Component: (await import('@/pages/admin/PricesPage')).default }) },
-            { path: 'filiallar', lazy: async () => ({ Component: (await import('@/pages/admin/BranchesPage')).default }) },
+            {
+              // filiallar → yetkazib berish xaritasi (ichma-ich, orqaga tugmasi bilan)
+              path: 'filiallar',
+              lazy: async () => ({ Component: (await import('@/pages/admin/BranchesPage')).default }),
+              children: [{ path: 'xarita', lazy: async () => ({ Component: (await import('@/pages/admin/delivery/DeliveryMapPage')).default }) }],
+            },
             { path: 'xodimlar', lazy: async () => ({ Component: (await import('@/pages/admin/StaffPage')).default }) },
-            { path: 'rasxodlar', lazy: async () => ({ Component: (await import('@/pages/admin/ExpensesPage')).default }) },
+            { path: 'chiqimlar', lazy: async () => ({ Component: (await import('@/pages/admin/ExpensesPage')).default }) },
           ],
         },
       ]),
       { path: 'tv/:branchId', lazy: async () => ({ Component: (await import('@/pages/tv/TvPage')).default }) },
       { path: 'kiosk/:branchId', lazy: async () => ({ Component: (await import('@/pages/kiosk/KioskPage')).default }) },
+      // filialsiz manzil (eski xatcho'p) — kirish ekranidagi filial tanlashga
+      { path: 'tv', element: <Navigate to="/?mode=tv" replace /> },
+      { path: 'kiosk', element: <Navigate to="/?mode=kiosk" replace /> },
       { path: '*', Component: NotFoundPage },
     ],
   },

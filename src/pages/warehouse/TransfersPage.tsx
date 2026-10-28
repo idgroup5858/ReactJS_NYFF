@@ -1,11 +1,12 @@
 import { ArrowLeftRight, ArrowRight, Repeat } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
-import { api, useDb } from '@/api'
-import { useCurrentUser } from '@/api/session'
+import { api } from '@/api'
+import { useBranches, useIngredients, useTransfers, useUsers, useWarehouses } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import Field from '@/components/ui/Field'
+import Pagination from '@/components/ui/Pagination'
 import { selectClass, textareaClass } from '@/components/ui/styles'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatNumber } from '@/lib/format'
@@ -13,6 +14,7 @@ import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
 import { newDraftLine, readyLines, type DraftLine } from './draftLines'
 import LinesEditor from './LinesEditor'
+import { usePageState, useServerPage } from './serverPagination'
 
 /**
  * Ko'chirish: markaziy ombordan filialga (chiqim) yoki omborlar orasida. Bir vaqtda biridan ayriladi, ikkinchisiga
@@ -20,29 +22,38 @@ import LinesEditor from './LinesEditor'
  */
 export default function TransfersPage() {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
-  const user = useCurrentUser()
   const [params] = useSearchParams()
-  const warehouses = activeWarehouses(db)
+  const allWarehouses = useWarehouses().data ?? []
+  const branches = useBranches().data ?? []
+  const ingredients = useIngredients().data ?? []
+  const users = useUsers().data ?? []
+  const warehouses = activeWarehouses(allWarehouses, branches)
   const valid = (id: string | null) => warehouses.find((w) => w.id === id)?.id
-  const [from, setFrom] = useState(valid(params.get('from')) ?? warehouses[0]?.id ?? '')
-  const [to, setTo] = useState(valid(params.get('to')) ?? warehouses.find((w) => w.id !== from)?.id ?? '')
+  // omborlar serverdan keladi: tanlov (yoki `?from=&to=`) yaroqli bo'lmaguncha — markaziy → birinchi boshqa ombor
+  const [fromChoice, setFrom] = useState(params.get('from') ?? '')
+  const [toChoice, setTo] = useState(params.get('to') ?? '')
+  const from = valid(fromChoice) ?? warehouses[0]?.id ?? ''
+  const to = valid(toChoice) ?? warehouses.find((w) => w.id !== from)?.id ?? ''
   const [lines, setLines] = useState<DraftLine[]>(() => [newDraftLine(params.get('item') ?? '', params.get('qty') ?? '')])
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
   const ready = readyLines(lines)
-  const transfers = [...db.transfers].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  // yangisi birinchi, 10 tadan — server sahifalaydi
+  const paging = usePageState()
+  const transfers = useTransfers({ page: paging.page, limit: paging.limit })
+  const { list, pagination } = useServerPage(transfers.data, paging)
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    if (!user || ready.length === 0 || busy) return
+    if (!from || !to || ready.length === 0 || busy) return
     setBusy(true)
     try {
-      await api.transfers.create({ fromWarehouseId: from, toWarehouseId: to, items: ready, note, createdBy: user.id })
+      await api.transfers.create({ fromWarehouseId: from, toWarehouseId: to, items: ready, note })
       setLines([newDraftLine()])
       setNote('')
+      paging.reset()
       showToast(t.transfer.created)
     } catch (error) {
       showToast(errorMessage(error), 'error')
@@ -51,11 +62,17 @@ export default function TransfersPage() {
     }
   }
 
+  // har tanlovda ikkalasi ham qotiriladi — "qayerdan" o'zgarganda "qayerga" o'zi siljimasin
+  const choose = (nextFrom: string, nextTo: string) => {
+    setFrom(nextFrom)
+    setTo(nextTo)
+  }
+
   const warehouseSelect = (id: string, value: string, onChange: (value: string) => void) => (
     <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className={selectClass}>
       {warehouses.map((w) => (
         <option key={w.id} value={w.id}>
-          {warehouseLabel(db, w.id, t)}
+          {warehouseLabel(allWarehouses, branches, w.id, t)}
         </option>
       ))}
     </select>
@@ -68,14 +85,11 @@ export default function TransfersPage() {
         <form onSubmit={(event) => void submit(event)} className="space-y-4 p-4">
           <div className="grid items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <Field label={t.transfer.from} htmlFor="transfer-from">
-              {warehouseSelect('transfer-from', from, setFrom)}
+              {warehouseSelect('transfer-from', from, (value) => choose(value, to))}
             </Field>
             <button
               type="button"
-              onClick={() => {
-                setFrom(to)
-                setTo(from)
-              }}
+              onClick={() => choose(to, from)}
               aria-label={t.transfer.swap}
               title={t.transfer.swap}
               className="btn-icon flex h-10 w-10 items-center justify-center justify-self-center rounded"
@@ -83,7 +97,7 @@ export default function TransfersPage() {
               <Repeat size={16} />
             </button>
             <Field label={t.transfer.to} htmlFor="transfer-to">
-              {warehouseSelect('transfer-to', to, setTo)}
+              {warehouseSelect('transfer-to', to, (value) => choose(from, value))}
             </Field>
           </div>
           {from === to && <p className="text-sm font-semibold text-red-700">{t.errors.same_warehouse}</p>}
@@ -100,40 +114,49 @@ export default function TransfersPage() {
 
       <Card>
         <CardHeader title={t.transfer.list} />
-        {transfers.length === 0 ? (
+        {!list ? (
+          transfers.error ? (
+            <div className="p-4">
+              <EmptyState icon={ArrowLeftRight} title={errorMessage(transfers.error)} />
+            </div>
+          ) : null
+        ) : list.total === 0 ? (
           <div className="p-4">
             <EmptyState icon={ArrowLeftRight} title={t.transfer.empty} />
           </div>
         ) : (
-          <ul className="divide-y divide-neutral-100">
-            {transfers.map((transfer) => {
-              const author = db.users.find((u) => u.id === transfer.createdBy)
-              return (
-                <li key={transfer.id} className="space-y-1.5 px-4 py-3">
-                  <p className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-extrabold text-neutral-950">{t.transfer.number(transfer.number)}</span>
-                    <span className="flex items-center gap-1.5 font-semibold text-neutral-700">
-                      {warehouseLabel(db, transfer.fromWarehouseId, t)}
-                      <ArrowRight size={14} className="text-select" />
-                      {warehouseLabel(db, transfer.toWarehouseId, t)}
-                    </span>
-                  </p>
-                  <p className="text-sm text-neutral-600">
-                    {transfer.items
-                      .map((item) => {
-                        const ingredient = db.ingredients.find((i) => i.id === item.ingredientId)
-                        return ingredient ? `${localize(ingredient.name)} — ${formatNumber(item.qty, 3)} ${t.units[ingredient.unit]}` : item.ingredientId
-                      })
-                      .join(' · ')}
-                  </p>
-                  {transfer.note && <p className="text-xs text-neutral-500 italic">{transfer.note}</p>}
-                  <p className="text-xs text-neutral-400">
-                    {formatDateTime(transfer.createdAt)} · {author?.name ?? '—'}
-                  </p>
-                </li>
-              )
-            })}
-          </ul>
+          <>
+            <ul className="divide-y divide-neutral-100">
+              {list.items.map((transfer) => {
+                const author = users.find((u) => u.id === transfer.createdBy)
+                return (
+                  <li key={transfer.id} className="space-y-1.5 px-4 py-3">
+                    <p className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-extrabold text-neutral-950">{t.transfer.number(transfer.number)}</span>
+                      <span className="flex items-center gap-1.5 font-semibold text-neutral-700">
+                        {warehouseLabel(allWarehouses, branches, transfer.fromWarehouseId, t)}
+                        <ArrowRight size={14} className="text-select" />
+                        {warehouseLabel(allWarehouses, branches, transfer.toWarehouseId, t)}
+                      </span>
+                    </p>
+                    <p className="text-sm text-neutral-600">
+                      {transfer.items
+                        .map((item) => {
+                          const ingredient = ingredients.find((i) => i.id === item.ingredientId)
+                          return ingredient ? `${localize(ingredient.name)} — ${formatNumber(item.qty, 3)} ${t.units[ingredient.unit]}` : item.ingredientId
+                        })
+                        .join(' · ')}
+                    </p>
+                    {transfer.note && <p className="text-xs text-neutral-500 italic">{transfer.note}</p>}
+                    <p className="text-xs text-neutral-400">
+                      {formatDateTime(transfer.createdAt)} · {author?.name ?? '—'}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+            <Pagination {...pagination} />
+          </>
         )}
       </Card>
     </div>

@@ -1,27 +1,46 @@
 import { ArrowDownRight, ArrowUpRight, ClipboardCheck, Monitor, RotateCcw, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { resetDb, useDb } from '@/api'
+import { api } from '@/api'
+import { ApiError } from '@/api/http'
+import { useBranches, useOverview, useSalesReport } from '@/api/queries'
 import { ORDER_TYPE_ICONS, PAYMENT_ICONS } from '@/components/order/orderIcons'
 import { Card, CardHeader } from '@/components/ui/Card'
 import PageHeader from '@/components/ui/PageHeader'
 import SegmentedControl from '@/components/ui/SegmentedControl'
-import { inputClass } from '@/components/ui/styles'
-import { addDays, dateKey, parseDateKey } from '@/domain/dates'
-import { activeOrders } from '@/domain/logic/orders'
-import { salesReport } from '@/domain/logic/reports'
-import { lowStockItems } from '@/domain/logic/stock'
-import { EXPENSE_KINDS, ORDER_TYPES, PAYMENT_METHODS, type DateKey } from '@/domain/types'
-import { useLocalize, useT } from '@/i18n'
+import { addDays, dateRange, parseDateKey } from '@/domain/dates'
+import { EXPENSE_KINDS, ORDER_SOURCES, ORDER_TYPES, PAYMENT_METHODS, type DateKey, type SalesReport, type Tally } from '@/domain/types'
+import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatNumber } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
-import { useToday } from '@/lib/useNow'
+import PeriodFilter from '../PeriodFilter'
+import { useLatest, usePeriod } from '../usePeriod'
 import BarChart, { type BarPoint } from './BarChart'
 import BarList from './BarList'
 
-type Preset = 'today' | 'yesterday' | 'week' | 'month' | 'custom'
-
 const pad = (value: number) => String(value).padStart(2, '0')
+
+const NO_TALLY: Tally = { orders: 0, revenue: 0 }
+
+/** Javob kelguncha — nollar bilan (kunlar o'qi bilan): kartochkalar va diagramma joyida turadi. */
+function emptyReport(range: { from: DateKey; to: DateKey }): SalesReport {
+  return {
+    ...NO_TALLY,
+    cancelled: 0,
+    cancelledAmount: 0,
+    avgCheck: 0,
+    byPayment: { cash: 0, card: 0, click: 0 },
+    byType: { dine_in: NO_TALLY, takeaway: NO_TALLY, delivery: NO_TALLY },
+    bySource: { cashier: NO_TALLY, kiosk: NO_TALLY, mobile: NO_TALLY },
+    byHour: Array.from({ length: 24 }, () => 0),
+    days: dateRange(range.from, range.to).map((date) => ({ date, ...NO_TALLY, expenses: 0 })),
+    topProducts: [],
+    byBranch: [],
+    expenses: 0,
+    expensesByKind: { electricity: 0, gas: 0, water: 0, internet: 0, other: 0 },
+    net: 0,
+  }
+}
 
 /** "+12%" / "−5%" — oldingi xuddi shunday uzunlikdagi davrga nisbatan. */
 function Delta({ current, previous }: { current: number; previous: number }) {
@@ -46,38 +65,26 @@ function Delta({ current, previous }: { current: number; previous: number }) {
  */
 export default function ReportsPage() {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
-  const today = useToday()
-  const [preset, setPreset] = useState<Preset>('week')
-  const [custom, setCustom] = useState<{ from: DateKey; to: DateKey }>({ from: addDays(today, -13), to: today })
+  const branches = useBranches().data ?? []
+  const overview = useOverview().data
+  const period = usePeriod('week')
+  const { range } = period
   const [branchId, setBranchId] = useState<string>('all')
 
-  const range = (() => {
-    switch (preset) {
-      case 'today':
-        return { from: today, to: today }
-      case 'yesterday':
-        return { from: addDays(today, -1), to: addDays(today, -1) }
-      case 'week':
-        return { from: addDays(today, -6), to: today }
-      case 'month':
-        return { from: addDays(today, -29), to: today }
-      case 'custom':
-        return custom.from <= custom.to ? custom : { from: custom.to, to: custom.from }
-    }
-  })()
   const branch = branchId === 'all' ? null : branchId
-  const report = salesReport(db, { ...range, branchId: branch })
-  const length = report.days.length
-  const previousFrom = addDays(range.from, -length)
-  const previous = salesReport(db, { from: previousFrom, to: addDays(range.from, -1), branchId: branch })
-  // oldingi davr ma'lumot boshlanishidan oldin bo'lsa — solishtirish noto'g'ri (+3000%), ko'rsatilmaydi
-  const firstSale = db.orders.reduce<string | null>((min, o) => (min === null || o.createdAt < min ? o.createdAt : min), null)
-  const comparable = firstSale !== null && previousFrom >= dateKey(new Date(firstSale))
+  const current = useSalesReport({ ...range, branchId: branch })
+  const report = useLatest(current.data) ?? emptyReport(range)
+  // oldingi xuddi shunday uzunlikdagi davr — o'sish / kamayish foizi uchun; u ma'lumot boshlanishidan (birinchi
+  // buyurtma kunidan) oldin bo'lsa — solishtirish noto'g'ri (+3000%), so'ralmaydi ham, ko'rsatilmaydi ham
+  const previousFrom = addDays(range.from, -dateRange(range.from, range.to).length)
+  const firstOrderDate = overview?.firstOrderDate ?? null
+  const previousRange = firstOrderDate !== null && previousFrom >= firstOrderDate ? { from: previousFrom, to: addDays(range.from, -1), branchId: branch } : null
+  const previous = useSalesReport(previousRange).data
+  const comparable = previousRange !== null && previous !== undefined
 
   const money = (value: number) => formatMoney(value, t)
-  const singleDay = length === 1
+  const singleDay = report.days.length === 1
   const points: BarPoint[] = singleDay
     ? report.byHour.flatMap((value, hour) =>
         hour >= 9 && hour <= 23 ? [{ key: String(hour), label: pad(hour), title: `${pad(hour)}:00–${pad(hour)}:59`, value, details: [] }] : [],
@@ -93,14 +100,21 @@ export default function ReportsPage() {
         }
       })
 
-  const pending = db.purchases.filter((p) => p.status === 'pending').length
-  const low = lowStockItems(db).length
-  const liveOrders = db.branches.filter((b) => b.active).map((b) => ({ branch: b, count: activeOrders(db, b.id).length }))
+  const pending = overview?.pendingPurchases ?? 0
+  const low = overview?.lowStock ?? 0
+  const liveOrders = branches
+    .filter((b) => b.active)
+    .map((b) => ({ branch: b, count: overview?.liveOrders.find((live) => live.branchId === b.id)?.count ?? 0 }))
 
   const onReset = async () => {
     if (!(await confirmDialog(t.common.resetConfirmTitle, t.common.resetConfirmText, t.common.resetData))) return
-    resetDb()
-    showToast(t.common.resetDone)
+    try {
+      await api.demo.reset()
+      showToast(t.common.resetDone)
+    } catch (error) {
+      // admin uchun `forbidden` — serverda demo rejimi o'chiq
+      showToast(error instanceof ApiError && error.code === 'forbidden' ? t.admin.reports.resetOff : errorMessage(error), 'error')
+    }
   }
 
   const kpis = [
@@ -126,33 +140,17 @@ export default function ReportsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl<Preset>
-          label={t.admin.reports.period}
-          value={preset}
-          onChange={setPreset}
-          options={[
-            { value: 'today', label: t.admin.reports.today },
-            { value: 'yesterday', label: t.admin.reports.yesterday },
-            { value: 'week', label: t.admin.reports.week },
-            { value: 'month', label: t.admin.reports.month },
-            { value: 'custom', label: t.admin.reports.custom },
-          ]}
-        />
-        {preset === 'custom' && (
-          <span className="flex items-center gap-2">
-            <input type="date" value={custom.from} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, from: event.target.value })} aria-label={t.admin.reports.from} className={`${inputClass} h-9! w-40!`} />
-            <span className="text-neutral-400">—</span>
-            <input type="date" value={custom.to} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, to: event.target.value })} aria-label={t.admin.reports.to} className={`${inputClass} h-9! w-40!`} />
-          </span>
-        )}
+        <PeriodFilter period={period} />
         <span className="flex-1" />
         <SegmentedControl
           label={t.common.branch}
           value={branchId}
           onChange={setBranchId}
-          options={[{ value: 'all', label: t.admin.reports.allBranches }, ...db.branches.map((b) => ({ value: b.id, label: b.name }))]}
+          options={[{ value: 'all', label: t.admin.reports.allBranches }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
         />
       </div>
+
+      {current.error !== null && !current.data && <p className="rounded-card bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage(current.error)}</p>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         {kpis.map((kpi) => (
@@ -167,7 +165,8 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      {/* diagramma va "Diqqat talab" bir xil balandlikda — orada bo'sh joy qolmasligi uchun */}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Card>
           <CardHeader title={singleDay ? t.admin.reports.byHour : t.admin.reports.byDay} hint={t.admin.reports.chartHint} />
           <div className="p-4">
@@ -175,45 +174,44 @@ export default function ReportsPage() {
           </div>
         </Card>
 
-        <div className="space-y-5">
-          <Card>
-            <CardHeader title={t.admin.reports.attention} />
-            <div className="space-y-2 p-4">
-              <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
-                <ClipboardCheck size={18} className={pending ? 'text-amber-600' : 'text-neutral-300'} />
-                <span className="flex-1 text-sm font-semibold">{t.admin.reports.pendingPurchases}</span>
-                <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${pending ? 'bg-amber-100 text-amber-800' : 'bg-neutral-100 text-neutral-500'}`}>{pending}</span>
+        <Card>
+          <CardHeader title={t.admin.reports.attention} />
+          <div className="space-y-2 p-4">
+            <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+              <ClipboardCheck size={18} className={pending ? 'text-amber-600' : 'text-neutral-300'} />
+              <span className="flex-1 text-sm font-semibold">{t.admin.reports.pendingPurchases}</span>
+              <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${pending ? 'bg-amber-100 text-amber-800' : 'bg-neutral-100 text-neutral-500'}`}>{pending}</span>
+            </Link>
+            <Link to="/ombor" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+              <TriangleAlert size={18} className={low ? 'text-red-600' : 'text-neutral-300'} />
+              <span className="flex-1 text-sm font-semibold">{t.admin.reports.lowStock}</span>
+              <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${low ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-500'}`}>{low}</span>
+            </Link>
+            {liveOrders.map(({ branch: item, count }) => (
+              <Link key={item.id} to={`/tv/${item.id}`} className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+                <Monitor size={18} className="text-neutral-400" />
+                <span className="flex-1 text-sm font-semibold">{t.admin.reports.liveOrders(item.name)}</span>
+                <span className="rounded-full bg-coal px-2 text-sm font-bold text-taxi tabular-nums">{count}</span>
               </Link>
-              <Link to="/ombor" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
-                <TriangleAlert size={18} className={low ? 'text-red-600' : 'text-neutral-300'} />
-                <span className="flex-1 text-sm font-semibold">{t.admin.reports.lowStock}</span>
-                <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${low ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-500'}`}>{low}</span>
-              </Link>
-              {liveOrders.map(({ branch: item, count }) => (
-                <Link key={item.id} to={`/tv/${item.id}`} className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
-                  <Monitor size={18} className="text-neutral-400" />
-                  <span className="flex-1 text-sm font-semibold">{t.admin.reports.liveOrders(item.name)}</span>
-                  <span className="rounded-full bg-coal px-2 text-sm font-bold text-taxi tabular-nums">{count}</span>
-                </Link>
-              ))}
-            </div>
-          </Card>
-          <Card>
-            <CardHeader title={t.admin.reports.byPayment} />
-            <div className="p-4">
-              <BarList
-                total={report.revenue}
-                rows={PAYMENT_METHODS.map((method) => ({ key: method, label: t.payment[method], icon: PAYMENT_ICONS[method], value: report.byPayment[method], valueText: money(report.byPayment[method]) }))}
-              />
-            </div>
-          </Card>
-        </div>
+            ))}
+          </div>
+        </Card>
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-2 xl:grid-cols-3">
+      {/* tushum tarkibi: uchala kesim bir qatorda, bir xil balandlikda */}
+      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        <Card>
+          <CardHeader title={t.admin.reports.byPayment} />
+          <div className="p-4">
+            <BarList
+              total={report.revenue}
+              rows={PAYMENT_METHODS.map((method) => ({ key: method, label: t.payment[method], icon: PAYMENT_ICONS[method], value: report.byPayment[method], valueText: money(report.byPayment[method]) }))}
+            />
+          </div>
+        </Card>
         <Card>
           <CardHeader title={t.admin.reports.byType} />
-          <div className="space-y-6 p-4">
+          <div className="p-4">
             <BarList
               total={report.revenue}
               rows={ORDER_TYPES.map((type) => ({
@@ -225,22 +223,26 @@ export default function ReportsPage() {
                 sub: t.admin.reports.ordersCount(report.byType[type].orders),
               }))}
             />
-            <div className="border-t border-neutral-100 pt-4">
-              <p className="mb-3 text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.admin.reports.bySource}</p>
-              <BarList
-                total={report.revenue}
-                rows={(['cashier', 'kiosk'] as const).map((source) => ({
-                  key: source,
-                  label: source === 'cashier' ? t.modes.cashier.title : t.modes.kiosk.title,
-                  value: report.bySource[source].revenue,
-                  valueText: money(report.bySource[source].revenue),
-                  sub: t.admin.reports.ordersCount(report.bySource[source].orders),
-                }))}
-              />
-            </div>
           </div>
         </Card>
+        <Card>
+          <CardHeader title={t.admin.reports.bySource} />
+          <div className="p-4">
+            <BarList
+              total={report.revenue}
+              rows={ORDER_SOURCES.map((source) => ({
+                key: source,
+                label: t.orderSource[source],
+                value: report.bySource[source].revenue,
+                valueText: money(report.bySource[source].revenue),
+                sub: t.admin.reports.ordersCount(report.bySource[source].orders),
+              }))}
+            />
+          </div>
+        </Card>
+      </div>
 
+      <div className="grid items-start gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader title={t.admin.reports.topProducts} />
           <div className="p-4">
@@ -261,27 +263,40 @@ export default function ReportsPage() {
           </div>
         </Card>
 
+        {/* filiallar jadvali: tushum − kommunal xarajat = natija, ustunlar nomlangan */}
         <Card>
           <CardHeader title={t.admin.reports.byBranch} />
-          <div className="divide-y divide-neutral-100">
-            {report.byBranch.map((stat) => {
-              const item = db.branches.find((b) => b.id === stat.branchId)
-              return (
-                <div key={stat.branchId} className="space-y-1 px-4 py-3 text-sm">
-                  <p className="flex justify-between font-bold">
-                    <span>{item?.name}</span>
-                    <span className="tabular-nums">{money(stat.revenue)}</span>
-                  </p>
-                  <p className="flex justify-between text-neutral-500">
-                    <span>{t.admin.reports.ordersCount(stat.orders)}</span>
-                    <span className="tabular-nums">
-                      − {money(stat.expenses)} = <span className={`font-semibold ${stat.revenue - stat.expenses < 0 ? 'text-red-700' : 'text-neutral-900'}`}>{money(stat.revenue - stat.expenses)}</span>
-                    </span>
-                  </p>
-                </div>
-              )
-            })}
-            <div className="space-y-1.5 px-4 py-3">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-100 text-[11px] tracking-[0.1em] text-neutral-500 uppercase">
+                  <th className="px-4 py-2.5 text-left font-semibold">{t.common.branch}</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">{t.admin.reports.revenue}</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">{t.admin.reports.expenses}</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">{t.admin.reports.net}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-100">
+                {report.byBranch.map((stat) => {
+                  const item = branches.find((b) => b.id === stat.branchId)
+                  const net = stat.revenue - stat.expenses
+                  return (
+                    <tr key={stat.branchId}>
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-neutral-950">{item?.name}</p>
+                        <p className="text-xs text-neutral-500">{t.admin.reports.ordersCount(stat.orders)}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold whitespace-nowrap tabular-nums">{money(stat.revenue)}</td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap text-neutral-600 tabular-nums">{stat.expenses > 0 ? money(stat.expenses) : '—'}</td>
+                      <td className={`px-4 py-3 text-right font-bold whitespace-nowrap tabular-nums ${net < 0 ? 'text-red-700' : 'text-neutral-950'}`}>{money(net)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          {report.expenses > 0 && (
+            <div className="space-y-1.5 border-t border-neutral-100 px-4 py-3">
               <p className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.admin.reports.expensesByKind}</p>
               {EXPENSE_KINDS.filter((kind) => report.expensesByKind[kind] > 0).map((kind) => (
                 <p key={kind} className="flex justify-between text-sm">
@@ -289,9 +304,8 @@ export default function ReportsPage() {
                   <span className="font-semibold tabular-nums">{money(report.expensesByKind[kind])}</span>
                 </p>
               ))}
-              {report.expenses === 0 && <p className="text-sm text-neutral-500">—</p>}
             </div>
-          </div>
+          )}
         </Card>
       </div>
     </div>

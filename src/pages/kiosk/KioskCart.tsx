@@ -3,24 +3,26 @@ import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import { SectionTitle } from '@/components/ui/Card'
 import FoodImage from '@/components/ui/FoodImage'
 import QtyStepper from '@/components/ui/QtyStepper'
-import type { OrderType, Product } from '@/domain/types'
+import type { KioskOrderInput } from '@/api'
+import type { MenuProduct } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import type { CartLine } from '@/lib/cart'
 import { formatMoney } from '@/lib/format'
 
 export interface KioskLine extends CartLine {
-  product: Product
+  product: MenuProduct
   price: number
 }
 
 /** Kioskda tanlanadigan turlar — dostavka faqat kassada. */
-const KIOSK_ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway']
+export type KioskOrderType = KioskOrderInput['type']
+const KIOSK_ORDER_TYPES: KioskOrderType[] = ['dine_in', 'takeaway']
 
 type Props = {
   lines: KioskLine[]
   total: number
-  orderType: OrderType
-  onOrderType: (type: OrderType) => void
+  orderType: KioskOrderType
+  onOrderType: (type: KioskOrderType) => void
   onQty: (key: string, delta: -1 | 1) => void
   onRemove: (key: string) => void
   onBack: () => void
@@ -59,7 +61,6 @@ export default function KioskCart({ lines, total, orderType, onOrderType, onQty,
                 <FoodImage src={line.product.image} alt="" className="h-24 w-24 shrink-0 rounded-media" />
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-lg leading-snug font-bold text-neutral-950">{localize(line.product.name)}</p>
-                  {line.note && <p className="text-sm font-semibold text-red-700">{line.note}</p>}
                   <p className="text-lg font-black tabular-nums">{formatMoney(line.price * line.qty, t)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-3">

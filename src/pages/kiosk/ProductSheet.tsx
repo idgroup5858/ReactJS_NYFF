@@ -1,32 +1,29 @@
 import { ShoppingBag, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useDb } from '@/api'
 import { compositionText } from '@/components/menu/composition'
 import FoodImage from '@/components/ui/FoodImage'
 import QtyStepper from '@/components/ui/QtyStepper'
-import type { Product } from '@/domain/types'
+import type { MenuProduct } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatMoney } from '@/lib/format'
 
 type Props = {
-  product: Product
+  product: MenuProduct
   price: number
-  onAdd: (qty: number, note: string) => void
+  onAdd: (qty: number) => void
   onClose: () => void
 }
 
 /**
- * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, tarkibi, soni, izoh va
+ * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, tarkibi, soni va
  * "Savatga qo'shish · narx" tugmasi. Kichik ekranda pastdan chiqadi, kattasida — markazda.
  */
 export default function ProductSheet({ product, price, onAdd, onClose }: Props) {
   const t = useT()
-  const db = useDb()
   const localize = useLocalize()
   const [qty, setQty] = useState(1)
-  const [note, setNote] = useState('')
   const name = localize(product.name)
-  const composition = compositionText(db, product, localize, 10)
+  const composition = compositionText(product, localize, 10)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -66,19 +63,12 @@ export default function ProductSheet({ product, price, onAdd, onClose }: Props) 
               <p className="text-base leading-relaxed text-neutral-700">{composition}</p>
             </div>
           )}
-          <input
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder={t.kiosk.notePlaceholder}
-            maxLength={80}
-            className="h-12 w-full rounded border border-neutral-300 bg-white px-4 text-base text-red-700"
-          />
           {/* tugma sig'masa — soni ostiga, to'liq kenglikka tushadi (matn qisilmaydi) */}
           <div className="mt-auto flex flex-wrap items-center gap-4">
             <QtyStepper value={qty} min={1} size="lg" onChange={(delta) => setQty((value) => Math.max(1, Math.min(20, value + delta)))} />
             <button
               type="button"
-              onClick={() => onAdd(qty, note)}
+              onClick={() => onAdd(qty)}
               className="btn-primary flex h-16 flex-[1_1_18rem] items-center justify-center gap-3 rounded px-6 text-base font-extrabold whitespace-nowrap"
             >
               <ShoppingBag size={22} className="shrink-0" />

@@ -1,5 +1,5 @@
 import { baseUnitOf, fromBase } from '@/domain/units'
-import type { StockUnit } from '@/domain/types'
+import type { OnlineInfo, OrderType, StockUnit } from '@/domain/types'
 import type { Dict } from '@/i18n/uz'
 
 /**
@@ -21,6 +21,11 @@ export function formatMoney(value: number, t: Dict): string {
 }
 
 /** Diagramma o'qlari uchun qisqa son: 1 250 000 → "1,3 mln", 850 000 → "850 ming". */
+/** Yetkazish narxi: 0 — "Bepul". */
+export function formatDeliveryFee(fee: number, t: Dict): string {
+  return fee === 0 ? t.admin.delivery.free : formatMoney(fee, t)
+}
+
 export function formatCompact(value: number, t: Dict): string {
   if (Math.abs(value) >= 1_000_000) return `${formatNumber(value / 1_000_000, 1)}${NBSP}${t.admin.reports.mln}`
   if (Math.abs(value) >= 1_000) return `${formatNumber(value / 1_000)}${NBSP}${t.admin.reports.thousand}`
@@ -49,6 +54,12 @@ export function formatTime(iso: string): string {
 export function formatDateTime(iso: string): string {
   const date = new Date(iso)
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${formatTime(iso)}`
+}
+
+/** Mobil buyurtmada mijoz tanlagan to'lov: "Click orqali to'langan" / "Naqd — kuryerga" / "Naqd — filialda". */
+export function formatOnlinePayment(online: OnlineInfo, type: OrderType, t: Dict): string {
+  if (online.payment === 'click') return t.orders.paidOnline
+  return type === 'delivery' ? t.orders.payOnDelivery : t.orders.payOnPickup
 }
 
 /** Retsept miqdori asosiy birlikda: "120 g", "1 dona". */

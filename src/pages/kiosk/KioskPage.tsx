@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useParams } from 'react-router'
-import { api, useDb } from '@/api'
+import { api } from '@/api'
+import { useBranches, useMenu } from '@/api/queries'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import Modal from '@/components/ui/Modal'
-import { branchPrice } from '@/domain/logic/orders'
-import type { ID, Order, OrderType, PaymentMethod, Product } from '@/domain/types'
+import type { CustomerOrder, ID, MenuProduct } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { addProduct, changeQty, removeLine, type CartLine } from '@/lib/cart'
 import { printReceipt } from '@/lib/printReceipt'
 import { showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { useIdle } from '@/lib/useIdle'
-import KioskCart, { type KioskLine } from './KioskCart'
+import KioskCart, { type KioskLine, type KioskOrderType } from './KioskCart'
 import KioskDone from './KioskDone'
 import KioskMenu from './KioskMenu'
 import KioskPayment from './KioskPayment'
@@ -58,43 +58,48 @@ function IdleModal({ onStay, onReset }: { onStay: () => void; onReset: () => voi
 }
 
 /**
- * Kiosk (PINsiz, filial manzildan): bosh ekran → menyu → taom oynasi → savat → to'lov → raqam.
- * Karta / Click bilan to'lansa buyurtma darhol tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan" ro'yxatiga
- * tushadi, kassir pulini olib tasdiqlaguncha oshxonaga ketmaydi.
+ * Kiosk (`/kiosk/:branchId` — PINsiz va kodsiz, filial manzildan): bosh ekran → menyu → taom oynasi → savat → to'lov →
+ * raqam. Karta / Click bilan to'lansa buyurtma darhol tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan"
+ * ro'yxatiga tushadi, kassir pulini olib tasdiqlaguncha oshxonaga ketmaydi. Filial noma'lum yoki faol emas — kirishdagi
+ * filial tanlashga.
  */
 export default function KioskPage() {
   const t = useT()
-  const db = useDb()
-  const { branchId } = useParams()
-  const branch = db.branches.find((b) => b.id === branchId && b.active)
+  const { branchId = null } = useParams()
+  const menu = useMenu(branchId).data
+  const branches = useBranches()
+  const reloadBranches = branches.reload
+  const branch = branches.data?.find((b) => b.id === branchId && b.active)
   useDocumentTitle(t.modes.kiosk.title)
 
   const [step, setStep] = useState<Step>('welcome')
-  const [orderType, setOrderType] = useState<OrderType>('dine_in')
+  const [orderType, setOrderType] = useState<KioskOrderType>('dine_in')
   const [lines, setLines] = useState<CartLine[]>([])
-  const [detail, setDetail] = useState<Product | null>(null)
-  const [order, setOrder] = useState<Order | null>(null)
+  const [detail, setDetail] = useState<MenuProduct | null>(null)
+  const [order, setOrder] = useState<CustomerOrder | null>(null)
   const [idle, setIdle] = useState(false)
 
   const reset = useCallback(() => {
+    // har yangi mijozdan oldin — admin filialni o'chirgan bo'lishi mumkin
+    reloadBranches()
     setStep('welcome')
     setOrderType('dine_in')
     setLines([])
     setDetail(null)
     setOrder(null)
     setIdle(false)
-  }, [])
+  }, [reloadBranches])
 
   useIdle(IDLE_AFTER_MS, () => setIdle(true), step === 'menu' || step === 'cart' || step === 'pay')
 
+  // narx — filial menyusidan; sotuvdan chiqib qolgan taom savatdan tushadi
   const priced: KioskLine[] = useMemo(
     () =>
       lines.flatMap((line) => {
-        const product = db.products.find((p) => p.id === line.productId)
-        const price = product && product.active ? branchPrice(db, branchId ?? '', product.id) : null
-        return product && price !== null ? [{ ...line, product, price }] : []
+        const product = menu?.products.find((p) => p.id === line.productId)
+        return product && product.price !== null ? [{ ...line, product, price: product.price }] : []
       }),
-    [db, lines, branchId],
+    [menu, lines],
   )
   const total = priced.reduce((sum, line) => sum + line.price * line.qty, 0)
   const qty = priced.reduce((sum, line) => sum + line.qty, 0)
@@ -104,20 +109,18 @@ export default function KioskPage() {
     return counts
   }, [priced])
 
-  if (!branch) return <Navigate to="/?mode=kiosk" replace />
+  if (!branchId || (branches.data && !branch)) return <Navigate to="/?mode=kiosk" replace />
 
   /** `null` — kassada to'laydi: buyurtma kassirni kutadi. Karta / Click — to'langan, chek shu yerda chiqadi. */
-  const pay = async (payment: PaymentMethod | null): Promise<boolean> => {
+  const pay = async (payment: 'card' | 'click' | null): Promise<boolean> => {
     try {
-      const created = await api.orders.create({
-        branchId: branch.id,
+      const created = await api.orders.createKiosk({
+        branchId,
         type: orderType,
-        source: 'kiosk',
-        items: priced.map((line) => ({ productId: line.productId, qty: line.qty, note: line.note })),
+        items: priced.map((line) => ({ productId: line.productId, qty: line.qty })),
         payment,
-        cashierId: null,
       })
-      if (created.payment) printReceipt(created, branch.name)
+      if (created.payment) printReceipt({ ...created, source: 'kiosk' }, branch?.name ?? '')
       setOrder(created)
       setLines([])
       setStep('done')
@@ -157,9 +160,7 @@ export default function KioskPage() {
     <div className="flex h-screen flex-col overflow-hidden">
       <KioskTopBar center={typeToggle} onStartOver={reset} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {step === 'menu' && (
-          <KioskMenu branchId={branch.id} cartCounts={cartCounts} cartQty={qty} cartTotal={total} onOpen={setDetail} onCart={() => setStep('cart')} />
-        )}
+        {step === 'menu' && <KioskMenu menu={menu} cartCounts={cartCounts} cartQty={qty} cartTotal={total} onOpen={setDetail} onCart={() => setStep('cart')} />}
         {step === 'cart' && (
           <KioskCart
             lines={priced}
@@ -179,10 +180,10 @@ export default function KioskPage() {
       {detail && (
         <ProductSheet
           product={detail}
-          price={branchPrice(db, branch.id, detail.id) ?? 0}
+          price={detail.price ?? 0}
           onClose={() => setDetail(null)}
-          onAdd={(count, note) => {
-            setLines((current) => addProduct(current, detail.id, count, note))
+          onAdd={(count) => {
+            setLines((current) => addProduct(current, detail.id, count))
             setDetail(null)
           }}
         />

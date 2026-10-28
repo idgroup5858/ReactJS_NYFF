@@ -4,7 +4,7 @@ import { useBackOfficeNav } from '@/components/layout/useBackOfficeNav'
 import { useT } from '@/i18n'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 
-/** Admin panel qobig'i: chap menyuda — hisobot, kirimlar, menyu, narxlar, filiallar, xodimlar, rasxod va ombor bo'limlari. */
+/** Admin panel qobig'i: chap menyuda — hisobot, buyurtmalar, smenalar, kirimlar, menyu, filiallar, xodimlar, chiqim va ombor bo'limlari. */
 export default function AdminLayout() {
   const t = useT()
   const nav = useBackOfficeNav()

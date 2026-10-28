@@ -1,34 +1,33 @@
-import { Banknote, CheckCheck, Printer, ReceiptText, Undo2, X } from 'lucide-react'
+import { Banknote, Check, Printer, ReceiptText, Undo2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { api, useDb } from '@/api'
-import { KioskBadge, OrderTypeBadge, StatusPill } from '@/components/order/OrderBadges'
+import { api } from '@/api'
+import { useActiveOrders, useDeliveryOrders, useShift } from '@/api/queries'
+import OrderRow from '@/components/order/OrderRow'
 import { PAYMENT_ICONS } from '@/components/order/orderIcons'
+import { useRecentReady } from '@/components/order/useRecentReady'
 import { SectionTitle } from '@/components/ui/Card'
 import SegmentedControl from '@/components/ui/SegmentedControl'
-import { activeOrders, recentReady } from '@/domain/logic/orders'
-import { shiftSummary } from '@/domain/logic/shifts'
+import { canReleaseCourier } from '@/domain/rules'
 import { PAYMENT_METHODS, type ID, type Order, type PaymentMethod, type PaymentSplit } from '@/domain/types'
-import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatMoney, formatOrderNumber, formatTime } from '@/lib/format'
+import { errorMessage, useT } from '@/i18n'
+import { formatMoney, formatOrderNumber } from '@/lib/format'
 import { printReceipt } from '@/lib/printReceipt'
 import { confirmDialog, showToast } from '@/lib/swal'
-import { formatElapsed, useNow } from '@/lib/useNow'
+import { useNow } from '@/lib/useNow'
+import CouriersOnDuty from './CouriersOnDuty'
 import PaymentModal from './PaymentModal'
 
-export type OrdersTab = 'kiosk' | 'preparing' | 'shift'
+export type OrdersTab = 'online' | 'kiosk' | 'preparing' | 'delivery' | 'shift'
 
 type Props = {
-  branchId: ID
   branchName: string
   shiftId: ID | null
-  userId: ID
   initialTab: OrdersTab
   onClose: () => void
 }
 
 type RowProps = {
   order: Order
-  userId: ID
   branchName: string
   now: Date
   onAccept: (order: Order) => void
@@ -36,11 +35,13 @@ type RowProps = {
 
 const ICON_BUTTON = 'btn-ghost flex h-9 w-9 items-center justify-center rounded'
 
-function OrderRow({ order, userId, branchName, now, onAccept }: RowProps) {
+/**
+ * Kassir tugmalari: pulini olish / qabul qilish, chek, kuryerdan olish (dostavka), bekor qilish. "Tayyor" va "Qaytarish" —
+ * oshpaz yordamchisida.
+ */
+function CashierRow({ order, branchName, now, onAccept }: RowProps) {
   const t = useT()
-  const localize = useLocalize()
   const number = formatOrderNumber(order.number)
-  const hasNotes = order.note !== '' || order.items.some((item) => item.note !== '')
 
   const act = async (action: () => Promise<unknown>, toast: string) => {
     try {
@@ -53,82 +54,70 @@ function OrderRow({ order, userId, branchName, now, onAccept }: RowProps) {
 
   const cancel = async () => {
     if (!(await confirmDialog(t.orders.cancelTitle(number), t.orders.cancelText, t.orders.cancel))) return
-    await act(() => api.orders.cancel(order.id, userId), t.orders.cancelledToast)
+    await act(() => api.orders.cancel(order.id), t.orders.cancelledToast)
   }
 
-  const accent =
-    order.status === 'pending' ? 'border-l-taxi bg-brand-50/60' : order.status === 'ready' ? 'border-l-emerald-500 bg-emerald-50/50' : 'border-l-transparent'
+  // "Yetkazib bo'lmadi" bilan qaytgan yoki kuryer olib qolib ketgan dostavka — yana kuryerlarning "Yangi" ro'yxatiga
+  const releaseCourier = async () => {
+    if (!(await confirmDialog(t.courier.releaseTitle(number), t.courier.releaseText, t.courier.release))) return
+    await act(() => api.orders.releaseCourier(order.id), t.courier.releasedToast(number))
+  }
+
+  // to'lov — mijoz ilovada tanlagani (server `online.payment` dan oladi)
+  const acceptOnline = async () => {
+    if (!order.online) return
+    await act(async () => {
+      const accepted = await api.orders.confirm(order.id)
+      printReceipt(accepted, branchName)
+    }, t.orders.acceptedToast(number))
+  }
 
   return (
-    <li className={`flex gap-3 border-l-4 px-4 py-3 ${accent}`}>
-      <div className="w-16 shrink-0">
-        <p className="text-xl font-black text-neutral-950 tabular-nums">{number}</p>
-        <p className="text-xs text-neutral-400 tabular-nums">
-          {order.status === 'preparing' && order.preparingAt ? formatElapsed(order.preparingAt, now) : formatTime(order.createdAt)}
-        </p>
-      </div>
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <StatusPill status={order.status} />
-          <OrderTypeBadge type={order.type} />
-          {order.source === 'kiosk' && <KioskBadge />}
-        </div>
-        <p className="text-sm text-neutral-700">{order.items.map((item) => `${item.qty}× ${localize(item.name)}`).join(', ')}</p>
-        {hasNotes && (
-          <p className="text-xs text-red-700">
-            {[...order.items.filter((item) => item.note).map((item) => `${localize(item.name)}: ${item.note}`), order.note].filter(Boolean).join(' · ')}
-          </p>
+    <OrderRow order={order} now={now} showCustomer>
+      <span className="text-sm font-bold text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>
+      <div className="flex gap-1.5">
+        {order.status === 'pending' && order.online && (
+          // mobil buyurtma: to'lov usulini mijoz tanlagan — oynasiz, darhol oshxonaga (chek chiqadi)
+          <button type="button" onClick={() => void acceptOnline()} className="btn-primary flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase">
+            <Check size={14} />
+            {t.orders.acceptOnline}
+          </button>
+        )}
+        {order.status === 'pending' && !order.online && (
+          <button type="button" onClick={() => onAccept(order)} className="btn-primary flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase">
+            <Banknote size={14} />
+            {t.orders.accept}
+          </button>
+        )}
+        {order.status !== 'pending' && order.status !== 'cancelled' && (
+          <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.print} title={t.orders.print} className={ICON_BUTTON}>
+            <Printer size={16} />
+          </button>
+        )}
+        {canReleaseCourier(order) && (
+          <button
+            type="button"
+            onClick={() => void releaseCourier()}
+            className={`btn-ghost flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase ${order.returnedAt ? 'text-red-700' : ''}`}
+          >
+            <Undo2 size={14} />
+            {t.courier.release}
+          </button>
+        )}
+        {/* yetkazilgan dostavkani bekor qilib bo'lmaydi (server ham tekshiradi) */}
+        {order.status !== 'cancelled' && !order.deliveredAt && (
+          <button
+            type="button"
+            onClick={() => void cancel()}
+            aria-label={t.orders.cancel}
+            title={t.orders.cancel}
+            className="btn-icon-danger flex h-9 w-9 items-center justify-center rounded"
+          >
+            <X size={16} />
+          </button>
         )}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-2">
-        <span className="text-sm font-bold text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>
-        <div className="flex gap-1.5">
-          {order.status === 'pending' && (
-            <button type="button" onClick={() => onAccept(order)} className="btn-primary flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase">
-              <Banknote size={14} />
-              {t.orders.accept}
-            </button>
-          )}
-          {order.status === 'preparing' && (
-            <button
-              type="button"
-              onClick={() => void act(() => api.orders.ready(order.id), t.orders.readyToast(number))}
-              className="flex h-9 cursor-pointer items-center gap-1.5 rounded bg-emerald-600 px-3 text-xs font-bold text-white uppercase transition-colors hover:bg-emerald-700"
-            >
-              <CheckCheck size={14} />
-              {t.orders.ready}
-            </button>
-          )}
-          {order.status === 'ready' && (
-            <button
-              type="button"
-              onClick={() => void act(() => api.orders.reopen(order.id), t.orders.reopenedToast)}
-              aria-label={t.orders.reopen}
-              title={t.orders.reopen}
-              className={ICON_BUTTON}
-            >
-              <Undo2 size={16} />
-            </button>
-          )}
-          {order.status !== 'pending' && order.status !== 'cancelled' && (
-            <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.print} title={t.orders.print} className={ICON_BUTTON}>
-              <Printer size={16} />
-            </button>
-          )}
-          {order.status !== 'cancelled' && (
-            <button
-              type="button"
-              onClick={() => void cancel()}
-              aria-label={t.orders.cancel}
-              title={t.orders.cancel}
-              className="btn-icon-danger flex h-9 w-9 items-center justify-center rounded"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-      </div>
-    </li>
+    </OrderRow>
   )
 }
 
@@ -145,21 +134,27 @@ function OrderList({ orders, empty, ...row }: Omit<RowProps, 'order'> & { orders
   return (
     <ul className="divide-y divide-neutral-200">
       {orders.map((order) => (
-        <OrderRow key={order.id} order={order} {...row} />
+        <CashierRow key={order.id} order={order} {...row} />
       ))}
     </ul>
   )
 }
 
 /**
- * O'ngdan ochiladigan panel. Kioskdan — kassada to'lanadigan buyurtmalar (pulini olib tasdiqlanadi → chek → oshxona).
- * Tayyorlanmoqda — oshxona ovqatni olib kelganda "Tayyor" (raqam TV ga chiqadi); yaqinda tayyor bo'lganlarni qaytarish
- * mumkin. Smenam — kassirning shu smenadagi savdosi.
+ * O'ngdan ochiladigan panel. Online — mobil ilovadan kelganlar (mijoz, telefon, manzil; "Qabul qilish" → chek →
+ * oshxona). Kioskdan — kassada to'lanadigan buyurtmalar (pulini olib tasdiqlanadi → chek → oshxona).
+ * Tayyorlanmoqda — oshxonadagilar va yaqinda tayyor bo'lganlar: kassir faqat kuzatadi ("Tayyor" / "Qaytarish" — oshpaz
+ * yordamchisining ekranida, `/oshxona`). Dostavka — kuryer ishidagi mobil dostavkalar (kuryer kutayotgan, olingan,
+ * yo'ldagi, "Yetkazib bo'lmadi" bilan qaytgan): kassir kuryerdan oladi yoki bekor qiladi. Smenam — kassirning shu
+ * smenadagi savdosi.
  */
-export default function OrdersDrawer({ branchId, branchName, shiftId, userId, initialTab, onClose }: Props) {
+export default function OrdersDrawer({ branchName, shiftId, initialTab, onClose }: Props) {
   const t = useT()
-  const db = useDb()
   const now = useNow(1000)
+  const { data: active } = useActiveOrders()
+  const ready = useRecentReady(now)
+  const { data: deliveries } = useDeliveryOrders()
+  const { data: shift } = useShift(shiftId)
   const [tab, setTab] = useState<OrdersTab>(initialTab)
   const [accepting, setAccepting] = useState<Order | null>(null)
 
@@ -172,18 +167,24 @@ export default function OrdersDrawer({ branchId, branchName, shiftId, userId, in
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, accepting])
 
-  const active = activeOrders(db, branchId)
-  const pending = active.filter((o) => o.status === 'pending')
-  const preparing = active.filter((o) => o.status === 'preparing')
-  const ready = recentReady(db, branchId, now)
-  const shiftOrders = shiftId ? db.orders.filter((o) => o.shiftId === shiftId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
-  const summary = shiftId ? shiftSummary(db, shiftId) : null
-  const row = { userId, branchName, now, onAccept: setAccepting }
+  // yuklanguncha ro'yxatlar bo'sh, "buyurtma yo'q" yozuvi ham chiqmaydi
+  const loaded = active !== undefined
+  const list = active ?? []
+  const pending = list.filter((o) => o.status === 'pending' && o.source !== 'mobile')
+  const online = list.filter((o) => o.status === 'pending' && o.source === 'mobile')
+  const preparing = list.filter((o) => o.status === 'preparing')
+  const recent = ready ?? []
+  // qaytganlar tepada — kassir ularni hal qilishi kerak
+  const delivery = [...(deliveries ?? [])].sort((a, b) => Number(!!b.returnedAt) - Number(!!a.returnedAt))
+  // smenaning buyurtmalari va tushumi — serverdan (yangisi birinchi)
+  const shiftOrders = shift ? [...shift.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
+  const summary = shift?.summary ?? null
+  const row = { branchName, now, onAccept: setAccepting }
 
   const accept = async (payment: PaymentMethod, split?: PaymentSplit): Promise<Order | null> => {
     if (!accepting) return null
     try {
-      const order = await api.orders.confirm(accepting.id, userId, payment, split)
+      const order = await api.orders.confirm(accepting.id, payment, split)
       printReceipt(order, branchName)
       return order
     } catch (error) {
@@ -213,12 +214,16 @@ export default function OrdersDrawer({ branchId, branchName, shiftId, userId, in
             value={tab}
             onChange={setTab}
             options={[
+              { value: 'online', label: `${t.orders.onlineTab} · ${online.length}` },
               { value: 'kiosk', label: `${t.orders.kioskTab} · ${pending.length}` },
               { value: 'preparing', label: `${t.orders.preparingTab} · ${preparing.length}` },
+              { value: 'delivery', label: `${t.courier.tab} · ${delivery.length}` },
               { value: 'shift', label: `${t.orders.shift} · ${shiftOrders.length}` },
             ]}
           />
         </div>
+
+        {tab === 'delivery' && <CouriersOnDuty />}
 
         {tab === 'shift' && summary && (
           <div className="grid shrink-0 grid-cols-4 gap-px border-b border-neutral-200 bg-neutral-200">
@@ -242,21 +247,23 @@ export default function OrdersDrawer({ branchId, branchName, shiftId, userId, in
         )}
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {tab === 'kiosk' && <OrderList orders={pending} empty={t.orders.emptyKiosk} {...row} />}
+          {tab === 'online' && <OrderList orders={online} empty={loaded ? t.orders.emptyOnline : undefined} {...row} />}
+          {tab === 'kiosk' && <OrderList orders={pending} empty={loaded ? t.orders.emptyKiosk : undefined} {...row} />}
           {tab === 'preparing' && (
             <>
-              <OrderList orders={preparing} empty={ready.length === 0 ? t.orders.emptyActive : undefined} {...row} />
-              {ready.length > 0 && (
+              <OrderList orders={preparing} empty={loaded && ready !== undefined && recent.length === 0 ? t.orders.emptyActive : undefined} {...row} />
+              {recent.length > 0 && (
                 <>
                   <p className="border-y border-neutral-200 bg-neutral-50 px-5 py-1.5 text-[10px] font-bold tracking-[0.14em] text-neutral-500 uppercase">
                     {t.orders.justReady}
                   </p>
-                  <OrderList orders={ready} {...row} />
+                  <OrderList orders={recent} {...row} />
                 </>
               )}
             </>
           )}
-          {tab === 'shift' && <OrderList orders={shiftOrders} empty={t.orders.emptyShift} {...row} />}
+          {tab === 'delivery' && <OrderList orders={delivery} empty={deliveries ? t.courier.empty : undefined} {...row} />}
+          {tab === 'shift' && <OrderList orders={shiftOrders} empty={shift || shiftId === null ? t.orders.emptyShift : undefined} {...row} />}
         </div>
       </div>
 

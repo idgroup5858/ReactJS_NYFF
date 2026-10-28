@@ -1,4 +1,4 @@
-import { useDb } from '@/api'
+import { useIngredients } from '@/api/queries'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
@@ -25,7 +25,7 @@ type Props = {
 /** Kirim tarkibi: mahsulot, miqdor (ombor birligida), 1 birlik narxi va summa; admin uchun narx maydonlari. */
 export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
   const t = useT()
-  const db = useDb()
+  const ingredients = useIngredients().data ?? []
   const localize = useLocalize()
   const editable = prices !== undefined && onPrice !== undefined
   const priceOf = (ingredientId: ID, fallback: number | null) => {
@@ -48,7 +48,7 @@ export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
         </thead>
         <tbody className="divide-y divide-neutral-100">
           {purchase.items.map((item) => {
-            const ingredient = db.ingredients.find((i) => i.id === item.ingredientId)
+            const ingredient = ingredients.find((i) => i.id === item.ingredientId)
             const price = priceOf(item.ingredientId, item.price)
             return (
               <tr key={item.ingredientId}>

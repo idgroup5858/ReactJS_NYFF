@@ -4,8 +4,8 @@ import { useT } from '@/i18n'
 type Props = {
   value: number
   onChange: (delta: -1 | 1) => void
-  /** kiosk — kattaroq tugmalar */
-  size?: 'md' | 'lg'
+  /** kiosk — kattaroq tugmalar; kassa savati — ixcham */
+  size?: 'sm' | 'md' | 'lg'
   /** 1 da "−" bosilmasin (kioskda taom oynasi: 0 ga tushmaydi) */
   min?: number
 }
@@ -13,11 +13,12 @@ type Props = {
 /** Soni: − 2 + — sarg'ish va sariq kvadrat tugmalar. */
 export default function QtyStepper({ value, onChange, size = 'md', min = 0 }: Props) {
   const t = useT()
-  const box = size === 'lg' ? 'h-12 w-12' : 'h-9 w-9'
-  const icon = size === 'lg' ? 22 : 16
+  const box = { sm: 'h-7 w-7', md: 'h-9 w-9', lg: 'h-12 w-12' }[size]
+  const icon = { sm: 14, md: 16, lg: 22 }[size]
+  const number = { sm: 'w-6 text-sm', md: 'w-8 text-base', lg: 'w-10 text-xl' }[size]
 
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className={`inline-flex items-center ${size === 'sm' ? 'gap-1' : 'gap-1.5'}`}>
       <button
         type="button"
         onClick={() => onChange(-1)}
@@ -27,7 +28,7 @@ export default function QtyStepper({ value, onChange, size = 'md', min = 0 }: Pr
       >
         <Minus size={icon} strokeWidth={2.5} />
       </button>
-      <span className={`text-center font-extrabold tabular-nums ${size === 'lg' ? 'w-10 text-xl' : 'w-8 text-base'}`}>{value}</span>
+      <span className={`text-center font-extrabold tabular-nums ${number}`}>{value}</span>
       <button
         type="button"
         onClick={() => onChange(1)}

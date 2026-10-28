@@ -1,4 +1,4 @@
-import { CircleCheck, Split } from 'lucide-react'
+import { ChefHat, ChevronRight, CircleCheck, Split } from 'lucide-react'
 import { useState } from 'react'
 import { OrderTypeBadge } from '@/components/order/OrderBadges'
 import { PAYMENT_ICONS } from '@/components/order/orderIcons'
@@ -110,14 +110,25 @@ export default function PaymentModal({ total, orderType, title, onConfirm, onClo
     <Modal
       title={title ?? t.checkout.title}
       onClose={onClose}
+      size="wide"
       footer={
+        // savatdagi "To'lash" uslubida (ixcham): qora doirada ikonka, nom, ostida summa va to'lov turi — bosishdan oldin tekshirilsin
         <button
           type="button"
           onClick={() => void confirm()}
           disabled={blocked}
-          className="btn-primary h-12 w-full rounded text-sm font-bold tracking-[0.1em] uppercase"
+          className="group flex w-full cursor-pointer items-center gap-3 rounded-card bg-taxi p-2.5 text-left text-coal shadow-card transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
-          {t.checkout.confirm}
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coal text-taxi">
+            <ChefHat size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base leading-tight font-extrabold">{t.checkout.confirm}</span>
+            <span className="block truncate text-xs text-coal/70 tabular-nums">
+              {formatMoney(total, t)} · {method === 'mixed' ? t.checkout.mixed : t.payment[method]}
+            </span>
+          </span>
+          <ChevronRight size={20} className="shrink-0 transition-transform group-enabled:group-hover:translate-x-1" />
         </button>
       }
     >
