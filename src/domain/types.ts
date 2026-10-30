@@ -468,7 +468,7 @@ export interface Menu {
   products: MenuProduct[]
 }
 
-/** Admin rasm tanlaydigan papkalar (`public/images/...`). */
+/** Admin rasm tanlaydigan papkalar (serverning `uploads/...` papkasi, yo'li — `/images/...`). */
 export type ImageFolder = 'products' | 'categories'
 
 /** Papkadagi rasm (`GET /images`) yoki yuklangani (`POST /images`). */
@@ -566,3 +566,49 @@ export interface ShiftsSummary {
 
 /** Harakat + sabab bo'lgan hujjat raqami; ko'chirishda — ikkinchi ombor (kirimda qayerdan, chiqimda qayerga). */
 export type MovementWithRef = StockMovement & { refNumber: number | null; refWarehouseId: ID | null }
+
+// ───────────────────────── AI yordamchi va Telegram bot ─────────────────────────
+
+/** AI suhbati xabari: savol (`user`) yoki javob (`model`, oddiy matn). */
+export interface AiMessage {
+  id: ID
+  userId: ID
+  /** `web` — admin paneldagi chat, `tg:<chatId>` — Telegram */
+  chat: string
+  role: 'user' | 'model'
+  text: string
+  createdAt: string
+}
+
+/** `POST /ai/chat` — yangi suhbat (sahifa har ochilganda): salom; `configured: false` — serverda `GEMINI_API_KEY` yo'q. */
+export interface AiChatStart {
+  configured: boolean
+  greeting: AiMessage
+}
+
+export interface AiExchange {
+  question: AiMessage
+  /** shu chatda kunning birinchi savoli — javobdan oldin salom (alohida xabar), aks holda `null` */
+  greeting: AiMessage | null
+  answer: AiMessage
+}
+
+export interface TelegramChatInfo {
+  chatId: string
+  userId: ID
+  /** tizimdagi admin ismi */
+  userName: string
+  /** Telegram `@username` */
+  username: string | null
+  /** Telegram'dagi ism */
+  name: string
+  linkedAt: string
+}
+
+/** `GET /telegram`: bot (yo'q — token kiritilmagan), server tinglayaptimi, shu adminning start linki, ulangan chatlar. */
+export interface TelegramStatus {
+  bot: { id: number; username: string; name: string } | null
+  running: boolean
+  link: string | null
+  chats: TelegramChatInfo[]
+}

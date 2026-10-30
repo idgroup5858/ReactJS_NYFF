@@ -1,4 +1,6 @@
 import type {
+  AiChatStart,
+  AiExchange,
   Branch,
   Category,
   CustomerOrder,
@@ -24,6 +26,7 @@ import type {
   ShiftWithSummary,
   StockItem,
   StockUnit,
+  TelegramStatus,
   Transfer,
   TransferItem,
   User,
@@ -216,7 +219,7 @@ export const api = {
     moveProduct: (id: ID, direction: -1 | 1) => then(http.post<void>(`/products/${id}/move`, { direction }), 'products', 'menu:'),
   },
   images: {
-    /** Kompyuterdan rasm: server `public/images/<folder>` ga saqlaydi, nomini tozalaydi (`cola-zero.png`). */
+    /** Kompyuterdan rasm: server o'zining `uploads/<folder>` papkasiga saqlaydi, nomini tozalaydi (`cola-zero.png`). */
     upload: (file: File, folder: ImageFolder) => {
       const form = new FormData()
       form.append('folder', folder)
@@ -231,5 +234,21 @@ export const api = {
   demo: {
     /** bazani demo holatga qaytaradi (faqat `DEMO=1` serverda) */
     reset: () => then(http.post<void>('/demo/reset')),
+  },
+  ai: {
+    /** yangi suhbat — sahifa har ochilganda va "Yangi suhbat" da: oldingisi serverda o'chadi, salom qaytadi */
+    start: () => http.post<AiChatStart>('/ai/chat'),
+    /** savol → AI javobi (bir necha soniya); kunning birinchi savolida oldidan salom */
+    ask: (text: string) => http.post<AiExchange>('/ai/messages', { text }),
+    /** javob kutilayotganda ko'rsatiladigan ibora — savol turiga qarab (darhol, AI'siz) */
+    waiting: (text: string) => http.post<{ text: string }>('/ai/waiting', { text }),
+  },
+  telegram: {
+    /** bot tokeni (@BotFather) — server tekshiradi, saqlaydi va botni ishga tushiradi */
+    connect: (token: string) => then(http.put<TelegramStatus>('/telegram/token', { token }), 'telegram'),
+    disconnect: () => then(http.delete<void>('/telegram/token'), 'telegram'),
+    /** yangi start link — eskisi ishlamay qoladi, ulangan chatlar qoladi */
+    regenerateLink: () => then(http.post<TelegramStatus>('/telegram/link'), 'telegram'),
+    unlink: (chatId: string) => then(http.delete<void>(`/telegram/chats/${chatId}`), 'telegram'),
   },
 }

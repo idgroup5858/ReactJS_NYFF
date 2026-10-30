@@ -164,7 +164,6 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
   Budget alert. Kalit begona joyda ishlatilayotgani sezilsa — Android / iOS uchun alohida, ilova nomi bilan cheklangan
   kalitlarga o'tiladi.
 - Bepul limitni bir nechta hisob / loyiha bilan aylanib o'tish — Google shartlariga zid, qilinmaydi.
-- GitHub Pages uchun — repo secret `GOOGLE_MAPS_API_KEY` (`deploy.yml` ga ulangan).
 - Karta ulanmasa — admin xaritasini OpenStreetMap (Leaflet) ga o'tkazish mumkin; hududlar koordinata bo'lib
   saqlanadi, o'zgarmaydi.
 

@@ -20,7 +20,7 @@ type Props = {
 }
 
 /**
- * Rasm tanlash: papkadagi hamma rasm to'ri (`public/images/products` va `categories` — qo'lda tashlanganlari ham, eng
+ * Rasm tanlash: serverdagi hamma rasm to'ri (`uploads/products` va `categories` — qo'lda tashlanganlari ham, eng
  * yangisi birinchi). "Yuklash" yoki to'rga sudrab tashlash — kompyuterdan: server saqlaydi va rasm darhol tanlanadi.
  * Yo'lni qo'lda yozish ham mumkin.
  */

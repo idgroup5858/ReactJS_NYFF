@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useT } from '@/i18n'
 import { useSettings } from '@/store/settingsStore'
 
-/** `.env` dagi kalit (git'ga tushmaydi); GitHub Pages uchun — Actions secret orqali. */
+/** `.env` dagi kalit (git'ga tushmaydi). */
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
 
 function MapNotice({ title, text }: { title: string; text: string }) {

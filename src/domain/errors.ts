@@ -41,6 +41,12 @@ export type ErrorCode =
   | 'invalid_login'
   | 'invalid_password'
   | 'login_taken'
+  // ── AI yordamchi va Telegram bot (admin "AI" bo'limi) ──
+  | 'ai_not_configured'
+  | 'ai_failed'
+  | 'telegram_token_invalid'
+  | 'telegram_unreachable'
+  | 'telegram_not_connected'
   /** server javob bermadi (tarmoq / server o'chiq) */
   | 'network'
 

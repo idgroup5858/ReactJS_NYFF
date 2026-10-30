@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, Boxes, ClipboardCheck, Clock, Package, PackagePlus, Receipt, ShoppingBag, Store, Users, UtensilsCrossed } from 'lucide-react'
+import { ArrowLeftRight, BarChart3, Boxes, ClipboardCheck, Clock, Package, PackagePlus, Receipt, ShoppingBag, Sparkles, Store, Users, UtensilsCrossed } from 'lucide-react'
 import { useLowStock, useOverview } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { useT } from '@/i18n'
@@ -31,6 +31,7 @@ export function useBackOfficeNav(): NavGroup[] {
     title: t.modes.admin.title,
     items: [
       { to: '/admin', label: t.admin.nav.reports, icon: BarChart3, end: true },
+      { to: '/admin/ai', label: t.admin.nav.ai, icon: Sparkles },
       { to: '/admin/buyurtmalar', label: t.admin.nav.orders, icon: ShoppingBag },
       { to: '/admin/smenalar', label: t.admin.nav.shifts, icon: Clock },
       { to: '/admin/kirimlar', label: t.admin.nav.purchases, icon: ClipboardCheck, badge: overview?.pendingPurchases },

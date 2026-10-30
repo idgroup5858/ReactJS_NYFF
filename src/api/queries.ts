@@ -28,6 +28,7 @@ import type {
   ShiftWithSummary,
   AuthUser,
   StockItem,
+  TelegramStatus,
   Transfer,
   TvOrder,
   User,
@@ -97,7 +98,7 @@ export const useMenu = (branchId: ID | null | undefined, options: { all?: boolea
 /** Admin: barcha kategoriyalar / taomlar (faol emaslari ham, retsept, narx va vaqtincha sotilmaydigan filiallari bilan). */
 export const useCategories = () => useQuery('categories', () => http.get<Category[]>('/categories'))
 export const useProducts = () => useQuery('products', () => http.get<Product[]>('/products'))
-/** Admin: `public/images` dagi taom va kategoriya rasmlari (papkaga qo'lda tashlanganlari ham), eng yangisi birinchi. */
+/** Admin: serverning `uploads` papkasidagi taom va kategoriya rasmlari (qo'lda tashlanganlari ham), eng yangisi birinchi. */
 export const useImages = () => useQuery('images', () => http.get<ImageFile[]>('/images'))
 
 // ───────────────────────── Ombor ─────────────────────────
@@ -202,3 +203,8 @@ export const useSalesReport = (range: { from: DateKey; to: DateKey; branchId?: I
 /** Admin bosh sahifasi ko'rsatkichlari — faqat admin (boshqa rolda `enabled: false`). */
 export const useOverview = (options: HookOptions = {}) =>
   useQuery(on('reports:overview', options), () => http.get<Overview>('/reports/overview'), options)
+
+// ───────────────────────── AI yordamchi (faqat admin) ─────────────────────────
+
+/** Telegram bot holati, shu adminning start linki va ulangan chatlar. */
+export const useTelegramStatus = () => useQuery('telegram', () => http.get<TelegramStatus>('/telegram'))

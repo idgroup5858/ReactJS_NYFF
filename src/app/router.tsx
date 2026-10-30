@@ -49,6 +49,15 @@ export const router = createBrowserRouter([
           lazy: async () => ({ Component: (await import('@/pages/admin/AdminLayout')).default }),
           children: [
             { index: true, lazy: async () => ({ Component: (await import('@/pages/admin/reports/ReportsPage')).default }) },
+            {
+              // AI yordamchi: chat (tepadagi "AI" tugmasi shu yerga) va Telegram bot sozlamasi — bitta sahifa, ikki tab
+              path: 'ai',
+              lazy: async () => ({ Component: (await import('@/pages/admin/ai/AiLayout')).default }),
+              children: [
+                { index: true, lazy: async () => ({ Component: (await import('@/pages/admin/ai/AiChatPage')).default }) },
+                { path: 'telegram', lazy: async () => ({ Component: (await import('@/pages/admin/ai/TelegramPage')).default }) },
+              ],
+            },
             { path: 'buyurtmalar', lazy: async () => ({ Component: (await import('@/pages/admin/orders/OrdersPage')).default }) },
             {
               // ro'yxat → smena → smenadagi buyurtma: ro'yxat ota sahifa bo'lib qoladi (filtrlari saqlanadi)
