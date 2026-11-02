@@ -272,7 +272,7 @@ export const en: Dict = {
     gomeal: 'GoMeal',
     modern: 'Modern',
     icons: 'Icons',
-    iconStyles: { line: 'Line', '3d': 'Color 3D', photo: 'Photo' },
+    iconStyles: { '3d': 'Color 3D', photo: 'Photo' },
     imageFit: 'Food photos',
     imageFits: { cover: 'Fill', contain: 'Whole' },
   },

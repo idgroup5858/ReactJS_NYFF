@@ -110,7 +110,7 @@ export default function PurchasesPage() {
               ))}
             </select>
           </Field>
-          <LinesEditor lines={lines} onChange={setLines} />
+          <LinesEditor lines={lines} onChange={setLines} availableIn={warehouseId} mode="purchase" />
           <Field label={t.purchase.note} htmlFor="purchase-note">
             <textarea id="purchase-note" value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={200} placeholder={t.purchase.notePlaceholder} className={textareaClass} />
           </Field>

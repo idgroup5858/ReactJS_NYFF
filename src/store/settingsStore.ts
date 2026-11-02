@@ -13,8 +13,8 @@ export type CategoryPosition = 'left' | 'top'
 export const THEMES = ['soft', 'gomeal', 'modern'] as const
 export type Theme = (typeof THEMES)[number]
 
-/** Kategoriya ikonkalari (mavzudan alohida): chiziqli, rangli 3D (standart) yoki rasm. */
-export const ICON_STYLES = ['line', '3d', 'photo'] as const
+/** Kategoriya ikonkalari (mavzudan alohida): rangli 3D (standart) yoki rasm. */
+export const ICON_STYLES = ['3d', 'photo'] as const
 export type IconStyle = (typeof ICON_STYLES)[number]
 
 /**

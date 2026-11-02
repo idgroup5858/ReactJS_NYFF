@@ -273,7 +273,7 @@ export const uz = {
     gomeal: 'GoMeal',
     modern: 'Zamonaviy',
     icons: 'Ikonkalar',
-    iconStyles: { line: 'Chiziqli', '3d': 'Rangli 3D', photo: 'Rasm' },
+    iconStyles: { '3d': 'Rangli 3D', photo: 'Rasm' },
     imageFit: 'Taom rasmlari',
     imageFits: { cover: "To'ldirish", contain: 'Butunligicha' },
   },

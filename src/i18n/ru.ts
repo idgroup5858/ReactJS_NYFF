@@ -272,7 +272,7 @@ export const ru: Dict = {
     gomeal: 'GoMeal',
     modern: 'Современная',
     icons: 'Иконки',
-    iconStyles: { line: 'Линейные', '3d': 'Цветные 3D', photo: 'Фото' },
+    iconStyles: { '3d': 'Цветные 3D', photo: 'Фото' },
     imageFit: 'Фото блюд',
     imageFits: { cover: 'Заполнить', contain: 'Целиком' },
   },

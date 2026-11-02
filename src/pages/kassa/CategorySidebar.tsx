@@ -41,7 +41,7 @@ export default function CategorySidebar({ categories, activeId, counts, onSelect
               aria-label={collapsed ? name : undefined}
               className={sidebarItemClass(active, collapsed)}
             >
-              <CategoryIcon category={category} box="h-6 w-6" line={18} />
+              <CategoryIcon category={category} box="h-6 w-6" />
               {!collapsed && <span className="min-w-0 flex-1">{name}</span>}
               {!collapsed && <SidebarBadge value={counts.get(category.id) ?? 0} collapsed={false} tone="muted" active={active} />}
             </button>

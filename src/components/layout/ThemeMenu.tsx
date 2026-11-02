@@ -1,4 +1,4 @@
-import { Check, Hamburger, Palette } from 'lucide-react'
+import { Check, Palette } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/i18n'
 import { assetUrl } from '@/lib/assetUrl'
@@ -91,12 +91,10 @@ export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }
               className="flex w-full cursor-pointer items-center gap-3 rounded px-2.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-neutral-100"
             >
               <span className="flex h-6 w-9 shrink-0 items-center justify-center overflow-hidden rounded-chip bg-neutral-100 ring-1 ring-neutral-200">
-                {value === 'line' ? (
-                  <Hamburger size={16} strokeWidth={1.75} />
-                ) : value === '3d' ? (
+                {value === '3d' ? (
                   <img src={assetUrl('/images/icons/hamburger.png')} alt="" className="h-5 w-5" />
                 ) : (
-                  <img src={assetUrl('/images/categories/burgers.jpg')} alt="" className="h-full w-full object-cover" />
+                  <img src={assetUrl('/images/icons/hamburger.png')} alt="" className="h-full w-full object-cover" />
                 )}
               </span>
               <span className="flex-1">{t.theme.iconStyles[value]}</span>
@@ -118,7 +116,7 @@ export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }
               className="flex w-full cursor-pointer items-center gap-3 rounded px-2.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-neutral-100"
             >
               <span className="flex h-6 w-9 shrink-0 overflow-hidden rounded-chip bg-neutral-100 ring-1 ring-neutral-200">
-                <img src={assetUrl('/images/categories/burgers.jpg')} alt="" className={`h-full w-full ${value === 'contain' ? 'object-contain' : 'object-cover'}`} />
+                <img src={assetUrl('/images/icons/hamburger.png')} alt="" className={`h-full w-full ${value === 'contain' ? 'object-contain' : 'object-cover'}`} />
               </span>
               <span className="flex-1">{t.theme.imageFits[value]}</span>
               {value === imageFit && <Check size={16} className="text-select" />}

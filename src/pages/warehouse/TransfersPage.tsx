@@ -101,7 +101,7 @@ export default function TransfersPage() {
             </Field>
           </div>
           {from === to && <p className="text-sm font-semibold text-red-700">{t.errors.same_warehouse}</p>}
-          <LinesEditor lines={lines} onChange={setLines} availableIn={from} />
+          <LinesEditor lines={lines} onChange={setLines} availableIn={from} mode="transfer" />
           <Field label={t.purchase.note} htmlFor="transfer-note">
             <textarea id="transfer-note" value={note} onChange={(event) => setNote(event.target.value)} rows={2} maxLength={200} className={textareaClass} />
           </Field>

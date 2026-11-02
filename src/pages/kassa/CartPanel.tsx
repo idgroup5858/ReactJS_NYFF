@@ -119,15 +119,31 @@ export default function CartPanel(props: Props) {
       </div>
 
       <div className="shrink-0 space-y-2.5 border-t border-neutral-200/70 px-3 py-2.5">
+        {/* bir qatorli; X — izohni o'chirib, "+ Buyurtmaga izoh" tugmasiga qaytaradi; bo'sh holda fokus ketsa — o'zi yopiladi */}
         {orderNoteOpen || orderNote ? (
-          <textarea
-            value={orderNote}
-            onChange={(event) => onOrderNote(event.target.value)}
-            placeholder={t.kassa.orderNotePlaceholder}
-            rows={2}
-            maxLength={200}
-            className="w-full resize-none rounded-card border border-neutral-300 bg-white px-3 py-2 text-sm text-red-700"
-          />
+          <div className="relative">
+            <input
+              value={orderNote}
+              onChange={(event) => onOrderNote(event.target.value)}
+              onBlur={() => !orderNote && setOrderNoteOpen(false)}
+              placeholder={t.kassa.orderNotePlaceholder}
+              maxLength={200}
+              autoFocus
+              className="h-9 w-full rounded border border-neutral-300 bg-white pr-10 pl-3 text-sm text-red-700"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                onOrderNote('')
+                setOrderNoteOpen(false)
+              }}
+              aria-label={t.common.close}
+              title={t.common.close}
+              className="btn-icon-danger absolute top-1 right-1 flex h-7 w-7 items-center justify-center rounded"
+            >
+              <X size={14} />
+            </button>
+          </div>
         ) : (
           <button
             type="button"

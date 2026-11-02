@@ -33,7 +33,7 @@ export default function CategoryTile({ category, active, onClick, size = 'md' }:
         className={`flex min-w-0 shrink-0 cursor-pointer items-center gap-2.5 rounded-card border-2 p-1.5 pr-3 text-left shadow-card transition-colors ${active ? state : `${state} bg-white hover:border-neutral-200`}`}
       >
         <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-media bg-page text-neutral-800 ${lg ? 'h-12 w-12' : 'h-10 w-10'}`}>
-          <CategoryIcon category={category} box={lg ? 'h-10 w-10' : 'h-8 w-8'} line={lg ? 26 : 22} />
+          <CategoryIcon category={category} box={lg ? 'h-10 w-10' : 'h-8 w-8'} />
         </span>
         <span className={`min-w-0 flex-1 leading-tight ${lg ? 'text-base' : 'text-[13px]'} ${active ? 'font-bold text-neutral-950' : 'font-medium text-neutral-700'}`}>{name}</span>
       </button>
@@ -51,7 +51,7 @@ export default function CategoryTile({ category, active, onClick, size = 'md' }:
         <FoodImage src={category.image} alt={name} className="aspect-square w-full rounded-media" />
       ) : (
         <span className={`flex aspect-square w-full items-center justify-center rounded-media bg-page ${active ? 'text-coal' : 'text-neutral-700'}`}>
-          <CategoryIcon category={category} box={lg ? 'h-20 w-20' : 'h-14 w-14'} line={lg ? 56 : 40} />
+          <CategoryIcon category={category} box={lg ? 'h-20 w-20' : 'h-14 w-14'} />
         </span>
       )}
       <span

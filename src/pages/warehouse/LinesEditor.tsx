@@ -11,23 +11,24 @@ import { newDraftLine, type DraftLine } from './draftLines'
 type Props = {
   lines: DraftLine[]
   onChange: (lines: DraftLine[]) => void
-  /** ko'chirishda — shu ombordagi mavjud qoldiq ko'rsatiladi va oshib ketsa qizil */
-  availableIn?: ID
+  /** shu ombordagi mavjud qoldiq ko'rsatiladi: kirimda — qayerga, ko'chirishda — qayerdan */
+  availableIn: ID
+  /** kirim — yonida oxirgi narx ham, qoldiq chegaradan kam bo'lsa qizil; ko'chirish — miqdor qoldiqdan oshsa qizil */
+  mode: 'purchase' | 'transfer'
 }
 
 /**
  * Mahsulot qatorlari muharriri (kirim va ko'chirish): mahsulot (guruhlar bo'yicha ro'yxat), miqdor ombor birligida,
- * yonida oxirgi narx yoki mavjud qoldiq.
+ * yonida ombordagi mavjud qoldiq (kirimda — oxirgi narx ham).
  */
-export default function LinesEditor({ lines, onChange, availableIn }: Props) {
+export default function LinesEditor({ lines, onChange, availableIn, mode }: Props) {
   const t = useT()
   const localize = useLocalize()
   const allIngredients = useIngredients().data ?? []
   const ingredients = allIngredients.filter((i) => i.active)
-  // ko'chirishda — tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0); kirimda so'ralmaydi.
-  // yuklanguncha `null` — "—" ko'rinadi, miqdor qizil bo'lmaydi
+  // tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0, chegara yo'q).
+  // yuklanguncha `undefined` — "—" ko'rinadi, hech narsa qizil bo'lmaydi
   const stock = useStock(availableIn || undefined, { enabled: !!availableIn }).data
-  const stockQty = (ingredientId: ID) => (stock ? (stock.find((s) => s.ingredientId === ingredientId)?.qty ?? 0) : null)
 
   const update = (key: string, patch: Partial<DraftLine>) => onChange(lines.map((line) => (line.key === key ? { ...line, ...patch } : line)))
 
@@ -36,10 +37,18 @@ export default function LinesEditor({ lines, onChange, availableIn }: Props) {
       {lines.map((line) => {
         const ingredient = allIngredients.find((i) => i.id === line.ingredientId)
         const qty = parseQty(line.qty)
-        const available = ingredient && availableIn ? stockQty(ingredient.id) : null
-        const tooMuch = ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit) > available
+        const item = ingredient && stock?.find((s) => s.ingredientId === ingredient.id)
+        const available = ingredient && stock ? (item?.qty ?? 0) : null
+        const tooMuch = mode === 'transfer' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit) > available
+        // Qoldiqlar sahifasidagi "Kam" bilan bir xil: chegara qo'yilgan va qoldiq undan kam
+        const low = mode === 'purchase' && !!item && item.minQty > 0 && item.qty < item.minQty
         return (
-          <div key={line.key} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-card border border-neutral-200 bg-white p-2 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto] sm:items-center">
+          <div
+            key={line.key}
+            className={`grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-card border border-neutral-200 bg-white p-2 sm:items-center ${
+              mode === 'purchase' ? 'sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,13rem)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
+            }`}
+          >
             <select
               value={line.ingredientId}
               onChange={(event) => update(line.key, { ingredientId: event.target.value })}
@@ -75,10 +84,18 @@ export default function LinesEditor({ lines, onChange, availableIn }: Props) {
               </span>
             </label>
             <span className={`order-last col-span-2 text-xs sm:order-none sm:col-span-1 ${tooMuch ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
-              {ingredient &&
-                (availableIn
-                  ? `${t.transfer.available}: ${available !== null ? formatStock(available, ingredient.unit, t) : '—'}`
-                  : `${t.purchase.lastPrice}: ${ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${t.units[ingredient.unit]}` : '—'}`)}
+              {ingredient && (
+                <>
+                  <span className={`block ${low ? 'font-semibold text-red-700' : ''}`}>
+                    {t.transfer.available}: {available !== null ? formatStock(available, ingredient.unit, t) : '—'}
+                  </span>
+                  {mode === 'purchase' && (
+                    <span className="block">
+                      {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${t.units[ingredient.unit]}` : '—'}
+                    </span>
+                  )}
+                </>
+              )}
             </span>
             <button
               type="button"
