@@ -74,7 +74,30 @@
                     npm run build
                     sudo rm -rf /var/www/html/*
                     sudo cp -r dist/* /var/www/html/
+                    sudo cp site/index.html /var/www/newyork24/
                     sudo systemctl restart apache2
+
+                    (dist → newyork24.uz/shorva — xodimlar tizimi; site/index.html → newyork24.uz — bosh sahifa)
 
                     localhost
                     localhost
+
+
+
+
+                    cd ~/ReactJS_NYFF
+                    git pull
+                    npm install
+                    npm run build
+                    sudo rm -rf /var/www/html/*
+                    sudo cp -r dist/* /var/www/html/
+                    sudo cp site/index.html /var/www/newyork24/
+
+
+
+                    cd ~/NestJS_NYFF
+                    git pull
+                    nano .env          # bir marta: oxiriga  UI_DIST=/var/www/html  qo'shing (Android ikonkalari uchun)
+                    npm install
+                    npm run build
+                    pm2 restart nest-app
