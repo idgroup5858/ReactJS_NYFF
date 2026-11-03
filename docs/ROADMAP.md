@@ -179,9 +179,10 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
   (asosiy) printerga chiqara oladi, shuning uchun variantlar: **QZ Tray** (tayyor yordamchi dastur, printer nomi bilan;
   "ruxsat" oynasi chiqmasligi uchun o'z sertifikatimiz — backend imzolaydi), WebUSB (Zadig bilan drayver almashtirish),
   Electron ilova yoki serverdan (LAN printer + VPN). Kabel: USB 5 m gacha — 7 m uchun aktiv uzaytirgich yoki LAN.
-- **`newyork24.uz` bosh sahifasi (2026-11-03, keyinga qoldirildi).** Domen ildizi uchun mijozlar sahifasi — alohida
-  ishlab chiqiladi, mazmuni keyin kelishiladi. Hozircha ildizda vaqtinchalik sahifa (`ReactJS_NYFF/site/index.html` —
-  logo, "Tez orada"; serverda `/var/www/newyork24`); tayyor bo'lgach shu papka almashtiriladi. Xodimlar tizimi allaqachon
+- **`newyork24.uz` bosh sahifasi (2026-11-03).** Ildizda animatsiyali landing (`ReactJS_NYFF/site/index.html` —
+  burger tushib yig'iladi va scroll'da qatlamlarga bo'linadi; hot-dog — bodring, pomidor, chapdan sous; lavash
+  masalliq solinib o'raladi; fri qovurilib sousga botiriladi; stakanga sariq sharbat quyiladi; yetkazib berish —
+  ilovada buyurtma, yetkazish mashinasi yo'lga chiqib eshikkacha olib boradi; menyu kartalari; uz/ru/en tillari; bitta fayl, serverda `/var/www/newyork24`). Qolgani: manzil/telefon/ish vaqti, haqiqiy menyu va narxlar, ilova havolasi. Xodimlar tizimi allaqachon
   **`newyork24.uz/shorva`** da (bajarildi, `NestJS_NYFF/PLAN.md` — "Manzillar"); subdomen va "ish joyi kodi" — kerak emas.
 
 Bajarilganlar (2026-11-02): ishlatilmagan ombor mahsuloti (va filial, kategoriya, taom, xodim) o'chiriladi; kassadagi

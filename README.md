@@ -68,6 +68,7 @@
 
                     npm install react-to-print
 
+UPDATE SITE
 
                     //update site
                     git pull
@@ -78,6 +79,12 @@
                     sudo systemctl restart apache2
 
                     (dist → newyork24.uz/shorva — xodimlar tizimi; site/index.html → newyork24.uz — bosh sahifa)
+
+                    Android ilova (bosh sahifadagi "APK yuklab olish" tugmasi → newyork24.uz/newyork24.apk) —
+                    yangi versiya chiqqanda, kompyuterdan (Kotlin_NYFF da yig'ilgan APK):
+                    scp app-release.apk USER@SERVER:/tmp/newyork24.apk
+                    serverda:
+                    sudo cp /tmp/newyork24.apk /var/www/newyork24/newyork24.apk
 
                     localhost
                     localhost
