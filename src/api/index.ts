@@ -257,6 +257,13 @@ export const api = {
       form.append('file', file)
       return then(http.upload<ImageFile>('/images', form), 'images')
     },
+    /** Faylni serverdan o'chirish (`/images/products/cola.png`); taomda, kategoriyada yoki kioskda bo'lsa — `image_in_use`. */
+    remove: (path: string) => {
+      const [, , folder = '', name = ''] = path.split('/')
+      return then(http.delete<void>(`/images/${encodeURIComponent(folder)}/${encodeURIComponent(name)}`), 'images')
+    },
+    /** Kiosk bosh ekranidagi 3 ta rasm (o'rtadagi, tepadagi, pastdagi); bo'sh — doirada ikonka. */
+    saveKiosk: (images: string[]) => then(http.put<{ images: string[] }>('/kiosk/images', { images }), 'kiosk-images'),
   },
   expenses: {
     create: (input: NewExpenseInput) => then(http.post<Expense>('/expenses', input), 'expenses', 'reports'),

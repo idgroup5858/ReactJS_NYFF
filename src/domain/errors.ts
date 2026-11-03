@@ -24,6 +24,7 @@ export type ErrorCode =
   | 'invalid_location'
   | 'forbidden'
   | 'invalid_image'
+  | 'image_in_use'
   | 'surname_required'
   | 'in_use'
   // ── offline kassa (kassa kompyuteridagi server): oxirgi raqam aniq emas ──

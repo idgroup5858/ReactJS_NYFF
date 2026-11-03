@@ -109,6 +109,9 @@ export const useCategories = () => useQuery('categories', () => http.get<Categor
 export const useProducts = () => useQuery('products', () => http.get<Product[]>('/products'))
 /** Admin: serverning `uploads` papkasidagi taom va kategoriya rasmlari (qo'lda tashlanganlari ham), eng yangisi birinchi. */
 export const useImages = () => useQuery('images', () => http.get<ImageFile[]>('/images'))
+/** Kiosk bosh ekranidagi 3 ta rasm (o'rtadagi, tepadagi, pastdagi) — ochiq: kiosk tokensiz o'qiydi, admin almashtiradi. */
+export const useKioskImages = () =>
+  useQuery('kiosk-images', async () => (await http.get<{ images: string[] }>('/kiosk/images', undefined, { token: null })).images)
 
 // ───────────────────────── Ombor ─────────────────────────
 

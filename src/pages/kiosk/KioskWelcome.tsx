@@ -1,5 +1,6 @@
 import { ArrowLeftRight, ChevronRight, MapPin, ShoppingBag, Utensils, X } from 'lucide-react'
 import { Link } from 'react-router'
+import { useKioskImages } from '@/api/queries'
 import Brand from '@/components/layout/Brand'
 import FoodImage from '@/components/ui/FoodImage'
 import { LANGS, type Branch, type Lang } from '@/domain/types'
@@ -7,8 +8,11 @@ import { LANG_LABELS, useT } from '@/i18n'
 import { setLang, useSettings } from '@/store/settingsStore'
 import type { KioskOrderType } from './KioskCart'
 
-/** o'rtada — chizburger, tepada va pastda — hot-dog */
-const HERO_IMAGES = [
+/**
+ * Server javob bermasa (eski server / tarmoq) — standart rasmlar: o'rtada chizburger, tepada va pastda hot-dog.
+ * Odatda rasmlarni admin tanlaydi: "Menyu" → "Kiosk rasmlari" (`GET /kiosk/images`).
+ */
+const DEFAULT_HERO_IMAGES = [
   '/images/products/Screenshot_2-removebg-preview.png',
   '/images/products/pngtree-hotdog-with-sausage-and-salad-ingredients-png-image_19086249-removebg-preview.png',
   '/images/products/66e8a20acf4319d46fd00ddb276865da-removebg-preview.png',
@@ -24,6 +28,9 @@ const SMALL_RING = 'shadow-[0_0_0_6px_#fff,0_0_0_14px_var(--color-taxi),0_24px_4
 export default function KioskWelcome({ branch, onStart }: { branch: Branch | undefined; onStart: (type: KioskOrderType) => void }) {
   const t = useT()
   const { lang } = useSettings()
+  const kioskImages = useKioskImages()
+  // yuklanguncha — bo'sh oq doiralar (ikonka miltillamasin)
+  const heroImages = kioskImages.data ?? (kioskImages.error ? DEFAULT_HERO_IMAGES : null)
 
   const choices: { type: KioskOrderType; icon: typeof Utensils; title: string; hint: string }[] = [
     { type: 'dine_in', icon: Utensils, title: t.kiosk.dineIn, hint: t.kiosk.dineInHint },
@@ -103,10 +110,18 @@ export default function KioskWelcome({ branch, onStart }: { branch: Branch | und
         <div className="relative mx-auto hidden aspect-square w-full max-w-xl lg:block">
           <div className="absolute inset-[8%] rounded-full bg-taxi" />
           {/* dumaloq bezak rasmlar — foni shaffof PNG, oq doirada: o'rtadagi doirani to'ldiradi, kichiklari butunligicha */}
-          <FoodImage src={HERO_IMAGES[0]} alt="" fit="cover" className="absolute inset-[14%] h-[72%] w-[72%] rounded-full bg-white shadow-2xl ring-8 ring-white" />
-          {/* kichik rasmlar ham o'rtadagidek: ichida oq, tashqarisida sariq chegara */}
-          <FoodImage src={HERO_IMAGES[1]} alt="" fit="contain" className={`absolute top-[2%] left-[2%] h-[26%] w-[26%] rounded-full bg-white p-[3%] ${SMALL_RING}`} />
-          <FoodImage src={HERO_IMAGES[2]} alt="" fit="contain" className={`absolute right-[0%] bottom-[6%] h-[28%] w-[28%] rounded-full bg-white p-[3%] ${SMALL_RING}`} />
+          {[
+            { fit: 'cover' as const, className: 'absolute inset-[14%] h-[72%] w-[72%] rounded-full bg-white shadow-2xl ring-8 ring-white' },
+            // kichik rasmlar ham o'rtadagidek: ichida oq, tashqarisida sariq chegara
+            { fit: 'contain' as const, className: `absolute top-[2%] left-[2%] h-[26%] w-[26%] rounded-full bg-white p-[3%] ${SMALL_RING}` },
+            { fit: 'contain' as const, className: `absolute right-[0%] bottom-[6%] h-[28%] w-[28%] rounded-full bg-white p-[3%] ${SMALL_RING}` },
+          ].map(({ fit, className }, index) =>
+            heroImages ? (
+              <FoodImage key={index} src={heroImages[index] ?? ''} alt="" fit={fit} className={className} />
+            ) : (
+              <div key={index} className={className} />
+            ),
+          )}
         </div>
       </main>
 

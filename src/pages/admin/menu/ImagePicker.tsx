@@ -1,4 +1,4 @@
-import { LoaderCircle, Upload } from 'lucide-react'
+import { LoaderCircle, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { api } from '@/api'
 import { useCategories, useImages, useProducts } from '@/api/queries'
@@ -6,7 +6,7 @@ import FoodImage from '@/components/ui/FoodImage'
 import { inputClass } from '@/components/ui/styles'
 import type { ImageFolder } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
-import { showToast } from '@/lib/swal'
+import { confirmDialog, showToast } from '@/lib/swal'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/avif'
 /** server ham shuni tekshiradi (`invalid_image`) — katta faylni yubormasdan oldin aytamiz */
@@ -22,7 +22,8 @@ type Props = {
 /**
  * Rasm tanlash: serverdagi hamma rasm to'ri (`uploads/products` va `categories` — qo'lda tashlanganlari ham, eng
  * yangisi birinchi). "Yuklash" yoki to'rga sudrab tashlash — kompyuterdan: server saqlaydi va rasm darhol tanlanadi.
- * Yo'lni qo'lda yozish ham mumkin.
+ * Yo'lni qo'lda yozish ham mumkin. Tanlangan rasmni serverdan o'chirish — pastdagi tugma (ishlatilgan rasmni server
+ * o'chirmaydi — `image_in_use`).
  */
 export default function ImagePicker({ value, onChange, folder }: Props) {
   const t = useT()
@@ -30,6 +31,7 @@ export default function ImagePicker({ value, onChange, folder }: Props) {
   const categories = useCategories().data ?? []
   const products = useProducts().data ?? []
   const [uploading, setUploading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -60,6 +62,24 @@ export default function ImagePicker({ value, onChange, folder }: Props) {
       showToast(errorMessage(error), 'error')
     } finally {
       setUploading(false)
+    }
+  }
+
+  // o'chirsa bo'ladigani — papkadagi fayl (boshqa manzil yoki qo'lda yozilgan yo'l emas)
+  const deletable = names.has(value)
+
+  const remove = async () => {
+    if (!deletable || deleting) return
+    if (!(await confirmDialog(t.admin.menu.deleteImageTitle, `${names.get(value)}. ${t.admin.menu.deleteImageText}`, t.common.delete))) return
+    setDeleting(true)
+    try {
+      await api.images.remove(value)
+      onChange('')
+      showToast(t.admin.menu.imageDeleted)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -118,6 +138,17 @@ export default function ImagePicker({ value, onChange, folder }: Props) {
             <FoodImage src={src} alt="" className="h-full w-full" />
           </button>
         ))}
+      </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => void remove()}
+          disabled={!deletable || deleting || uploading}
+          className="btn-icon-danger flex h-9 shrink-0 items-center gap-1.5 rounded px-3 text-xs font-bold disabled:cursor-not-allowed"
+        >
+          {deleting ? <LoaderCircle size={15} className="animate-spin" /> : <Trash2 size={15} />}
+          {t.admin.menu.deleteImage}
+        </button>
       </div>
       <p className="text-xs text-neutral-500">{t.admin.menu.imageHint}</p>
     </div>

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Pencil, Plus } from 'lucide-react'
+import { ChevronDown, ChevronUp, Images, Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { api, type ProductInput } from '@/api'
 import { useBranches, useCategories, useIngredients, useProducts } from '@/api/queries'
@@ -11,6 +11,7 @@ import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatRecipeQty } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import CategoryForm from './CategoryForm'
+import KioskImagesModal from './KioskImagesModal'
 import ProductForm from './ProductForm'
 
 const iconButton = 'btn-icon flex h-8 w-8 items-center justify-center rounded'
@@ -47,6 +48,7 @@ export default function MenuAdminPage() {
   const [categoryForm, setCategoryForm] = useState<Category | 'new' | null>(null)
   const [productForm, setProductForm] = useState<Product | 'new' | null>(null)
   const [openRecipe, setOpenRecipe] = useState<ID | null>(null)
+  const [kioskImagesOpen, setKioskImagesOpen] = useState(false)
   // yuklanguncha bo'sh ro'yxat o'rnida "taom yo'q" chiqmasin; yuklab bo'lmasa — xato matni
   const loaded = categoriesQuery.data !== undefined && productsQuery.data !== undefined
   const loadError = (!categoriesQuery.data && categoriesQuery.error) || (!productsQuery.data && productsQuery.error)
@@ -63,7 +65,16 @@ export default function MenuAdminPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title={t.admin.menu.title} description={t.admin.menu.hint} />
+      <PageHeader
+        title={t.admin.menu.title}
+        description={t.admin.menu.hint}
+        actions={
+          <button type="button" onClick={() => setKioskImagesOpen(true)} className="btn-ghost flex h-10 items-center gap-2 rounded px-4 text-xs font-bold">
+            <Images size={16} />
+            {t.admin.menu.kioskImages}
+          </button>
+        }
+      />
       <div className="grid items-start gap-5 lg:grid-cols-[310px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
         <Card>
           <CardHeader
@@ -202,6 +213,7 @@ export default function MenuAdminPage() {
 
       {categoryForm && <CategoryForm category={categoryForm === 'new' ? null : categoryForm} onClose={() => setCategoryForm(null)} />}
       {productForm && <ProductForm product={productForm === 'new' ? null : productForm} categoryId={categoryId} onClose={() => setProductForm(null)} />}
+      {kioskImagesOpen && <KioskImagesModal onClose={() => setKioskImagesOpen(false)} />}
     </div>
   )
 }
