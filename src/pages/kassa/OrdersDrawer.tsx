@@ -25,6 +25,8 @@ type Props = {
   menu: Menu | undefined
   shiftId: ID | null
   initialTab: OrdersTab
+  /** kassir bo'limni almashtirdi — kassa qaysi buyurtmalarni ko'rganini biladi (ogohlantirish to'xtaydi) */
+  onTabChange?: (tab: OrdersTab) => void
   onClose: () => void
 }
 
@@ -157,7 +159,7 @@ function OrderList({ orders, empty, ...row }: Omit<RowProps, 'order'> & { orders
  * yo'ldagi, "Yetkazib bo'lmadi" bilan qaytgan): kassir kuryerdan oladi yoki bekor qiladi. Smenam — kassirning shu
  * smenadagi savdosi.
  */
-export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, onClose }: Props) {
+export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, onTabChange, onClose }: Props) {
   const t = useT()
   const now = useNow(1000)
   const { data: active } = useActiveOrders()
@@ -221,7 +223,10 @@ export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, on
           <SegmentedControl<OrdersTab>
             label={t.orders.title}
             value={tab}
-            onChange={setTab}
+            onChange={(next) => {
+              setTab(next)
+              onTabChange?.(next)
+            }}
             options={[
               { value: 'online', label: `${t.orders.onlineTab} · ${online.length}` },
               { value: 'kiosk', label: `${t.orders.kioskTab} · ${pending.length}` },

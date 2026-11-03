@@ -1,3 +1,4 @@
+import receiptLogo from '@/assets/receipt-logo.png?inline'
 import type { Menu, Order, OrderItem } from '@/domain/types'
 import { currentDict } from '@/i18n'
 import { showToast } from '@/lib/swal'
@@ -24,46 +25,58 @@ const PRINT_TIMEOUT_MS = 15_000
 
 /**
  * 80 mm termochek: oshxona shu qog'ozdan tayyorlaydi — raqam, zal / olib ketish va izohlar katta. Raqam — eng katta va
- * qalin: Courier New'ning qalini termoprinterda ingichka chiqadi, shuning uchun Arial Black + kontur. Oshxona cheki —
- * xuddi shu, tepasida "OSHXONA" va faqat oshxonaga tegishli qatorlar ("Jami" — butun buyurtmaniki).
+ * qalin: Courier New'ning qalini termoprinterda ingichka chiqadi, shuning uchun Arial Black + kontur. Mijoz cheki —
+ * tepasida logo (chek ichida, data URI: Electron chekni `data:` sahifa qilib ochadi, tashqi fayl yuklanmaydi, offline'da
+ * ham chiqadi). Zal / olib ketish — ikkalasida qora fonda. Oshxona cheki — logosiz, faqat oshxonaga tegishli qatorlar, summasiz
+ * (narx, "Jami", to'lov yo'q); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Bo'shliqlar ixcham — qog'oz
+ * tejaladi; "Manzil: <filial>" chapda, sana o'ngda — bitta qatorda.
  */
 function receiptHtml(order: ReceiptOrder, branchName: string, lines: OrderItem[], kitchen: boolean): string {
   const t = currentDict()
   const lang = settingsStore.get().lang
+  // jadval emas, grid: jadvalda uzuq chiziq har katakda alohida chiziladi va ustunlar chegarasida naqshi uziladi
   const items = lines
-    .map(
-      (item) => `<tr><td class="qty">${item.qty}×</td><td>${escape(item.name[lang] || item.name.uz)}</td><td class="sum">${formatMoney(item.price * item.qty, t)}</td></tr>`,
-    )
-    .join('')
+    .map((item) => {
+      const cells = `<div>${escape(item.name[lang] || item.name.uz)}</div><div class="qty">${item.qty}×</div>`
+      return kitchen ? cells : `${cells}<div class="sum">${formatMoney(item.price * item.qty, t)}</div>`
+    })
+    .join('<div class="sep"></div>')
   const payment = order.payment ? t.payment[order.payment] : t.orderStatus.pending
   return `<!doctype html><html><head><meta charset="utf-8"><title>${formatOrderNumber(order.number)}</title><style>
 @page { size: 80mm auto; margin: 0 }
 * { box-sizing: border-box }
-body { width: 80mm; margin: 0; padding: 4mm; font: 12px/1.35 'Courier New', monospace; color: #000 }
+body { width: 80mm; margin: 0; padding: 2mm 4mm; font: 12px/1.25 'Courier New', monospace; color: #000 }
 .center { text-align: center }
-.brand { font-weight: 700; font-size: 14px; letter-spacing: .08em }
-.kitchen { display: inline-block; background: #000; color: #fff; padding: 1mm 4mm; margin-bottom: 2mm; font: 900 16px/1.2 Arial, sans-serif; letter-spacing: .2em }
-.number { font: 900 72px/1 'Arial Black', Arial, sans-serif; -webkit-text-stroke: 1.5px #000; margin: 3mm 0 2mm }
-.type { display: inline-block; border: 2px solid #000; padding: 1mm 3mm; font-size: 16px; font-weight: 900; text-transform: uppercase }
-hr { border: 0; border-top: 1px dashed #000; margin: 3mm 0 }
-table { width: 100%; border-collapse: collapse }
-td { vertical-align: top; padding: .8mm 0 }
-.qty { width: 9mm; font-weight: 700; font-size: 14px }
-.sum { text-align: right; white-space: nowrap; padding-left: 2mm }
+.number { font: 900 72px/.95 'Arial Black', Arial, sans-serif; -webkit-text-stroke: 1.5px #000; margin: 1mm 0 }
+/* brauzer orqali chop etilganda ham qora fon chiqsin (aks holda oq yozuv oq qog'ozda yo'qoladi) */
+.type { display: inline-block; background: #000; color: #fff; padding: .5mm 4mm; font: 900 16px/1.2 Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact }
+.source { margin-left: 2mm; vertical-align: middle }
+.meta { display: flex; justify-content: space-between; gap: 2mm; margin-top: 1.5mm; text-align: left }
+.meta span:last-child { white-space: nowrap }
+hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
+.items { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 3mm }
+.items > div { padding: .7mm 0; overflow-wrap: anywhere }
+.items > .sep { grid-column: 1 / -1; padding: 0; border-top: 1px dashed #000 }
+.qty, .sum { white-space: nowrap; text-align: right }
+.qty { font-weight: 700; font-size: 14px }
+.kitchen-items { grid-template-columns: minmax(0, 1fr) auto }
+.kitchen-items > div { font: 700 18px/1.2 Arial, sans-serif; padding: 1mm 0 }
+.kitchen-items .qty { font-weight: 900 }
 .order-note { font-weight: 700 }
 .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900 }
 .muted { font-size: 11px }
-.credit { margin-top: 4mm; text-align: center; font-size: 8px }
+.logo { display: block; width: 27.6mm; margin: 0 auto }
+.credit { margin-top: 2mm; text-align: center; font-size: 8px }
 </style></head><body>
-<div class="center">${kitchen ? `<div class="kitchen">${escape(t.orders.kitchenLabel)}</div>` : ''}<div class="brand">${escape(t.appName.toUpperCase())}</div><div class="muted">${escape(branchName)}</div>
+<div class="center">${kitchen ? '' : `<img class="logo" src="${receiptLogo}" alt="">`}
 <div class="number">${formatOrderNumber(order.number)}</div>
-<div class="type">${escape(t.orderType[order.type])}</div>${order.source !== 'cashier' ? `<div class="muted">${escape(order.source === 'kiosk' ? t.orders.kiosk : t.orders.online)}</div>` : ''}
-<div class="muted">${formatDateTime(order.createdAt)}</div></div>
-<hr><table>${items}</table>
+<div class="type">${escape(t.orderType[order.type])}</div>${order.source !== 'cashier' ? `<span class="muted source">${escape(order.source === 'kiosk' ? t.orders.kiosk : t.orders.online)}</span>` : ''}
+<div class="meta muted"><span>${branchName ? `${escape(t.orders.receiptAddress)}: ${escape(branchName)}` : ''}</span><span>${formatDateTime(order.createdAt)}</span></div></div>
+<hr><div class="items${kitchen ? ' kitchen-items' : ''}">${items}</div>
 ${order.online ? `<hr><div>${escape([order.online.name, order.online.phone].filter(Boolean).join(' · '))}</div>${order.online.address ? `<div class="order-note">${escape(order.online.address)}</div>` : ''}` : ''}
 ${order.note ? `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>` : ''}
-<hr><div class="total"><span>${escape(t.kassa.total)}</span><span>${formatMoney(order.total, t)}</span></div>
-<div class="muted">${escape(payment)}</div>
+${kitchen ? '' : `<hr><div class="total"><span>${escape(t.kassa.total)}</span><span>${formatMoney(order.total, t)}</span></div>
+<div class="muted">${escape(payment)}</div>`}
 <div class="credit">by ID GROUP team</div>
 </body></html>`
 }

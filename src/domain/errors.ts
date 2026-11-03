@@ -6,6 +6,8 @@ export type ErrorCode =
   | 'user_inactive'
   | 'empty_order'
   | 'product_unavailable'
+  /** faqat zalda beriladigan taom (choynakdagi choy) olib ketish / dostavka buyurtmasida */
+  | 'dine_in_only'
   | 'invalid_qty'
   | 'invalid_price'
   | 'invalid_status'

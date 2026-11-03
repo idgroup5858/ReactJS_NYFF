@@ -21,8 +21,8 @@ const recipeRow = (ingredientId: ID = '', qty = ''): RecipeDraft => ({ key: ++se
 
 /**
  * Taom qo'shish / tahrirlash: kategoriya, nomi 3 tilda, rasmi, narxi (barcha filiallarda bir xil), qaysi faol
- * filiallarda sotuvda, retsepti (mahsulot + miqdor asosiy birlikda: g / ml / dona), faolligi va oshxona chekiga
- * chiqishi (tayyor ichimliklarda o'chiriladi) — hammasi bitta so'rovda saqlanadi.
+ * filiallarda sotuvda, retsepti (mahsulot + miqdor asosiy birlikda: g / ml / dona), faolligi, oshxona chekiga
+ * chiqishi (tayyor ichimliklarda o'chiriladi) va faqat zalda berilishi (choynakdagi choy) — hammasi bitta so'rovda saqlanadi.
  */
 export default function ProductForm({ product, categoryId, onClose }: { product: Product | null; categoryId: ID; onClose: () => void }) {
   const t = useT()
@@ -35,6 +35,7 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
   const [image, setImage] = useState(product?.image ?? '')
   const [active, setActive] = useState(product?.active ?? true)
   const [kitchen, setKitchen] = useState(product?.kitchen ?? true)
+  const [dineInOnly, setDineInOnly] = useState(product?.dineInOnly ?? false)
   const [recipe, setRecipe] = useState<RecipeDraft[]>(() => (product ? product.recipe.map((line) => recipeRow(line.ingredientId, String(line.qty))) : [recipeRow()]))
   // faqat raqamlar; bo'sh yoki 0 — server `invalid_price` qaytaradi
   const [price, setPrice] = useState(product && product.price > 0 ? String(product.price) : '')
@@ -59,6 +60,7 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
         image,
         active,
         kitchen,
+        dineInOnly,
         price: Number(price),
         unavailableBranchIds: unavailable,
         recipe: recipe.filter((line) => line.ingredientId).map((line) => ({ ingredientId: line.ingredientId, qty: Number(line.qty) })),
@@ -110,6 +112,10 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
           <div>
             <Toggle checked={kitchen} onChange={setKitchen} label={t.admin.menu.kitchen} />
             <p className="mt-1 text-xs text-neutral-500">{t.admin.menu.kitchenHint}</p>
+          </div>
+          <div>
+            <Toggle checked={dineInOnly} onChange={setDineInOnly} label={t.admin.menu.dineInOnly} />
+            <p className="mt-1 text-xs text-neutral-500">{t.admin.menu.dineInOnlyHint}</p>
           </div>
         </div>
 

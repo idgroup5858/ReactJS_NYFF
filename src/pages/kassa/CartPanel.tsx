@@ -3,13 +3,13 @@ import { useState, type ReactNode } from 'react'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import FoodImage from '@/components/ui/FoodImage'
 import QtyStepper from '@/components/ui/QtyStepper'
-import type { MenuProduct, OrderType } from '@/domain/types'
+import { allowedForType, type MenuProduct, type OrderType } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatMoney } from '@/lib/format'
 import type { CartLine } from '@/lib/cart'
 
 export interface PricedLine extends CartLine {
-  product: Pick<MenuProduct, 'name' | 'image'>
+  product: Pick<MenuProduct, 'name' | 'image' | 'dineInOnly'>
   /** `null` — taom savatga qo'shilgandan keyin sotuvdan olingan (yoki menyudan butunlay chiqarilgan) */
   price: number | null
 }
@@ -40,7 +40,10 @@ export default function CartPanel(props: Props) {
   const [orderNoteOpen, setOrderNoteOpen] = useState(false)
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0)
-  const blocked = lines.length === 0 || lines.some((line) => line.price === null)
+  /** qator nega to'lanmaydi: sotuvdan olingan yoki "faqat zalda" taom olib ketishda; `null` — hammasi joyida */
+  const problemOf = (line: PricedLine): string | null =>
+    line.price === null ? t.menu.unavailable : allowedForType(line.product, orderType) ? null : t.menu.dineInOnly
+  const blocked = lines.length === 0 || lines.some((line) => problemOf(line) !== null)
 
   return (
     <aside className="surface m-3 flex max-h-[55vh] shrink-0 flex-col overflow-hidden rounded-card border border-line shadow-card lg:mb-3 lg:ml-0 lg:max-h-none lg:w-[360px] xl:w-[400px] 2xl:w-[440px]">
@@ -86,34 +89,38 @@ export default function CartPanel(props: Props) {
         ) : (
           // qatorlar ingichka chiziq bilan ajratilgan — mavzuda kartochka soyasi bo'lmasa ham taomlar qo'shilib ketmasin
           <ul className="divide-y divide-neutral-200 px-3">
-            {lines.map((line) => (
-              <li key={line.key} className="flex gap-2.5 py-2">
-                <FoodImage src={line.product.image} alt="" className="h-11 w-11 shrink-0 rounded-media" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="truncate text-sm leading-tight font-semibold text-neutral-950">{localize(line.product.name)}</p>
-                    <p className={`shrink-0 text-sm leading-tight font-bold tabular-nums ${line.price === null ? 'text-red-700' : 'text-neutral-950'}`}>
-                      {line.price !== null ? formatMoney(line.price * line.qty, t) : '—'}
-                    </p>
+            {lines.map((line) => {
+              const problem = problemOf(line)
+              return (
+                <li key={line.key} className="flex gap-2.5 py-2">
+                  <FoodImage src={line.product.image} alt="" className="h-11 w-11 shrink-0 rounded-media" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="truncate text-sm leading-tight font-semibold text-neutral-950">{localize(line.product.name)}</p>
+                      <p className={`shrink-0 text-sm leading-tight font-bold tabular-nums ${problem ? 'text-red-700' : 'text-neutral-950'}`}>
+                        {line.price !== null ? formatMoney(line.price * line.qty, t) : '—'}
+                      </p>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <QtyStepper size="sm" value={line.qty} onChange={(delta) => onChangeQty(line.key, delta)} />
+                      {/* muammo bo'lsa ("Sotilmaydi" / "Faqat zalda") — narx o'rnida qizil */}
+                      <span className={`min-w-0 flex-1 truncate text-xs tabular-nums ${problem ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
+                        {problem ?? formatMoney(line.price ?? 0, t)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRemove(line.key)}
+                        aria-label={t.kassa.remove}
+                        title={t.kassa.remove}
+                        className="btn-icon-danger flex h-7 w-7 shrink-0 items-center justify-center rounded"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <QtyStepper size="sm" value={line.qty} onChange={(delta) => onChangeQty(line.key, delta)} />
-                    <span className={`min-w-0 flex-1 truncate text-xs tabular-nums ${line.price === null ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
-                      {line.price !== null ? formatMoney(line.price, t) : t.menu.unavailable}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(line.key)}
-                      aria-label={t.kassa.remove}
-                      title={t.kassa.remove}
-                      className="btn-icon-danger flex h-7 w-7 shrink-0 items-center justify-center rounded"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

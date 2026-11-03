@@ -47,10 +47,23 @@ export interface DeviceSettings {
   offlineEnabled: boolean
   /** offline server manzili (kassa kompyuterida, `NestJS_NYFF` — `node dist/offline/main`) */
   offlineUrl: string
+  /**
+   * kassa: yangi buyurtma ovozining balandligi (0.3…1). O'chirib bo'lmaydi — kassir o'chirib qo'yib, yana buyurtmani
+   * ko'rmay qolmasin
+   */
+  alertVolume: number
 }
 
 /** Offline server standart manzili (`OFFLINE_PORT=3100`). */
 export const DEFAULT_OFFLINE_URL = 'http://localhost:3100'
+
+export const MIN_ALERT_VOLUME = 0.3
+const DEFAULT_ALERT_VOLUME = 0.8
+
+function clampVolume(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return DEFAULT_ALERT_VOLUME
+  return Math.min(1, Math.max(MIN_ALERT_VOLUME, raw))
+}
 
 function sanitize(raw: unknown): DeviceSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof DeviceSettings, unknown>>
@@ -66,6 +79,7 @@ function sanitize(raw: unknown): DeviceSettings {
     warehouseView: LIST_VIEWS.find((view) => view === value.warehouseView) ?? 'list',
     offlineEnabled: value.offlineEnabled === true,
     offlineUrl: typeof value.offlineUrl === 'string' && value.offlineUrl.trim() ? value.offlineUrl.trim() : DEFAULT_OFFLINE_URL,
+    alertVolume: clampVolume(value.alertVolume),
   }
 }
 
@@ -94,3 +108,4 @@ export const setCategoryRailCollapsed = (categoryRailCollapsed: boolean) => save
 export const setWarehouseView = (warehouseView: ListView) => save({ warehouseView })
 export const setOfflineEnabled = (offlineEnabled: boolean) => save({ offlineEnabled })
 export const setOfflineUrl = (offlineUrl: string) => save({ offlineUrl })
+export const setAlertVolume = (alertVolume: number) => save({ alertVolume: clampVolume(alertVolume) })

@@ -8,8 +8,8 @@ import Brand from '@/components/layout/Brand'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import ScreenCodeForm from '@/components/screen/ScreenCodeForm'
 import Modal from '@/components/ui/Modal'
-import type { Branch, CustomerOrder, ID, MenuProduct } from '@/domain/types'
-import { errorMessage, useT } from '@/i18n'
+import { allowedForType, type Branch, type CustomerOrder, type ID, type Menu, type MenuProduct } from '@/domain/types'
+import { errorMessage, useLocalize, useT } from '@/i18n'
 import { addProduct, changeQty, removeLine, type CartLine } from '@/lib/cart'
 import { printReceipt } from '@/lib/printReceipt'
 import { showToast } from '@/lib/swal'
@@ -135,6 +135,7 @@ function KioskCodeScreen({
  */
 function KioskBranch({ branchId }: { branchId: string }) {
   const t = useT()
+  const localize = useLocalize()
   const menu = useMenu(branchId).data
   const branches = useBranches()
   const reloadBranches = branches.reload
@@ -187,14 +188,22 @@ function KioskBranch({ branchId }: { branchId: string }) {
 
   useIdle(IDLE_AFTER_MS, () => setIdle(true), step === 'menu' || step === 'cart' || step === 'pay')
 
-  // narx — filial menyusidan; sotuvdan chiqib qolgan taom savatdan tushadi
+  // olib ketishda "faqat zalda" taomlar (choynakdagi choy) ko'rinmaydi; ular qolgan kategoriya ham
+  const typeMenu: Menu | undefined = useMemo(() => {
+    if (!menu || orderType === 'dine_in') return menu
+    const products = menu.products.filter((p) => allowedForType(p, orderType))
+    const withProducts = new Set(products.map((p) => p.categoryId))
+    return { ...menu, products, categories: menu.categories.filter((c) => withProducts.has(c.id)) }
+  }, [menu, orderType])
+
+  // narx — filial menyusidan; sotuvdan chiqib qolgan (yoki shu turda berilmaydigan) taom savatdan tushadi
   const priced: KioskLine[] = useMemo(
     () =>
       lines.flatMap((line) => {
-        const product = menu?.products.find((p) => p.id === line.productId)
+        const product = typeMenu?.products.find((p) => p.id === line.productId)
         return product && product.price !== null ? [{ ...line, product, price: product.price }] : []
       }),
-    [menu, lines],
+    [typeMenu, lines],
   )
   const total = priced.reduce((sum, line) => sum + line.price * line.qty, 0)
   const qty = priced.reduce((sum, line) => sum + line.qty, 0)
@@ -218,6 +227,17 @@ function KioskBranch({ branchId }: { branchId: string }) {
         }}
       />
     )
+  }
+
+  /** Buyurtma turi almashdi: olib ketishga o'tilsa — "faqat zalda" taomlar savatdan chiqadi va mijozga aytiladi. */
+  const changeOrderType = (type: KioskOrderType) => {
+    setOrderType(type)
+    const removed = priced.filter((line) => !allowedForType(line.product, type))
+    if (removed.length === 0) return
+    const keys = new Set(removed.map((line) => line.key))
+    setLines((current) => current.filter((line) => !keys.has(line.key)))
+    const names = [...new Set(removed.map((line) => localize(line.product.name)))].join(', ')
+    showToast(t.kiosk.dineInOnlyRemoved(names), 'info')
   }
 
   /** `null` — kassada to'laydi: buyurtma kassirni kutadi. Karta / Click — to'langan, chek shu yerda chiqadi. */
@@ -263,7 +283,7 @@ function KioskBranch({ branchId }: { branchId: string }) {
   const typeToggle = step !== 'done' && (
     <button
       type="button"
-      onClick={() => setOrderType(orderType === 'dine_in' ? 'takeaway' : 'dine_in')}
+      onClick={() => changeOrderType(orderType === 'dine_in' ? 'takeaway' : 'dine_in')}
       aria-label={t.orderType[orderType]}
       className="flex h-11 cursor-pointer items-center gap-2 rounded bg-taxi px-3 text-sm font-extrabold text-coal transition-colors hover:bg-taxi-hover sm:px-4"
     >
@@ -276,13 +296,13 @@ function KioskBranch({ branchId }: { branchId: string }) {
     <div className="flex h-screen flex-col overflow-hidden">
       <KioskTopBar center={typeToggle} onStartOver={reset} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {step === 'menu' && <KioskMenu menu={menu} cartCounts={cartCounts} cartQty={qty} cartTotal={total} onOpen={setDetail} onCart={() => setStep('cart')} />}
+        {step === 'menu' && <KioskMenu menu={typeMenu} cartCounts={cartCounts} cartQty={qty} cartTotal={total} onOpen={setDetail} onCart={() => setStep('cart')} />}
         {step === 'cart' && (
           <KioskCart
             lines={priced}
             total={total}
             orderType={orderType}
-            onOrderType={setOrderType}
+            onOrderType={changeOrderType}
             onQty={(key, delta) => setLines((current) => changeQty(current, key, delta))}
             onRemove={(key) => setLines((current) => removeLine(current, key))}
             onBack={() => setStep('menu')}

@@ -17,6 +17,7 @@ import { printOrder } from '@/lib/printReceipt'
 import { removeKey } from '@/store/storage'
 import { ticketsStorageKey } from '@/store/storageKeys'
 import { useSettings } from '@/store/settingsStore'
+import AlertFrame from './AlertFrame'
 import CartPanel, { type PricedLine } from './CartPanel'
 import { offlineKassaUrl, releaseTickets, takeTickets } from './handover'
 import KassaSettingsModal from './KassaSettingsModal'
@@ -29,9 +30,18 @@ import PaymentModal from './PaymentModal'
 import QueueButtons from './QueueButtons'
 import ShiftReportModal from './ShiftReportModal'
 import TicketTabs from './TicketTabs'
+import { useOrderAlerts } from './useOrderAlerts'
 import { hasLines, newOrderId, useTickets, type Ticket } from './useTickets'
 
 type Panel = 'pay' | OrdersTab | 'settings' | null
+
+const isOrdersTab = (panel: Panel): panel is OrdersTab =>
+  panel === 'online' || panel === 'kiosk' || panel === 'preparing' || panel === 'delivery' || panel === 'shift'
+
+/** Kutayotgan buyurtmalardan eng eskisi filialga tushgan vaqt; `null` — yo'q. */
+function oldestRouted(orders: Order[]): string | null {
+  return orders.reduce<string | null>((oldest, order) => (oldest === null || order.routedAt < oldest ? order.routedAt : oldest), null)
+}
 
 /**
  * Soni oshsa (kioskdan yoki mobil ilovadan yangi buyurtma) — kassirga xabar. [count] `null` — ro'yxat hali
@@ -58,7 +68,6 @@ export default function KassaPage() {
   const session = useSession()
   const user = useCurrentUser()
   const navigate = useNavigate()
-  useDocumentTitle(t.modes.cashier.title)
 
   const branchId: ID | null = user?.branchId ?? null
   const menu = useMenu(branchId, { all: true })
@@ -84,6 +93,8 @@ export default function KassaPage() {
   const { lines, orderType, orderNote } = active
   useEffect(releaseTickets, [])
   const [panel, setPanel] = useState<Panel>(null)
+  // buyurtmalar oynasida kassir almashtirgan bo'lim; `null` — ochilgandagi bo'limda turibdi
+  const [drawerTab, setDrawerTab] = useState<OrdersTab | null>(null)
   const [report, setReport] = useState<ShiftWithSummary | null>(null)
   // savatga qo'shilgan taomlar: admin taomni o'chirsa u menyudan butunlay chiqadi — qator nomi va rasmi bilan qoladi
   const [added, setAdded] = useState<Map<ID, MenuProduct>>(() => new Map())
@@ -112,8 +123,10 @@ export default function KassaPage() {
 
   const branchName = branches?.find((b) => b.id === branchId)?.name ?? ''
   const orders = activeOrders ?? []
-  const pendingCount = orders.filter((o) => o.status === 'pending' && o.source !== 'mobile').length
-  const onlineCount = orders.filter((o) => o.status === 'pending' && o.source === 'mobile').length
+  const kioskPending = orders.filter((o) => o.status === 'pending' && o.source !== 'mobile')
+  const onlinePending = orders.filter((o) => o.status === 'pending' && o.source === 'mobile')
+  const pendingCount = kioskPending.length
+  const onlineCount = onlinePending.length
   const preparingCount = orders.filter((o) => o.status === 'preparing').length
   const returnedCount = (deliveryOrders ?? []).filter((o) => o.returnedAt).length
 
@@ -121,6 +134,12 @@ export default function KassaPage() {
   useRiseToast(activeOrders ? pendingCount : null, t.orders.kioskNew)
   useRiseToast(activeOrders ? onlineCount : null, t.orders.onlineNew)
   useRiseToast(deliveryOrders ? returnedCount : null, t.courier.returnedNew)
+
+  // kassir ko'rmagan online / kiosk buyurtma — ovoz, ekran ramkasi, tugma va tab sarlavhasi miltillaydi
+  const viewing = isOrdersTab(panel) ? (drawerTab ?? panel) : null
+  // internet uzilgan bo'lsa ro'yxat eskirgan — jim (offline oynasi chiqadi)
+  const alerts = useOrderAlerts(activeOrders, viewing, report === null && !connectionLost)
+  useDocumentTitle(t.modes.cashier.title, alerts.ringing ? t.kassa.alertTitle(alerts.online + alerts.kiosk) : null)
 
   // bugungi eng katta raqam — internet uzilsa offline kassa undan davom etadi
   useEffect(() => {
@@ -235,6 +254,10 @@ export default function KassaPage() {
                 delivery={deliveryOrders?.length ?? 0}
                 returned={returnedCount}
                 couriersOnDuty={couriers ? onDutyCouriers(couriers).length : null}
+                onlineSince={oldestRouted(onlinePending)}
+                kioskSince={oldestRouted(kioskPending)}
+                onlineRinging={alerts.ringing !== null && alerts.online > 0}
+                kioskRinging={alerts.ringing !== null && alerts.kiosk > 0}
                 onOnline={() => setPanel('online')}
                 onKiosk={() => setPanel('kiosk')}
                 onPreparing={() => setPanel('preparing')}
@@ -260,13 +283,24 @@ export default function KassaPage() {
       </div>
 
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
-      {(panel === 'online' || panel === 'kiosk' || panel === 'preparing' || panel === 'delivery' || panel === 'shift') && (
-        <OrdersDrawer branchName={branchName} menu={menu.data} shiftId={session.shiftId} initialTab={panel} onClose={() => setPanel(null)} />
+      {isOrdersTab(panel) && (
+        <OrdersDrawer
+          branchName={branchName}
+          menu={menu.data}
+          shiftId={session.shiftId}
+          initialTab={panel}
+          onTabChange={setDrawerTab}
+          onClose={() => {
+            setPanel(null)
+            setDrawerTab(null)
+          }}
+        />
       )}
       {panel === 'settings' && <KassaSettingsModal onClose={() => setPanel(null)} />}
       {report && <ShiftReportModal shift={report} onDone={finish} />}
       {locked && !report && <LockScreen user={user} />}
       {connectionLost && !report && <OfflineSwitch enabled={offlineEnabled} onSwitch={switchToOffline} />}
+      {alerts.ringing && <AlertFrame kind={alerts.ringing} />}
     </StaffLayout>
   )
 }
