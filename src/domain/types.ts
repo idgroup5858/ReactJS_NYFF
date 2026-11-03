@@ -128,8 +128,6 @@ export interface Category {
   icon: string
   sortOrder: number
   active: boolean
-  /** `false` — taomlari oshxona chekiga chiqmaydi (ichimliklar: kassir o'zi beradi). Eski offline nusxada yo'q — chiqadi. */
-  kitchen: boolean
 }
 
 export interface RecipeLine {
@@ -151,6 +149,8 @@ export interface Product {
   unavailableBranchIds: ID[]
   sortOrder: number
   active: boolean
+  /** `false` — oshxona chekiga chiqmaydi (tayyor ichimlik: kola, suv — kassir o'zi beradi; choy, qahva — chiqadi) */
+  kitchen: boolean
 }
 
 // ───────────────────────── Ombor ─────────────────────────
@@ -468,6 +468,8 @@ export interface MenuProduct {
   price: number | null
   /** tarkibi (qadoq, yog', ziravorlarsiz) — kioskda ko'rsatiladi */
   composition: LocalizedText[]
+  /** `false` — oshxona chekiga chiqmaydi. Eski offline nusxada yo'q (`undefined`) — chiqadi. */
+  kitchen?: boolean
 }
 
 export interface Menu {

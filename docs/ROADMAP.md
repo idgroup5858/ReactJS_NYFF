@@ -185,9 +185,10 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
   - Web `printReceipt` avval Electron'ga (ikkala chek parallel), u yo'q bo'lsa — hozirgidek brauzer orqali (faqat
     mijoz cheki). Online kassa (`https://newyork24.uz`) → `localhost`: Chrome bir marta ruxsat so'raydi; offline
     kassada so'ramaydi. Asosiy printer ham oynasiz chiqadi (`--kiosk-printing` kerak bo'lmaydi).
-  - **Oshxona cheki = kassa cheki, lekin ichimliklarsiz** (ichimlikni kassir o'zi beradi). Kategoriyaga belgi
-    ("Oshxona chekiga chiqmaydi", admin → Kategoriyalar; backend + offline server migratsiyasi), taom → kategoriya —
-    menyudan. Hamma qatori ichimlik bo'lsa — oshxona cheki chiqmaydi.
+  - **Oshxona cheki = kassa cheki, lekin tayyor ichimliklarsiz** (kola, suvni kassir o'zi beradi; choy, qahva —
+    oshxonada, chiqadi). Belgi **har bir taomda** (admin → Menyu → taom → "Oshxona chekiga chiqadi"; `Product.kitchen`,
+    migratsiya `ProductKitchen`) — avval kategoriyada edi, choy / qahva tufayli taomga o'tkazildi. Offline serverga
+    menyu bilan o'zi boradi. Hamma qatori tayyor ichimlik bo'lsa — oshxona cheki chiqmaydi.
   - Avtomatik: kassada to'lov, kiosk / mobil buyurtmani qabul qilish, offline kassada to'lov. Qayta chiqarish — 2 ta
     tugma: "Mijoz cheki" va "Oshxona cheki".
   - **Kioskda karta bilan to'langan** buyurtma (kassadan o'tmaydi) — keyin, kiosk karta to'lovi qilinayotganda ko'riladi.

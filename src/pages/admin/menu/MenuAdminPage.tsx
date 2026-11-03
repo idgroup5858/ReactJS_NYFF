@@ -26,6 +26,7 @@ const productInput = (product: Product, patch: Partial<ProductInput>): ProductIn
   price: product.price,
   unavailableBranchIds: product.unavailableBranchIds,
   active: product.active,
+  kitchen: product.kitchen,
   ...patch,
 })
 

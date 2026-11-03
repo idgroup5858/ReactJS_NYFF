@@ -69,17 +69,13 @@ ${order.note ? `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escap
 }
 
 /**
- * Oshxonaga tegishli qatorlar: kategoriyasi "Oshxona chekiga chiqadi" o'chiq bo'lganlari (ichimliklar) tushadi. Taom
+ * Oshxonaga tegishli qatorlar: "Oshxona chekiga chiqadi" o'chiq taomlar (tayyor ichimlik: kola, suv) tushadi. Taom
  * menyuda topilmasa (o'chirilgan) yoki eski offline nusxada belgi yo'q bo'lsa — chiqadi (oshxona bilmay qolmasin).
  */
 function kitchenLines(items: OrderItem[], menu: Menu | null | undefined): OrderItem[] {
   if (!menu) return items
-  const skip = new Set(menu.categories.filter((category) => category.kitchen === false).map((category) => category.id))
-  const categoryOf = new Map(menu.products.map((product) => [product.id, product.categoryId]))
-  return items.filter((item) => {
-    const category = categoryOf.get(item.productId)
-    return !category || !skip.has(category)
-  })
+  const skip = new Set(menu.products.filter((product) => product.kitchen === false).map((product) => product.id))
+  return items.filter((item) => !skip.has(item.productId))
 }
 
 /** Yashirin oynada brauzer orqali — standart printerga (Chrome `--kiosk-printing` bilan so'ramasdan). */

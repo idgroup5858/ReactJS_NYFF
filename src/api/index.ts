@@ -118,7 +118,6 @@ export interface CategoryInput {
   image: string
   icon: string
   active: boolean
-  kitchen: boolean
 }
 
 export interface ProductInput {
@@ -132,6 +131,8 @@ export interface ProductInput {
   /** taom vaqtincha sotilmaydigan filiallar */
   unavailableBranchIds: ID[]
   active: boolean
+  /** `false` — oshxona chekiga chiqmaydi (tayyor ichimlik) */
+  kitchen: boolean
 }
 
 export interface DocumentLine {
