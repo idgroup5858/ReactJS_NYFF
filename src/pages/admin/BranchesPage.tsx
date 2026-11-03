@@ -191,7 +191,8 @@ export default function BranchesPage() {
         {branches.map((branch) => {
           const revenue = todayReport?.byBranch.find((stat) => stat.branchId === branch.id)?.revenue ?? 0
           const live = overview?.liveOrders.find((item) => item.branchId === branch.id)?.count ?? 0
-          const staff = users.filter((u) => u.branchId === branch.id && u.active).length
+          // bir nechta filialda ishlaydigan xodim — har birida sanaladi
+          const staff = users.filter((u) => u.branchIds.includes(branch.id) && u.active).length
           const fallback = branches.find((b) => b.id === branch.fallbackBranchId)
           return (
             <Card key={branch.id} className={`space-y-4 p-5 ${branch.active ? '' : 'opacity-60'}`}>

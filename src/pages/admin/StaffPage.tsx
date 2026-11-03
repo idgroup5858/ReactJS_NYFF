@@ -14,26 +14,32 @@ import Toggle from '@/components/ui/Toggle'
 import { usePagination } from '@/components/ui/usePagination'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { fullName, isValidEmail, isValidPassword, isValidPin, roleNeedsBranch, usesPassword } from '@/domain/rules'
-import { ROLES, type Role, type User } from '@/domain/types'
+import { ROLES, type ID, type Role, type User } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import CouriersCard from './CouriersCard'
 
 /**
- * Xodim qo'shish / tahrirlash: ism, familiya, rol, filial (kassir uchun), PIN (tahrirda bo'sh — o'zgarmaydi), faollik.
- * Admin va kuryer — PIN o'rniga email va parol (admin — `/admin` da, kuryer — ilovadagi yashirin oynadan kiradi).
+ * Xodim qo'shish / tahrirlash: ism, familiya, rol, filiallar (kassir va oshpaz yordamchisi — bir nechtasi ham mumkin,
+ * kirishda kassa turgan filial tanlanadi), PIN (tahrirda bo'sh — o'zgarmaydi), faollik. Admin va kuryer — PIN o'rniga
+ * email va parol (admin — `/admin` da, kuryer — ilovadagi yashirin oynadan kiradi).
  */
 function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }) {
   const t = useT()
   const actor = useCurrentUser()
-  const branches = (useBranches().data ?? []).filter((b) => b.active)
+  const allBranches = useBranches().data ?? []
   const [name, setName] = useState(user?.name ?? '')
   const [surname, setSurname] = useState(user?.surname ?? '')
   const [role, setRole] = useState<Role>(user?.role ?? 'cashier')
-  const [branchChoice, setBranchChoice] = useState(user?.branchId ?? '')
+  const [branchChoice, setBranchChoice] = useState<ID[] | null>(user?.branchIds.length ? user.branchIds : null)
   // tanlanmagan bo'lsa — birinchi faol filial (filiallar forma ochilgandan keyin kelishi ham mumkin)
-  const branchId = branchChoice || branches[0]?.id || ''
+  const firstActive = allBranches.find((b) => b.active)
+  const branchIds = branchChoice ?? (firstActive ? [firstActive.id] : [])
+  // faol filiallar va xodimga biriktirilgan faolsizlari (belgisi saqlashda o'chib ketmasin)
+  const branchOptions = allBranches.filter((b) => b.active || branchIds.includes(b.id))
+  const setWorksAt = (branchId: ID, on: boolean) =>
+    setBranchChoice(on ? [...branchIds, branchId] : branchIds.filter((id) => id !== branchId))
   const [pin, setPin] = useState('')
   const [email, setEmail] = useState(user?.email ?? '')
   const [password, setPassword] = useState('')
@@ -49,6 +55,10 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
     if (saving) return
     if (!surname.trim()) {
       showToast(t.errors.surname_required, 'error')
+      return
+    }
+    if (roleNeedsBranch(role) && branchIds.length === 0) {
+      showToast(t.errors.branch_required, 'error')
       return
     }
     if (withPassword && !isValidEmail(email)) {
@@ -70,7 +80,7 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
         name,
         surname,
         role,
-        branchId: roleNeedsBranch(role) ? branchId : null,
+        branchIds: roleNeedsBranch(role) ? branchIds : [],
         ...(withPassword ? { email, password } : { pin }),
         active,
       })
@@ -102,28 +112,30 @@ function StaffForm({ user, onClose }: { user: User | null; onClose: () => void }
             <input id="st-surname" value={surname} onChange={(event) => setSurname(event.target.value)} className={inputClass} />
           </Field>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label={t.admin.staff.role} htmlFor="st-role">
-            <select id="st-role" value={role} disabled={self} onChange={(event) => setRole(event.target.value as Role)} className={selectClass}>
-              {ROLES.map((value) => (
-                <option key={value} value={value}>
-                  {t.roles[value]}
-                </option>
+        <Field label={t.admin.staff.role} htmlFor="st-role">
+          <select id="st-role" value={role} disabled={self} onChange={(event) => setRole(event.target.value as Role)} className={selectClass}>
+            {ROLES.map((value) => (
+              <option key={value} value={value}>
+                {t.roles[value]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {roleNeedsBranch(role) && (
+          <Field label={t.admin.staff.branches} hint={t.admin.staff.branchesHint}>
+            <div className="grid gap-x-4 gap-y-2 pt-1 sm:grid-cols-2">
+              {branchOptions.map((branch) => (
+                <div key={branch.id}>
+                  <Toggle
+                    checked={branchIds.includes(branch.id)}
+                    onChange={(on) => setWorksAt(branch.id, on)}
+                    label={branch.active ? branch.name : `${branch.name} (${t.common.inactive.toLowerCase()})`}
+                  />
+                </div>
               ))}
-            </select>
+            </div>
           </Field>
-          {roleNeedsBranch(role) && (
-            <Field label={t.common.branch} htmlFor="st-branch">
-              <select id="st-branch" value={branchId} onChange={(event) => setBranchChoice(event.target.value)} className={selectClass}>
-                {branches.map((branch) => (
-                  <option key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-        </div>
+        )}
         {withPassword ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t.admin.staff.email} htmlFor="st-email" hint={t.admin.staff.emailHint}>
@@ -247,7 +259,14 @@ export default function StaffPage() {
                     </span>
                   </td>
                   <td className={tdClass}>{t.roles[user.role]}</td>
-                  <td className={tdClass}>{user.branchId ? (branches.find((b) => b.id === user.branchId)?.name ?? '—') : t.admin.staff.allBranches}</td>
+                  <td className={tdClass}>
+                    {user.branchIds.length > 0
+                      ? branches
+                          .filter((b) => user.branchIds.includes(b.id))
+                          .map((b) => b.name)
+                          .join(', ') || '—'
+                      : t.admin.staff.allBranches}
+                  </td>
                   <td className={tdClass}>
                     <span className={`rounded-chip px-2 py-0.5 text-[11px] font-bold uppercase ${user.active ? 'bg-emerald-50 text-emerald-700' : 'bg-neutral-200 text-neutral-600'}`}>
                       {user.active ? t.common.active : t.admin.staff.blocked}

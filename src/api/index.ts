@@ -85,7 +85,8 @@ export interface UserInput {
   name: string
   surname: string
   role: Role
-  branchId: ID | null
+  /** kassir va oshpaz yordamchisi — kamida bitta filial (server: `branch_required`); boshqa rollarda `[]` */
+  branchIds: ID[]
   /** kassir, oshpaz yordamchisi, ta'minotchi: yangi xodimda majburiy; tahrirda bo'sh — eski PIN qoladi */
   pin?: string
   /** admin va kuryer: kirish emaili va paroli (tahrirda bo'sh parol — eskisi qoladi) */

@@ -80,7 +80,8 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
           />
         ))}
       </div>
-      <p className={`h-5 text-center text-sm ${error ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>{error ?? t.login.pinHint}</p>
+      {/* uzun xato (masalan, qaysi filialda smena ochiq qolgani) — qatorga sig'masa pastga suriladi, tugmalar ustiga chiqmaydi */}
+      <p className={`min-h-5 text-center text-sm leading-5 ${error ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>{error ?? t.login.pinHint}</p>
 
       <div className="grid grid-cols-3 gap-2">
         {DIGITS.map((digit) => (

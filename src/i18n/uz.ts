@@ -110,6 +110,7 @@ export const uz = {
     too_many_attempts: "Ko'p marta xato kiritildi — birozdan keyin urinib ko'ring",
     branch_closed: 'Filial hozir buyurtma qabul qilmayapti',
     location_required: 'Yetkazib berish joyini belgilang (GPS yoki xarita)',
+    shift_open_elsewhere: "Boshqa filialda ochiq smenangiz bor — avval o'sha yerda topshiring yoki adminga ayting",
     off_duty: "Kuryer «Ishdaman» ni yoqmagan",
     already_taken: 'Bu buyurtmani boshqa kuryer oldi',
     other_branch: "Kuryer qo'lida boshqa filial buyurtmalari bor",
@@ -132,6 +133,9 @@ export const uz = {
     telegram_not_connected: 'Avval bot tokenini kiriting',
     network: "Server bilan aloqa yo'q — internet yoki serverni tekshiring",
   } satisfies Record<ErrorCode, string>,
+  /** `shift_open_elsewhere` — server filial nomini yuborgan bo'lsa */
+  shiftOpenAt: (branch: string) =>
+    `«${branch}» filialida ochiq smenangiz bor — avval o'sha yerda topshiring yoki adminga ayting`,
   unknownError: "Kutilmagan xato yuz berdi",
   errorPage: {
     title: 'Sahifada xato yuz berdi',
@@ -691,7 +695,7 @@ export const uz = {
       deleteTitle: "Xodim o'chirilsinmi?",
       deleteText: "Faqat hech qayerda ishlamagan xodim o'chadi. Ishlagan bo'lsa — bloklang (ismi tarixda qoladi).",
       title: 'Xodimlar',
-      hint: "Kassir va oshpaz yordamchisi filialga bog'langan; admin, ta'minotchi va kuryer — butun tarmoqqa. Admin va kuryer — email va parol bilan, qolganlar — PIN bilan",
+      hint: "Kassir va oshpaz yordamchisi bir yoki bir nechta filialga bog'langan; admin, ta'minotchi va kuryer — butun tarmoqqa. Admin va kuryer — email va parol bilan, qolganlar — PIN bilan",
       add: "Yangi xodim",
       edit: 'Xodimni tahrirlash',
       name: 'Ism',
@@ -706,6 +710,8 @@ export const uz = {
       canLogin: 'Tizimga kira oladi',
       selfHint: "O'zingizni bloklay olmaysiz va o'z rolingizni o'zgartira olmaysiz",
       allBranches: 'Barcha filiallar',
+      branches: 'Filiallar',
+      branchesHint: "Bir nechta filialda ishlasa — hammasini yoqing: kirishda kassa turgan filial tanlanadi. Smena bir vaqtda faqat bitta filialda ochiq bo'ladi",
       blocked: 'Bloklangan',
       added: "Qo'shilgan",
     },

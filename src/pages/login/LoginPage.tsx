@@ -104,7 +104,8 @@ export default function LoginPage() {
   const submitPin = async (pin: string): Promise<string | null> => {
     if (!user) return null
     try {
-      const session = await login(user.id, pin)
+      // bir nechta filialda ishlaydigan xodim — sessiya shu tanlangan filialniki
+      const session = await login(user.id, pin, mode && needsBranch(mode) ? (branch?.id ?? null) : null)
       void navigate(homePathFor(session.role), { replace: true })
       return null
     } catch (error) {

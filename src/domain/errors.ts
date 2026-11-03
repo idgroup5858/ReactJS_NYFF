@@ -35,6 +35,8 @@ export type ErrorCode =
   | 'too_many_attempts'
   | 'branch_closed'
   | 'location_required'
+  /** kassirning boshqa filialda ochiq smenasi bor (`detail` — o'sha filial nomi; matni — `errors.shiftOpenAt`) */
+  | 'shift_open_elsewhere'
   // ── kuryer (asosan Android ilovasida; vebda — xodim kuryer ishiga aralashganda) ──
   | 'off_duty'
   | 'already_taken'

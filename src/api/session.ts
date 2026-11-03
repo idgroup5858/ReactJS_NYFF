@@ -78,11 +78,14 @@ function startSession(result: LoginResult): Session {
 }
 
 /**
- * PIN bilan kirish — kassir, oshpaz yordamchisi, ta'minotchi. Xato — ApiError (`wrong_pin`, `too_many_attempts`…).
- * Admin va kuryer bu yo'ldan kira olmaydi (server — `forbidden`).
+ * PIN bilan kirish — kassir, oshpaz yordamchisi, ta'minotchi. [branchId] — kirish ekranida tanlangan filial (kassa
+ * shu yerda turibdi; xodim bir nechta filialda ishlashi mumkin — sessiya shu filialniki). Xato — ApiError
+ * (`wrong_pin`, `too_many_attempts`, kassirda boshqa filialda ochiq smena — `shift_open_elsewhere`…). Admin va kuryer
+ * bu yo'ldan kira olmaydi (server — `forbidden`).
  */
-export async function login(userId: ID, pin: string): Promise<Session> {
-  return startSession(await http.post<LoginResult>('/auth/login', { userId, pin }, { token: null }))
+export async function login(userId: ID, pin: string, branchId: ID | null): Promise<Session> {
+  const body = { userId, pin, ...(branchId && { branchId }) }
+  return startSession(await http.post<LoginResult>('/auth/login', body, { token: null }))
 }
 
 /** Admin — email va parol bilan (`/admin`). Xato — `wrong_login`, `too_many_attempts`, `user_inactive`. */

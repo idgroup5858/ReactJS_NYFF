@@ -23,6 +23,8 @@ export function useLocalize(): (text: LocalizedText) => string {
 /** React tashqarisida (masalan, catch ichida) xato matni: server xato kodi bo'yicha joriy tilda. */
 export function errorMessage(error: unknown): string {
   const dict = DICTS[settingsStore.get().lang]
+  // qaysi filialda ochiq smena qolgani — kassir o'sha yerga borsin yoki adminga aytsin
+  if (error instanceof ApiError && error.code === 'shift_open_elsewhere' && error.detail) return dict.shiftOpenAt(error.detail)
   if (error instanceof ApiError && error.code in dict.errors) return dict.errors[error.code as ErrorCode]
   if (error instanceof AppError) return dict.errors[error.code]
   console.error(error)

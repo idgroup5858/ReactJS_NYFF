@@ -82,8 +82,11 @@ export interface User {
   /** familiya; 2026-11-02 dan oldingi xodimlarda bo'sh bo'lishi mumkin. Ekranda — `fullName` */
   surname: string
   role: Role
-  /** kassir va oshpaz yordamchisi — filialga bog'langan; admin, ta'minotchi va kuryer — `null` */
-  branchId: ID | null
+  /**
+   * Kassir va oshpaz yordamchisi ishlaydigan filiallar (kamida bittasi, bir nechta bo'lishi mumkin — kirishda kassa
+   * turgan filial tanlanadi); admin, ta'minotchi va kuryer — `[]`
+   */
+  branchIds: ID[]
   /** admin va kuryer: kirish emaili (kichik harfda); PIN bilan kiradiganlarda `null` */
   email: string | null
   active: boolean
@@ -113,6 +116,10 @@ export interface AuthUser {
   name: string
   surname: string
   role: Role
+  /**
+   * joriy filial — kassir / oshpaz yordamchisi kirganda tanlangan (tokenda); kirish ro'yxatida — so'ralgan filial;
+   * admin, ta'minotchi va kuryer — `null`
+   */
   branchId: ID | null
   /** admin va kuryer: kirish emaili; PIN bilan kiradiganlarda `null` */
   email: string | null

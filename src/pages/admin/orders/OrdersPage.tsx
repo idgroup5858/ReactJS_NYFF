@@ -91,7 +91,8 @@ export default function OrdersPage() {
     const user = id ? users.find((u) => u.id === id) : undefined
     return user ? fullName(user) : '—'
   }
-  const cashiers = users.filter((u) => u.role === 'cashier' && (filters.branchId === 'all' || u.branchId === filters.branchId))
+  const cashiers = users.filter((u) => u.role === 'cashier' && (filters.branchId === 'all' || u.branchIds.includes(filters.branchId)))
+  const branchNames = (ids: ID[]) => ids.map(branchName).join(', ')
   const singleDay = range.from === range.to
 
   const totals = data?.summary
@@ -158,7 +159,7 @@ export default function OrdersPage() {
             <option value="all">{t.admin.orders.allCashiers}</option>
             {cashiers.map((user) => (
               <option key={user.id} value={user.id}>
-                {filters.branchId === 'all' && user.branchId ? `${user.name} · ${branchName(user.branchId)}` : user.name}
+                {filters.branchId === 'all' && user.branchIds.length > 0 ? `${user.name} · ${branchNames(user.branchIds)}` : user.name}
               </option>
             ))}
           </select>

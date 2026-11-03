@@ -65,7 +65,8 @@ export default function ShiftsPage() {
   const list = data?.items ?? []
 
   const branchName = (id: ID) => branches.find((b) => b.id === id)?.name ?? '—'
-  const cashiers = users.filter((u) => u.role === 'cashier' && (branchId === 'all' || u.branchId === branchId))
+  const cashiers = users.filter((u) => u.role === 'cashier' && (branchId === 'all' || u.branchIds.includes(branchId)))
+  const branchNames = (ids: ID[]) => ids.map(branchName).join(', ')
   const singleDay = range.from === range.to
 
   const summary = [
@@ -111,7 +112,7 @@ export default function ShiftsPage() {
             <option value="all">{t.admin.orders.allCashiers}</option>
             {cashiers.map((user) => (
               <option key={user.id} value={user.id}>
-                {branchId === 'all' && user.branchId ? `${fullName(user)} · ${branchName(user.branchId)}` : fullName(user)}
+                {branchId === 'all' && user.branchIds.length > 0 ? `${fullName(user)} · ${branchNames(user.branchIds)}` : fullName(user)}
               </option>
             ))}
           </select>
