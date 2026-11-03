@@ -1,5 +1,64 @@
-import { Bike, ChevronRight, ClipboardList, MonitorSmartphone, Smartphone } from 'lucide-react'
+import { Bike, ChevronRight, ClipboardList, MonitorSmartphone, Smartphone, type LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useT } from '@/i18n'
+
+type ButtonProps = {
+  icon: LucideIcon
+  title: string
+  hint: string
+  count: number
+  alert: boolean
+  dark: boolean
+  onClick: () => void
+  className?: string
+}
+
+function QueueButton({ icon: Icon, title, hint, count, alert, dark, onClick, className = '' }: ButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-card p-3 text-left shadow-card transition-transform active:scale-[0.98] @6xl:gap-3 ${dark ? 'bg-coal text-white' : 'bg-taxi text-coal'} ${className}`}
+    >
+      {alert && (
+        <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+          <span className="relative inline-flex h-4 w-4 rounded-full bg-red-600 ring-2 ring-white" />
+        </span>
+      )}
+      <span className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-full @5xl:flex @6xl:h-11 @6xl:w-11 ${dark ? 'bg-taxi text-coal' : 'bg-coal text-taxi'}`}>
+        <Icon size={18} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm leading-tight font-extrabold @6xl:text-base">{title}</span>
+        <span className={`hidden truncate text-xs @6xl:block ${dark ? 'text-white/60' : 'text-coal/70'}`}>{hint}</span>
+      </span>
+      <span className="shrink-0 text-2xl font-black tabular-nums @6xl:text-3xl">{count}</span>
+      <ChevronRight size={20} className="hidden shrink-0 transition-transform group-hover:translate-x-1 @6xl:block" />
+    </button>
+  )
+}
+
+/**
+ * @container: ustun torayganda tugmalar ixchamlashadi (avval izoh va strelka, torroqda — ikonka doirasi yashirinadi);
+ * 4 ta tugma — chegaralar kengroq, "Tayyorlanmoqda" yozuvi qisqarmasin.
+ */
+function QueueRow({ children }: { children: ReactNode }) {
+  return <div className="@container grid shrink-0 grid-cols-4 gap-3 px-4 pb-4">{children}</div>
+}
+
+/**
+ * Offline kassa: faqat "Tayyorlanmoqda" (online, kiosk va dostavka buyurtmalari offline'da yo'q) — online kassadagi
+ * joyida (3-ustun) va ko'rinishida, kassir odatiga ko'ra bosadi.
+ */
+export function PreparingButton({ count, onClick }: { count: number; onClick: () => void }) {
+  const t = useT()
+  return (
+    <QueueRow>
+      <QueueButton icon={ClipboardList} title={t.orders.preparingTab} hint={t.kassa.preparingHint} count={count} alert={false} dark onClick={onClick} className="col-start-3" />
+    </QueueRow>
+  )
+}
 
 type Props = {
   online: number
@@ -43,33 +102,10 @@ export default function QueueButtons({ online, pending, preparing, delivery, ret
   ]
 
   return (
-    // @container: ustun torayganda tugmalar ixchamlashadi (avval izoh va strelka, torroqda — ikonka doirasi yashirinadi);
-    // 4 ta tugma — chegaralar kengroq, "Tayyorlanmoqda" yozuvi qisqarmasin
-    <div className="@container grid shrink-0 grid-cols-4 gap-3 px-4 pb-4">
-      {buttons.map(({ key, icon: Icon, title, hint, count, alert, onClick, dark }) => (
-        <button
-          key={key}
-          type="button"
-          onClick={onClick}
-          className={`group relative flex min-w-0 cursor-pointer items-center gap-2.5 rounded-card p-3 text-left shadow-card transition-transform active:scale-[0.98] @6xl:gap-3 ${dark ? 'bg-coal text-white' : 'bg-taxi text-coal'}`}
-        >
-          {alert && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-4 w-4 rounded-full bg-red-600 ring-2 ring-white" />
-            </span>
-          )}
-          <span className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-full @5xl:flex @6xl:h-11 @6xl:w-11 ${dark ? 'bg-taxi text-coal' : 'bg-coal text-taxi'}`}>
-            <Icon size={18} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm leading-tight font-extrabold @6xl:text-base">{title}</span>
-            <span className={`hidden truncate text-xs @6xl:block ${dark ? 'text-white/60' : 'text-coal/70'}`}>{hint}</span>
-          </span>
-          <span className="shrink-0 text-2xl font-black tabular-nums @6xl:text-3xl">{count}</span>
-          <ChevronRight size={20} className="hidden shrink-0 transition-transform group-hover:translate-x-1 @6xl:block" />
-        </button>
+    <QueueRow>
+      {buttons.map(({ key, ...button }) => (
+        <QueueButton key={key} {...button} />
       ))}
-    </div>
+    </QueueRow>
   )
 }

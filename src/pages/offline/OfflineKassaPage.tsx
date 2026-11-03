@@ -1,4 +1,4 @@
-import { CloudOff, Cloud, LoaderCircle, LogOut, MapPin, ReceiptText, TriangleAlert, Wifi } from 'lucide-react'
+import { CloudOff, Cloud, LoaderCircle, LogOut, MapPin, TriangleAlert, Wifi } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/http'
 import { offlineApi, offlineLogout, useOfflineSession, type OfflineData, type OfflineSession, type OfflineState } from '@/api/offline'
@@ -21,6 +21,7 @@ import CartPanel, { type PricedLine } from '../kassa/CartPanel'
 import { onlineKassaUrl, releaseHandover, takeHandover } from '../kassa/handover'
 import MenuPanel from '../kassa/MenuPanel'
 import PaymentModal from '../kassa/PaymentModal'
+import { PreparingButton } from '../kassa/QueueButtons'
 import TicketTabs from '../kassa/TicketTabs'
 import { hasLines, newOrderId, useTickets, type Ticket, type TicketsState } from '../kassa/useTickets'
 import OfflineLogin, { OfflineShell } from './OfflineLogin'
@@ -218,7 +219,6 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <HeaderAction label={t.offline.orders} icon={<ReceiptText size={16} />} badge={preparing} onClick={() => setPanel('orders')} compact={false} />
             <div className="hidden sm:block">
               <LanguageSwitcher tone="dark" />
             </div>
@@ -242,6 +242,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
               menu={data.menu ?? undefined}
               cartCounts={cartCounts}
               onAdd={(product) => updateActive((ticket) => ({ lines: addProduct(ticket.lines, product.id) }))}
+              // online kassadagi "Tayyorlanmoqda" joyida — kassir odatiga ko'ra shu yerdan buyurtmalarni ochadi
+              footer={<PreparingButton count={preparing} onClick={() => setPanel('orders')} />}
             />
           </div>
           <CartPanel
