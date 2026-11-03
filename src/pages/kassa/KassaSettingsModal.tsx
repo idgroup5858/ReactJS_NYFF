@@ -72,90 +72,95 @@ export default function KassaSettingsModal({ onClose }: { onClose: () => void })
     }
   }
 
+  // POS monitorlari past — oyna bo'yiga emas, eniga: chapda ko'rinish, o'ngda offline kassa va PIN
   return (
-    <Modal title={t.kassaSettings.title} onClose={onClose}>
-      <div className="space-y-6">
-        <section className="space-y-2">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.kassaSettings.categories}</h3>
-          <SegmentedControl<CategoryPosition>
-            label={t.kassaSettings.categories}
-            value={categoryPosition}
-            onChange={setCategoryPosition}
-            options={[
-              { value: 'left', label: <><PanelLeft size={14} /> {t.kassaSettings.left}</> },
-              { value: 'top', label: <><PanelTop size={14} /> {t.kassaSettings.top}</> },
-            ]}
-          />
-        </section>
+    <Modal title={t.kassaSettings.title} onClose={onClose} size="lg">
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.kassaSettings.categories}</h3>
+            <SegmentedControl<CategoryPosition>
+              label={t.kassaSettings.categories}
+              value={categoryPosition}
+              onChange={setCategoryPosition}
+              options={[
+                { value: 'left', label: <><PanelLeft size={14} /> {t.kassaSettings.left}</> },
+                { value: 'top', label: <><PanelTop size={14} /> {t.kassaSettings.top}</> },
+              ]}
+            />
+          </section>
 
-        <section className="space-y-2">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.title}</h3>
-          <SegmentedControl<Theme>
-            label={t.theme.title}
-            value={theme}
-            onChange={setTheme}
-            options={THEMES.map((value) => ({ value, label: t.theme[value] }))}
-          />
-        </section>
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.title}</h3>
+            <SegmentedControl<Theme>
+              label={t.theme.title}
+              value={theme}
+              onChange={setTheme}
+              options={THEMES.map((value) => ({ value, label: t.theme[value] }))}
+            />
+          </section>
 
-        <section className="space-y-2">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.icons}</h3>
-          <SegmentedControl<IconStyle>
-            label={t.theme.icons}
-            value={iconStyle}
-            onChange={setIconStyle}
-            options={ICON_STYLES.map((value) => ({ value, label: t.theme.iconStyles[value] }))}
-          />
-        </section>
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.icons}</h3>
+            <SegmentedControl<IconStyle>
+              label={t.theme.icons}
+              value={iconStyle}
+              onChange={setIconStyle}
+              options={ICON_STYLES.map((value) => ({ value, label: t.theme.iconStyles[value] }))}
+            />
+          </section>
 
-        <section className="space-y-2">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.imageFit}</h3>
-          <SegmentedControl<ImageFit>
-            label={t.theme.imageFit}
-            value={imageFit}
-            onChange={setImageFit}
-            options={IMAGE_FITS.map((value) => ({ value, label: t.theme.imageFits[value] }))}
-          />
-        </section>
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.theme.imageFit}</h3>
+            <SegmentedControl<ImageFit>
+              label={t.theme.imageFit}
+              value={imageFit}
+              onChange={setImageFit}
+              options={IMAGE_FITS.map((value) => ({ value, label: t.theme.imageFits[value] }))}
+            />
+          </section>
+        </div>
 
-        <section className="space-y-2 border-t border-neutral-200 pt-5">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.offline.settingsTitle}</h3>
-          <Toggle checked={offlineEnabled} onChange={setOfflineEnabled} label={t.offline.settingsEnable} />
-          {offlineEnabled && (
-            <div>
-              <label htmlFor="offline-url" className="mb-1 block text-xs font-semibold text-neutral-600">
-                {t.offline.settingsUrl}
-              </label>
-              <input
-                id="offline-url"
-                inputMode="url"
-                autoComplete="off"
-                spellCheck={false}
-                defaultValue={offlineUrl}
-                onBlur={(event) => setOfflineUrl(event.target.value)}
-                className={inputClass}
-              />
+        <div className="space-y-6 border-t border-neutral-200 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-6">
+          <section className="space-y-2">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.offline.settingsTitle}</h3>
+            <Toggle checked={offlineEnabled} onChange={setOfflineEnabled} label={t.offline.settingsEnable} />
+            {offlineEnabled && (
+              <div>
+                <label htmlFor="offline-url" className="mb-1 block text-xs font-semibold text-neutral-600">
+                  {t.offline.settingsUrl}
+                </label>
+                <input
+                  id="offline-url"
+                  inputMode="url"
+                  autoComplete="off"
+                  spellCheck={false}
+                  defaultValue={offlineUrl}
+                  onBlur={(event) => setOfflineUrl(event.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+            <p className="text-xs text-neutral-400">{t.offline.settingsHint}</p>
+          </section>
+
+          <form onSubmit={(event) => void savePin(event)} className="space-y-3 border-t border-neutral-200 pt-5">
+            <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.kassaSettings.pinTitle}</h3>
+            <PinField id="old-pin" label={t.kassaSettings.oldPin} value={oldPin} onChange={setOldPin} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <PinField id="new-pin" label={t.kassaSettings.newPin} value={newPin} onChange={setNewPin} />
+              <PinField id="repeat-pin" label={t.kassaSettings.confirmPin} value={repeat} onChange={setRepeat} />
             </div>
-          )}
-          <p className="text-xs text-neutral-400">{t.offline.settingsHint}</p>
-        </section>
-
-        <form onSubmit={(event) => void savePin(event)} className="space-y-3 border-t border-neutral-200 pt-5">
-          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.kassaSettings.pinTitle}</h3>
-          <PinField id="old-pin" label={t.kassaSettings.oldPin} value={oldPin} onChange={setOldPin} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <PinField id="new-pin" label={t.kassaSettings.newPin} value={newPin} onChange={setNewPin} />
-            <PinField id="repeat-pin" label={t.kassaSettings.confirmPin} value={repeat} onChange={setRepeat} />
-          </div>
-          <p className={`text-xs ${error ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>{error ?? t.login.pinHint}</p>
-          <button
-            type="submit"
-            disabled={oldPin.length < 4 || newPin.length < 4 || repeat.length < 4}
-            className="btn-dark h-10 w-full rounded text-xs font-bold tracking-[0.12em] uppercase"
-          >
-            {t.kassaSettings.savePin}
-          </button>
-        </form>
+            <p className={`text-xs ${error ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>{error ?? t.login.pinHint}</p>
+            <button
+              type="submit"
+              disabled={oldPin.length < 4 || newPin.length < 4 || repeat.length < 4}
+              className="btn-dark h-10 w-full rounded text-xs font-bold tracking-[0.12em] uppercase"
+            >
+              {t.kassaSettings.savePin}
+            </button>
+          </form>
+        </div>
       </div>
     </Modal>
   )
