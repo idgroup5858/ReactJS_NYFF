@@ -5,6 +5,7 @@ import { useBranches, useShift, useUsers } from '@/api/queries'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import { Card } from '@/components/ui/Card'
 import PageHeader from '@/components/ui/PageHeader'
+import { fullName } from '@/domain/rules'
 import { useT } from '@/i18n'
 import { formatOrderNumber } from '@/lib/format'
 import ListPlaceholder from '../orders/ListPlaceholder'
@@ -18,6 +19,10 @@ export default function ShiftOrderPage() {
   const query = useShift(shiftId)
   const branches = useBranches().data ?? []
   const users = useUsers().data ?? []
+  const nameOf = (id: string) => {
+    const user = users.find((u) => u.id === id)
+    return user ? fullName(user) : '—'
+  }
   const shift = query.data
   const order = shift?.orders.find((o) => o.id === orderId)
 
@@ -40,7 +45,7 @@ export default function ShiftOrderPage() {
       <Breadcrumbs
         items={[
           { label: t.admin.shifts.title, to: SHIFTS_PATH },
-          { label: t.admin.shifts.details(users.find((u) => u.id === shift.cashierId)?.name ?? '—'), to: shiftPath(shift.id) },
+          { label: t.admin.shifts.details(nameOf(shift.cashierId)), to: shiftPath(shift.id) },
           { label: number },
         ]}
       />

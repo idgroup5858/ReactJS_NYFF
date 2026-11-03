@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useBranches } from '@/api/queries'
 import { logout, useCurrentUser } from '@/api/session'
+import { fullName, initials } from '@/domain/rules'
 import { useT } from '@/i18n'
 import Brand from './Brand'
 import { HEADER_BUTTON } from './headerButton'
@@ -66,8 +67,10 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
   const branch = user?.branchId ? branches?.find((b) => b.id === user.branchId) : undefined
 
   const defaultLogout = () => {
+    // admin umumiy kirish ekranida yo'q — o'zining kirish oynasiga (`/admin`)
+    const home = user?.role === 'admin' ? '/admin' : '/'
     logout()
-    void navigate('/', { replace: true })
+    void navigate(home, { replace: true })
   }
 
   return (
@@ -96,10 +99,10 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
             {user && (
               <span className="hidden items-center gap-2 lg:flex">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-taxi text-xs font-bold text-coal">
-                  {user.name.slice(0, 1).toUpperCase()}
+                  {initials(fullName(user))}
                 </span>
                 <span className="leading-tight">
-                  <span className="block text-sm font-semibold">{user.name}</span>
+                  <span className="block text-sm font-semibold">{fullName(user)}</span>
                   <span className="block text-[11px] text-white/50">{t.roles[user.role]}</span>
                 </span>
               </span>

@@ -14,20 +14,22 @@ import { addProduct, cartQty, changeQty, removeLine } from '@/lib/cart'
 import { choiceDialog, confirmDialog, showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { printReceipt } from '@/lib/printReceipt'
-import { useIdle } from '@/lib/useIdle'
+import { removeKey } from '@/store/storage'
+import { ticketsStorageKey } from '@/store/storageKeys'
+import { useSettings } from '@/store/settingsStore'
 import CartPanel, { type PricedLine } from './CartPanel'
+import { offlineKassaUrl, releaseTickets, takeTickets } from './handover'
 import KassaSettingsModal from './KassaSettingsModal'
 import LockScreen from './LockScreen'
 import MenuPanel from './MenuPanel'
+import { lastOrderNumber, rememberOrderNumbers, useConnectionLost } from './offlineSupport'
+import OfflineSwitch from './OfflineSwitch'
 import OrdersDrawer, { type OrdersTab } from './OrdersDrawer'
 import PaymentModal from './PaymentModal'
 import QueueButtons from './QueueButtons'
 import ShiftReportModal from './ShiftReportModal'
 import TicketTabs from './TicketTabs'
-import { useTickets, type Ticket } from './useTickets'
-
-/** Harakatsizlikdan keyin kassa bloklanadi (spec: 5 daqiqa). */
-const LOCK_AFTER_MS = 5 * 60 * 1000
+import { hasLines, newOrderId, useTickets, type Ticket } from './useTickets'
 
 type Panel = 'pay' | OrdersTab | 'settings' | null
 
@@ -72,10 +74,15 @@ export default function KassaPage() {
   }
 
   // huquq bekor bo'ldi (xodim bloklandi, filiali o'zgardi) — kirish ekraniga
-  useRealtime(session ? { token: session.token } : null, { onAuthError: finish })
+  const { connected } = useRealtime(session ? { token: session.token } : null, { onAuthError: finish })
+  const connectionLost = useConnectionLost(connected)
+  const { offlineEnabled, offlineUrl } = useSettings()
 
-  const { tickets, active, updateActive, select, add, close, clear } = useTickets()
+  // ochiq cheklar brauzerda saqlanadi; offline kassadan qaytilgan bo'lsa — uning cheklari
+  const ticketsState = useTickets(user ? ticketsStorageKey(user.id) : null, takeTickets())
+  const { tickets, active, updateActive, setOrderId, select, add, close, clear } = ticketsState
   const { lines, orderType, orderNote } = active
+  useEffect(releaseTickets, [])
   const [panel, setPanel] = useState<Panel>(null)
   const [report, setReport] = useState<ShiftWithSummary | null>(null)
   // savatga qo'shilgan taomlar: admin taomni o'chirsa u menyudan butunlay chiqadi — qator nomi va rasmi bilan qoladi
@@ -85,8 +92,8 @@ export default function KassaPage() {
     ensureCashierShift().catch((error: unknown) => showToast(errorMessage(error), 'error'))
   }, [])
 
+  // kassa o'zi bloklanmaydi — faqat kassir "Bloklash"ni bossa
   const locked = session?.locked === true
-  useIdle(LOCK_AFTER_MS, lockSession, !locked && report === null)
 
   // narx har doim menyudan (filialning joriy narxi): sotuvdan olingan / o'chirilgan taom — `null`, to'lov to'xtaydi
   const menuProducts = useMemo(() => new Map((menu.data?.products ?? []).map((product) => [product.id, product])), [menu.data])
@@ -115,7 +122,33 @@ export default function KassaPage() {
   useRiseToast(activeOrders ? onlineCount : null, t.orders.onlineNew)
   useRiseToast(deliveryOrders ? returnedCount : null, t.courier.returnedNew)
 
+  // bugungi eng katta raqam — internet uzilsa offline kassa undan davom etadi
+  useEffect(() => {
+    if (branchId) rememberOrderNumbers(branchId, [...(activeOrders ?? []), ...(deliveryOrders ?? [])])
+  }, [branchId, activeOrders, deliveryOrders])
+
   if (!user || !session) return null
+
+  /**
+   * Offline kassaga (shu kompyuterdagi server): kim ishlayotgani, oxirgi raqam, ochiq cheklar va menyu manzil bilan
+   * o'tadi. Cheklar endi offline kassada — bu yerdagilari o'chiriladi (qaytishda offline kassa qaytaradi).
+   */
+  const switchToOffline = () => {
+    if (!branchId) return
+    const url = offlineKassaUrl(offlineUrl, {
+      v: 1,
+      branchId,
+      branchName,
+      cashier: { id: user.id, name: user.name, surname: user.surname },
+      locked,
+      returnUrl: window.location.origin + import.meta.env.BASE_URL,
+      lastNumber: lastOrderNumber(branchId),
+      tickets: hasLines(ticketsState.state) ? ticketsState.state : null,
+      menu: menu.data ?? null,
+    })
+    removeKey(ticketsStorageKey(user.id))
+    window.location.assign(url)
+  }
 
   const addToCart = (product: MenuProduct) => {
     setAdded((current) => (current.has(product.id) ? current : new Map(current).set(product.id, product)))
@@ -131,9 +164,13 @@ export default function KassaPage() {
 
   const submitOrder = async (payment: PaymentMethod, split?: PaymentSplit): Promise<Order | null> => {
     const ticketId = active.id
+    // javob kelmay qolsa (internet uzildi) qayta yuborish — shu id bilan, ikki marta yozilmaydi
+    const orderId = active.orderId ?? newOrderId()
+    if (!active.orderId) setOrderId(ticketId, orderId)
     try {
       await ensureCashierShift()
       const order = await api.orders.create({
+        id: orderId,
         type: orderType,
         items: priced.map((line) => ({ productId: line.productId, qty: line.qty })),
         note: orderNote,
@@ -142,6 +179,7 @@ export default function KassaPage() {
       })
       // to'langan chek yopiladi, qolgan ochiq cheklar joyida turadi
       close(ticketId)
+      if (branchId) rememberOrderNumbers(branchId, [order])
       printReceipt(order, branchName)
       return order
     } catch (error) {
@@ -227,6 +265,7 @@ export default function KassaPage() {
       {panel === 'settings' && <KassaSettingsModal onClose={() => setPanel(null)} />}
       {report && <ShiftReportModal shift={report} onDone={finish} />}
       {locked && !report && <LockScreen user={user} />}
+      {connectionLost && !report && <OfflineSwitch enabled={offlineEnabled} onSwitch={switchToOffline} />}
     </StaffLayout>
   )
 }

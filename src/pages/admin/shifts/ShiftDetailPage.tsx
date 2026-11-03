@@ -12,7 +12,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import Pagination from '@/components/ui/Pagination'
 import { tdClass, thClass } from '@/components/ui/styles'
 import { usePagination } from '@/components/ui/usePagination'
-import { shiftMinutes } from '@/domain/rules'
+import { fullName, shiftMinutes } from '@/domain/rules'
 import { PAYMENT_METHODS } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatMoney, formatNumber, formatOrderNumber, formatTime } from '@/lib/format'
@@ -51,7 +51,8 @@ export default function ShiftDetailPage() {
 
   const { summary } = shift
   const minutes = shiftMinutes(shift, now)
-  const cashierName = users.find((u) => u.id === shift.cashierId)?.name ?? '—'
+  const cashier = users.find((u) => u.id === shift.cashierId)
+  const cashierName = cashier ? fullName(cashier) : '—'
   const title = t.admin.shifts.details(cashierName)
   const branchName = branches.find((b) => b.id === shift.branchId)?.name ?? '—'
 

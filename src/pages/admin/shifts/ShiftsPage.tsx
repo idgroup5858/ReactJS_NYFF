@@ -9,7 +9,7 @@ import SegmentedControl from '@/components/ui/SegmentedControl'
 import { selectClass, tdClass, thClass } from '@/components/ui/styles'
 import { PAGE_SIZE } from '@/components/ui/usePagination'
 import { addDays, dateKey, parseDateKey } from '@/domain/dates'
-import { shiftMinutes } from '@/domain/rules'
+import { fullName, shiftMinutes } from '@/domain/rules'
 import type { ID } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatDateTime, formatMoney, formatNumber, formatTime } from '@/lib/format'
@@ -35,6 +35,10 @@ export default function ShiftsPage() {
   const now = useNow(60_000)
   const branches = useBranches().data ?? []
   const users = useUsers().data ?? []
+  const nameOf = (id: string) => {
+    const user = users.find((u) => u.id === id)
+    return user ? fullName(user) : '—'
+  }
   const period = usePeriod('today')
   const { range } = period
   const [branchId, setBranchId] = useState<ID | 'all'>('all')
@@ -107,7 +111,7 @@ export default function ShiftsPage() {
             <option value="all">{t.admin.orders.allCashiers}</option>
             {cashiers.map((user) => (
               <option key={user.id} value={user.id}>
-                {branchId === 'all' && user.branchId ? `${user.name} · ${branchName(user.branchId)}` : user.name}
+                {branchId === 'all' && user.branchId ? `${fullName(user)} · ${branchName(user.branchId)}` : fullName(user)}
               </option>
             ))}
           </select>
@@ -157,7 +161,7 @@ export default function ShiftsPage() {
                       <tr key={shift.id} onClick={open} className="cursor-pointer transition-colors hover:bg-brand-50/60">
                         <td className={tdClass}>
                           <button type="button" onClick={open} className="cursor-pointer font-bold text-neutral-950 hover:underline">
-                            {users.find((u) => u.id === shift.cashierId)?.name ?? '—'}
+                            {nameOf(shift.cashierId)}
                           </button>
                         </td>
                         <td className={tdClass}>{branchName(shift.branchId)}</td>

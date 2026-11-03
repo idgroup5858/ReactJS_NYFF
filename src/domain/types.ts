@@ -71,7 +71,7 @@ export interface Warehouse {
 
 /**
  * `kitchen` — oshpaz yordamchisi: ovqatni oshxonadan olib chiqib "Tayyor" bosadi. `courier` — kuryer: faqat Android
- * ilovasida ishlaydi (`Kotlin_NYFF_Courier`), vebga kirmaydi; bu yerda — admin uni qo'shadi, kassa holatini ko'radi.
+ * ilovasida ishlaydi (`Kotlin_NYFF`), vebga kirmaydi; bu yerda — admin uni qo'shadi, kassa holatini ko'radi.
  */
 export type Role = 'admin' | 'cashier' | 'kitchen' | 'supplier' | 'courier'
 export const ROLES: Role[] = ['admin', 'cashier', 'kitchen', 'supplier', 'courier']
@@ -79,11 +79,13 @@ export const ROLES: Role[] = ['admin', 'cashier', 'kitchen', 'supplier', 'courie
 export interface User {
   id: ID
   name: string
+  /** familiya; 2026-11-02 dan oldingi xodimlarda bo'sh bo'lishi mumkin. Ekranda — `fullName` */
+  surname: string
   role: Role
   /** kassir va oshpaz yordamchisi — filialga bog'langan; admin, ta'minotchi va kuryer — `null` */
   branchId: ID | null
-  /** faqat kuryer: kirish logini (kichik harfda); boshqalarda `null` */
-  login: string | null
+  /** admin va kuryer: kirish emaili (kichik harfda); PIN bilan kiradiganlarda `null` */
+  email: string | null
   active: boolean
   createdAt: Timestamp
 }
@@ -92,6 +94,7 @@ export interface User {
 export interface CourierStatus {
   id: ID
   name: string
+  surname: string
   /** bloklanmagan */
   active: boolean
   /** ilovada "Ishdaman" yoqilgan */
@@ -104,12 +107,15 @@ export interface CourierStatus {
   departed: boolean
 }
 
-/** Kirgan xodim (token egasi) — PIN serverda tekshiriladi, brauzerga kelmaydi. */
+/** Kirgan xodim (token egasi) — PIN / parol serverda tekshiriladi, brauzerga kelmaydi. */
 export interface AuthUser {
   id: ID
   name: string
+  surname: string
   role: Role
   branchId: ID | null
+  /** admin va kuryer: kirish emaili; PIN bilan kiradiganlarda `null` */
+  email: string | null
 }
 
 // ───────────────────────── Menyu ─────────────────────────

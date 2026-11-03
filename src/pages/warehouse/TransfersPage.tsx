@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Field from '@/components/ui/Field'
 import Pagination from '@/components/ui/Pagination'
 import { selectClass, textareaClass } from '@/components/ui/styles'
+import { fullName } from '@/domain/rules'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatNumber } from '@/lib/format'
 import { showToast } from '@/lib/swal'
@@ -149,7 +150,7 @@ export default function TransfersPage() {
                     </p>
                     {transfer.note && <p className="text-xs text-neutral-500 italic">{transfer.note}</p>}
                     <p className="text-xs text-neutral-400">
-                      {formatDateTime(transfer.createdAt)} · {author?.name ?? '—'}
+                      {formatDateTime(transfer.createdAt)} · {author ? fullName(author) : '—'}
                     </p>
                   </li>
                 )

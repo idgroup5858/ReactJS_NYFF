@@ -1,4 +1,3 @@
-import { fail } from '@/domain/errors'
 import type { AuthUser, ID, Role, Shift, ShiftWithSummary, Timestamp } from '@/domain/types'
 import { createStore, useStore } from '@/store/createStore'
 import { readJson, removeKey, writeJson } from '@/store/storage'
@@ -7,18 +6,21 @@ import { ApiError, configureHttp, http } from './http'
 import { clearQueries } from './query'
 
 /**
- * Kirgan xodim — sessionStorage da: har bir tab alohida (bir tabda kassir, boshqasida admin). PIN serverda
+ * Kirgan xodim — sessionStorage da: har bir tab alohida (bir tabda kassir, boshqasida admin). PIN / parol serverda
  * tekshiriladi (5 marta xato — 5 daqiqa blok); brauzerda faqat token qoladi (24 soat, blokdan chiqishda yangilanadi).
  */
 export interface Session {
   token: string
   userId: ID
   name: string
+  surname: string
+  /** admin: kirish emaili ("Profil" da ko'rsatiladi); PIN bilan kiradiganlarda `null` */
+  email: string | null
   role: Role
   branchId: ID | null
   /** kassir uchun — kirishda ochilgan yoki davom etgan smena */
   shiftId: ID | null
-  /** kassa harakatsizlikdan bloklangan — sahifa yangilansa ham blok saqlanadi */
+  /** kassa bloklangan ("Bloklash" tugmasi) — sahifa yangilansa ham blok saqlanadi */
   locked: boolean
   loggedInAt: Timestamp
 }
@@ -31,7 +33,9 @@ interface LoginResult {
 
 function readSession(): Session | null {
   const raw = readJson(SESSION_STORAGE_KEY, sessionStorage) as Session | null
-  return raw && typeof raw.token === 'string' && typeof raw.userId === 'string' ? { ...raw, locked: raw.locked === true } : null
+  if (!raw || typeof raw.token !== 'string' || typeof raw.userId !== 'string') return null
+  // 2026-11-02 dan oldingi sessiyada familiya va email yo'q — `refreshSession` to'ldiradi
+  return { ...raw, surname: raw.surname ?? '', email: raw.email ?? null, locked: raw.locked === true }
 }
 
 export const sessionStore = createStore<Session | null>(readSession())
@@ -53,24 +57,48 @@ configureHttp({
   unauthorized: () => logout(),
 })
 
-/** PIN bilan kirish; kassirga smena ochiladi yoki davom etadi. Xato — ApiError (`wrong_pin`, `too_many_attempts`…). */
-export async function login(userId: ID, pin: string): Promise<Session> {
-  const result = await http.post<LoginResult>('/auth/login', { userId, pin }, { token: null })
-  // kuryer — faqat Android ilovasida (vebda sahifasi yo'q)
-  if (result.user.role === 'courier') fail('forbidden', 'courier')
+/** Kirish natijasi → sessiya (kassirga smena ochiladi yoki davom etadi). */
+function startSession(result: LoginResult): Session {
   clearQueries()
+  const { user } = result
   const session: Session = {
     token: result.token,
-    userId: result.user.id,
-    name: result.user.name,
-    role: result.user.role,
-    branchId: result.user.branchId,
+    userId: user.id,
+    name: user.name,
+    surname: user.surname,
+    email: user.email,
+    role: user.role,
+    branchId: user.branchId,
     shiftId: result.shift?.id ?? null,
     locked: false,
     loggedInAt: new Date().toISOString(),
   }
   saveSession(session)
   return session
+}
+
+/**
+ * PIN bilan kirish — kassir, oshpaz yordamchisi, ta'minotchi. Xato — ApiError (`wrong_pin`, `too_many_attempts`…).
+ * Admin va kuryer bu yo'ldan kira olmaydi (server — `forbidden`).
+ */
+export async function login(userId: ID, pin: string): Promise<Session> {
+  return startSession(await http.post<LoginResult>('/auth/login', { userId, pin }, { token: null }))
+}
+
+/** Admin — email va parol bilan (`/admin`). Xato — `wrong_login`, `too_many_attempts`, `user_inactive`. */
+export async function adminLogin(email: string, password: string): Promise<Session> {
+  return startSession(await http.post<LoginResult>('/auth/admin-login', { email, password }, { token: null }))
+}
+
+/** "Profil": ism, familiya, email — sessiya ham yangilanadi. */
+export async function updateProfile(input: { name: string; surname: string; email: string }): Promise<void> {
+  const user = await http.put<AuthUser>('/auth/profile', input)
+  patchSession({ name: user.name, surname: user.surname, email: user.email })
+}
+
+/** "Profil": parol — joriysi bilan (`wrong_password`). */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  await http.put<void>('/auth/password', { oldPassword, newPassword })
 }
 
 /** Chiqish. Kassir smenasi yopilmaydi — buni [closeCurrentShift] qiladi. */
@@ -117,7 +145,8 @@ export async function refreshSession(): Promise<void> {
     const me = await http.get<{ user: AuthUser; shift: Shift | null }>('/auth/me')
     // admin rolini kuryerga almashtirgan — vebda ishi yo'q
     if (me.user.role === 'courier') return logout()
-    patchSession({ name: me.user.name, role: me.user.role, branchId: me.user.branchId, shiftId: me.shift?.id ?? null })
+    const { name, surname, email, role, branchId } = me.user
+    patchSession({ name, surname, email, role, branchId, shiftId: me.shift?.id ?? null })
   } catch (error) {
     // 401 — `configureHttp` chiqaradi; server o'chiq bo'lsa sessiya qoladi (keyingi so'rovda tekshiriladi)
     if (!(error instanceof ApiError)) throw error
@@ -131,7 +160,9 @@ export function useSession(): Session | null {
 /** Kirgan xodim (sessiyadan); kirmagan bo'lsa — `null`. */
 export function useCurrentUser(): AuthUser | null {
   const session = useSession()
-  return session ? { id: session.userId, name: session.name, role: session.role, branchId: session.branchId } : null
+  if (!session) return null
+  const { userId: id, name, surname, role, branchId, email } = session
+  return { id, name, surname, role, branchId, email }
 }
 
 /** Xodim roli bo'yicha bosh sahifasi. */

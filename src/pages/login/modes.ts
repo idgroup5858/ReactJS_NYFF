@@ -1,17 +1,17 @@
-import { Calculator, ChefHat, LayoutDashboard, MonitorSmartphone, Tv, Warehouse } from 'lucide-react'
+import { Calculator, ChefHat, MonitorSmartphone, Tv, Warehouse } from 'lucide-react'
 import type { ComponentType } from 'react'
 import type { Role } from '@/domain/types'
 
 /**
- * Kirish ekranidagi ish joylari: to'rttasi xodim roli (PIN bilan), ikkitasi ekran (PINsiz va kodsiz — filial tanlanadi).
- * Mijozning mobil ilovasi (Android / iOS) va kuryer ilovasi (Android) — alohida, backend'ning `/mobile` va `/courier`
- * API'lari bilan.
+ * Kirish ekranidagi ish joylari: uchtasi xodim roli (PIN bilan), ikkitasi ekran (PINsiz va kodsiz — filial tanlanadi).
+ * Admin bu yerda yo'q — u `/admin` manzilida email va parol bilan kiradi (umumiy ekranda ko'rinmasin). Mijozning mobil
+ * ilovasi va kuryer qismi (Android) — alohida, backend'ning `/mobile` va `/courier` API'lari bilan.
  */
-export type StaffMode = Exclude<Role, 'courier'>
+export type StaffMode = Exclude<Role, 'courier' | 'admin'>
 export type LoginMode = StaffMode | 'tv' | 'kiosk'
 export type ScreenMode = 'tv' | 'kiosk'
 
-export const STAFF_MODES: StaffMode[] = ['cashier', 'kitchen', 'supplier', 'admin']
+export const STAFF_MODES: StaffMode[] = ['cashier', 'kitchen', 'supplier']
 export const SCREEN_MODES: ScreenMode[] = ['tv', 'kiosk']
 const ALL_MODES: LoginMode[] = [...STAFF_MODES, ...SCREEN_MODES]
 
@@ -19,7 +19,6 @@ export const MODE_ICONS: Record<LoginMode, ComponentType<{ size?: number }>> = {
   cashier: Calculator,
   kitchen: ChefHat,
   supplier: Warehouse,
-  admin: LayoutDashboard,
   tv: Tv,
   kiosk: MonitorSmartphone,
 }
@@ -37,7 +36,7 @@ export function isStaffMode(mode: LoginMode): mode is StaffMode {
   return !isScreenMode(mode)
 }
 
-/** Kassir va oshpaz yordamchisi filialni tanlaydi; admin va ta'minotchi filialga bog'lanmagan. */
+/** Kassir va oshpaz yordamchisi filialni tanlaydi; ta'minotchi filialga bog'lanmagan. */
 export function needsBranch(mode: LoginMode): boolean {
   return mode === 'cashier' || mode === 'kitchen'
 }

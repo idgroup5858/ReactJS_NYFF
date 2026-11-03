@@ -8,21 +8,9 @@ import EmptyState from '@/components/ui/EmptyState'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import type { TelegramStatus } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
+import { copyText } from '@/lib/clipboard'
 import { formatDateTime } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
-
-/** Nusxalash: `navigator.clipboard` faqat https / localhost'da — lokal tarmoqdagi http manzilda eski usul. */
-async function copyText(text: string): Promise<void> {
-  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text)
-  const area = document.createElement('textarea')
-  area.value = text
-  area.style.position = 'fixed'
-  area.style.opacity = '0'
-  document.body.append(area)
-  area.select()
-  document.execCommand('copy')
-  area.remove()
-}
 
 /** Start link QR kodi — brauzerda yasaladi (linkda maxfiy kod bor — tashqi xizmatga yuborilmaydi). */
 function LinkQr({ link }: { link: string }) {

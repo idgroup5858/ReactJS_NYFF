@@ -1,4 +1,20 @@
-import { Clock, Map as MapIcon, MapPin, MapPinned, Monitor, MonitorSmartphone, Pencil, Phone, Plus, Store, Users } from 'lucide-react'
+import {
+  Clock,
+  Map as MapIcon,
+  MapPin,
+  MapPinned,
+  Monitor,
+  MonitorSmartphone,
+  Pencil,
+  Phone,
+  Plus,
+  Store,
+  TabletSmartphone,
+  Trash2,
+  Tv,
+  Users,
+  WifiOff,
+} from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link, useOutlet } from 'react-router'
 import { api } from '@/api'
@@ -13,11 +29,14 @@ import { hasZone } from '@/domain/rules'
 import type { Branch, ID, WorkHours } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatDeliveryFee, formatMoney, formatNumber } from '@/lib/format'
-import { showToast } from '@/lib/swal'
+import { confirmDialog, showToast } from '@/lib/swal'
 import { useToday } from '@/lib/useNow'
+import { rememberScreenCode, type ScreenKind } from '@/store/screenCodes'
 import OnlineStatePill from './delivery/OnlineStatePill'
 import { deliveryMapPath } from './delivery/paths'
+import OfflineKeyModal from './OfflineKeyModal'
 import ListPlaceholder from './orders/ListPlaceholder'
+import ScreenCodeModal from './ScreenCodeModal'
 
 const DEFAULT_HOURS: WorkHours = { open: '09:00', close: '23:00' }
 
@@ -104,10 +123,44 @@ export default function BranchesPage() {
   const overview = useOverview().data
   const todayReport = useSalesReport({ from: today, to: today, branchId: null }).data
   const [editing, setEditing] = useState<Branch | 'new' | null>(null)
+  const [keyFor, setKeyFor] = useState<Branch | null>(null)
+  const [codeFor, setCodeFor] = useState<{ kind: ScreenKind; branch: Branch } | null>(null)
 
   const setOnline = async (branchId: ID, enabled: boolean) => {
     try {
       await api.branches.setOnline(branchId, enabled)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
+  /**
+   * Admin navbat ekranini / kioskni ochadi — kod so'ralmaydi: filialning joriy kodi (yangilangan bo'lsa ham) oldindan
+   * shu brauzerga yoziladi, ekran uni o'qiydi. Kod olinmasa (server javob bermadi) — ekran o'zi so'raydi.
+   */
+  const openScreen = async (kind: ScreenKind, branch: Branch) => {
+    // tab bosish paytida ochiladi — so'rovdan keyin ochilsa brauzer "popup" deb to'sishi mumkin
+    const tab = window.open('about:blank', '_blank')
+    try {
+      const { code } = await api.branches.screenCode(kind, branch.id)
+      rememberScreenCode(kind, branch.id, code)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+    const url = `${import.meta.env.BASE_URL}${kind}/${branch.id}`
+    if (!tab) {
+      window.open(url, '_blank', 'noopener')
+      return
+    }
+    tab.opener = null
+    tab.location.href = url
+  }
+
+  /** faqat hech ishlatilmagan filial (aks holda server `in_use` — faolsizlantirish kerak) */
+  const remove = async (branch: Branch) => {
+    if (!(await confirmDialog(t.admin.branches.deleteTitle, `${branch.name}. ${t.admin.branches.deleteText}`, t.common.delete))) return
+    try {
+      await api.branches.remove(branch.id)
     } catch (error) {
       showToast(errorMessage(error), 'error')
     }
@@ -158,9 +211,41 @@ export default function BranchesPage() {
                     {branch.workHours ? `${branch.workHours.open}–${branch.workHours.close}` : t.admin.branches.allDay}
                   </p>
                 </div>
-                <button type="button" onClick={() => setEditing(branch)} aria-label={t.common.edit} className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded">
-                  <Pencil size={15} />
-                </button>
+                <div className="flex shrink-0 gap-1">
+                  <button type="button" onClick={() => setEditing(branch)} aria-label={t.common.edit} className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded">
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setKeyFor(branch)}
+                    aria-label={t.admin.branches.offlineKey}
+                    title={t.admin.branches.offlineKey}
+                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
+                  >
+                    <WifiOff size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCodeFor({ kind: 'tv', branch })}
+                    aria-label={t.admin.branches.tvCode}
+                    title={t.admin.branches.tvCode}
+                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
+                  >
+                    <Tv size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCodeFor({ kind: 'kiosk', branch })}
+                    aria-label={t.admin.branches.kioskCode}
+                    title={t.admin.branches.kioskCode}
+                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
+                  >
+                    <TabletSmartphone size={15} />
+                  </button>
+                  <button type="button" onClick={() => void remove(branch)} aria-label={t.common.delete} className="btn-icon-danger flex h-9 w-9 shrink-0 items-center justify-center rounded">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
               {/* tushum ustuni matnga qarab kengayadi — summa qisilmaydi */}
               <div className="grid grid-cols-[auto_1fr_1fr] gap-2 text-center">
@@ -209,11 +294,28 @@ export default function BranchesPage() {
               </div>
               {branch.active && (
                 <div className="flex gap-2">
-                  <Link to={`/tv/${branch.id}`} target="_blank" className="btn-ghost flex h-9 flex-1 items-center justify-center gap-2 rounded text-xs font-semibold">
+                  <Link
+                    to={`/tv/${branch.id}`}
+                    target="_blank"
+                    onClick={(event) => {
+                      // oddiy bosish — kod bilan; o'rta tugma / "yangi tabda ochish" — oddiy havola (ekran kod so'raydi)
+                      event.preventDefault()
+                      void openScreen('tv', branch)
+                    }}
+                    className="btn-ghost flex h-9 flex-1 items-center justify-center gap-2 rounded text-xs font-semibold"
+                  >
                     <Monitor size={14} />
                     {t.modes.tv.title}
                   </Link>
-                  <Link to={`/kiosk/${branch.id}`} target="_blank" className="btn-ghost flex h-9 flex-1 items-center justify-center gap-2 rounded text-xs font-semibold">
+                  <Link
+                    to={`/kiosk/${branch.id}`}
+                    target="_blank"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      void openScreen('kiosk', branch)
+                    }}
+                    className="btn-ghost flex h-9 flex-1 items-center justify-center gap-2 rounded text-xs font-semibold"
+                  >
                     <MonitorSmartphone size={14} />
                     {t.modes.kiosk.title}
                   </Link>
@@ -224,6 +326,8 @@ export default function BranchesPage() {
         })}
       </div>
       {editing && <BranchForm branch={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {keyFor && <OfflineKeyModal branch={keyFor} onClose={() => setKeyFor(null)} />}
+      {codeFor && <ScreenCodeModal kind={codeFor.kind} branch={codeFor.branch} onClose={() => setCodeFor(null)} />}
     </div>
   )
 }

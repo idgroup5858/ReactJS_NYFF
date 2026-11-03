@@ -24,7 +24,7 @@ export type IconStyle = (typeof ICON_STYLES)[number]
 export const IMAGE_FITS = ['cover', 'contain'] as const
 export type ImageFit = (typeof IMAGE_FITS)[number]
 
-/** Ombor ro'yxatlari (qoldiqlar, mahsulotlar): kartochkalar to'ri yoki ixcham jadval. */
+/** Ombor ro'yxatlari (qoldiqlar, mahsulotlar): kartochkalar to'ri yoki ixcham jadval (standart). */
 export const LIST_VIEWS = ['grid', 'list'] as const
 export type ListView = (typeof LIST_VIEWS)[number]
 
@@ -43,7 +43,14 @@ export interface DeviceSettings {
   categoryRailCollapsed: boolean
   /** qoldiqlar va mahsulotlar sahifasining ko'rinishi */
   warehouseView: ListView
+  /** kassa: internet uzilsa shu kompyuterdagi offline kassaga o'tadi (offline server o'rnatilgan bo'lsa) */
+  offlineEnabled: boolean
+  /** offline server manzili (kassa kompyuterida, `NestJS_NYFF` — `node dist/offline/main`) */
+  offlineUrl: string
 }
+
+/** Offline server standart manzili (`OFFLINE_PORT=3100`). */
+export const DEFAULT_OFFLINE_URL = 'http://localhost:3100'
 
 function sanitize(raw: unknown): DeviceSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof DeviceSettings, unknown>>
@@ -56,7 +63,9 @@ function sanitize(raw: unknown): DeviceSettings {
     imageFit: IMAGE_FITS.find((fit) => fit === value.imageFit) ?? 'contain',
     sidebarCollapsed: value.sidebarCollapsed === true,
     categoryRailCollapsed: value.categoryRailCollapsed === true,
-    warehouseView: LIST_VIEWS.find((view) => view === value.warehouseView) ?? 'grid',
+    warehouseView: LIST_VIEWS.find((view) => view === value.warehouseView) ?? 'list',
+    offlineEnabled: value.offlineEnabled === true,
+    offlineUrl: typeof value.offlineUrl === 'string' && value.offlineUrl.trim() ? value.offlineUrl.trim() : DEFAULT_OFFLINE_URL,
   }
 }
 
@@ -83,3 +92,5 @@ export const setImageFit = (imageFit: ImageFit) => save({ imageFit })
 export const setSidebarCollapsed = (sidebarCollapsed: boolean) => save({ sidebarCollapsed })
 export const setCategoryRailCollapsed = (categoryRailCollapsed: boolean) => save({ categoryRailCollapsed })
 export const setWarehouseView = (warehouseView: ListView) => save({ warehouseView })
+export const setOfflineEnabled = (offlineEnabled: boolean) => save({ offlineEnabled })
+export const setOfflineUrl = (offlineUrl: string) => save({ offlineUrl })

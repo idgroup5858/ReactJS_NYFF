@@ -10,7 +10,7 @@ import SegmentedControl from '@/components/ui/SegmentedControl'
 import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/styles'
 import { PAGE_SIZE } from '@/components/ui/usePagination'
 import { addDays, parseDateKey } from '@/domain/dates'
-import { courierStage } from '@/domain/rules'
+import { courierStage, fullName } from '@/domain/rules'
 import { ORDER_SOURCES, ORDER_TYPES, PAYMENT_METHODS, type ID, type OrderSource, type OrderStatus, type OrderType, type PaymentMethod } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatMoney, formatNumber, formatOrderNumber, formatTime } from '@/lib/format'
@@ -87,7 +87,10 @@ export default function OrdersPage() {
   const opened = listed ?? (single?.id === openedId ? single : undefined)
 
   const branchName = (id: ID) => branches.find((b) => b.id === id)?.name ?? '—'
-  const userName = (id: ID | null) => (id ? (users.find((u) => u.id === id)?.name ?? '—') : '—')
+  const userName = (id: ID | null) => {
+    const user = id ? users.find((u) => u.id === id) : undefined
+    return user ? fullName(user) : '—'
+  }
   const cashiers = users.filter((u) => u.role === 'cashier' && (filters.branchId === 'all' || u.branchId === filters.branchId))
   const singleDay = range.from === range.to
 

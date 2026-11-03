@@ -3,6 +3,7 @@ import CourierActivityPill from '@/components/order/CourierActivityPill'
 import { courierActivity, onDutyCouriers, type CourierActivity } from '@/components/order/courierActivity'
 import { Card, CardHeader } from '@/components/ui/Card'
 import UserAvatar from '@/components/ui/UserAvatar'
+import { fullName } from '@/domain/rules'
 import { useT } from '@/i18n'
 
 /** Tartib: ishlayotganlar tepada (yo'lda, buyurtma olgan, bo'sh), keyin ishda emaslar va bloklanganlar. */
@@ -39,9 +40,9 @@ export default function CouriersCard() {
         <ul className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3">
           {sorted.map((courier) => (
             <li key={courier.id} className={`flex items-center gap-3 rounded-card border border-line px-3 py-2 ${courier.active ? '' : 'opacity-50'}`}>
-              <UserAvatar name={courier.name} />
+              <UserAvatar name={fullName(courier)} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-neutral-950">{courier.name}</span>
+                <span className="block truncate text-sm font-semibold text-neutral-950">{fullName(courier)}</span>
                 {courier.orders > 0 && (
                   <span className="block truncate text-xs text-neutral-500">
                     {t.courier.holding(courier.orders, branches.find((b) => b.id === courier.branchId)?.name ?? '—')}

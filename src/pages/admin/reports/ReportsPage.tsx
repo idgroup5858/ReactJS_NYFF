@@ -1,8 +1,6 @@
-import { ArrowDownRight, ArrowUpRight, ClipboardCheck, Monitor, RotateCcw, TriangleAlert } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, ClipboardCheck, Monitor, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { api } from '@/api'
-import { ApiError } from '@/api/http'
 import { useBranches, useOverview, useSalesReport } from '@/api/queries'
 import { ORDER_TYPE_ICONS, PAYMENT_ICONS } from '@/components/order/orderIcons'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -12,7 +10,6 @@ import { addDays, dateRange, parseDateKey } from '@/domain/dates'
 import { EXPENSE_KINDS, ORDER_SOURCES, ORDER_TYPES, PAYMENT_METHODS, type DateKey, type SalesReport, type Tally } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatNumber } from '@/lib/format'
-import { confirmDialog, showToast } from '@/lib/swal'
 import PeriodFilter from '../PeriodFilter'
 import { useLatest, usePeriod } from '../usePeriod'
 import BarChart, { type BarPoint } from './BarChart'
@@ -68,7 +65,7 @@ export default function ReportsPage() {
   const localize = useLocalize()
   const branches = useBranches().data ?? []
   const overview = useOverview().data
-  const period = usePeriod('week')
+  const period = usePeriod('today')
   const { range } = period
   const [branchId, setBranchId] = useState<string>('all')
 
@@ -106,17 +103,6 @@ export default function ReportsPage() {
     .filter((b) => b.active)
     .map((b) => ({ branch: b, count: overview?.liveOrders.find((live) => live.branchId === b.id)?.count ?? 0 }))
 
-  const onReset = async () => {
-    if (!(await confirmDialog(t.common.resetConfirmTitle, t.common.resetConfirmText, t.common.resetData))) return
-    try {
-      await api.demo.reset()
-      showToast(t.common.resetDone)
-    } catch (error) {
-      // admin uchun `forbidden` — serverda demo rejimi o'chiq
-      showToast(error instanceof ApiError && error.code === 'forbidden' ? t.admin.reports.resetOff : errorMessage(error), 'error')
-    }
-  }
-
   const kpis = [
     { label: t.admin.reports.revenue, value: money(report.revenue), delta: comparable && <Delta current={report.revenue} previous={previous.revenue} />, strong: true },
     { label: t.admin.reports.orders, value: formatNumber(report.orders), delta: comparable && <Delta current={report.orders} previous={previous.orders} /> },
@@ -131,12 +117,6 @@ export default function ReportsPage() {
       <PageHeader
         title={t.admin.reports.title}
         description={t.admin.reports.hint}
-        actions={
-          <button type="button" onClick={() => void onReset()} className="btn-ghost flex h-9 items-center gap-2 rounded px-4 text-xs font-semibold">
-            <RotateCcw size={14} />
-            {t.common.resetData}
-          </button>
-        }
       />
 
       <div className="flex flex-wrap items-center gap-3">

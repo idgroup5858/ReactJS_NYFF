@@ -1,26 +1,31 @@
+import type { ReactNode } from 'react'
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router'
 import AppLoading from '@/components/layout/AppLoading'
 import RequireRole from '@/components/layout/RequireRole'
 import type { Role } from '@/domain/types'
 import NotFoundPage from '@/pages/errors/NotFoundPage'
 import RouteError from '@/pages/errors/RouteError'
+import AdminLoginPage from '@/pages/login/AdminLoginPage'
 import LoginPage from '@/pages/login/LoginPage'
 
-/** Rol bilan himoyalangan sahifa guruhi. */
-function guarded(roles: Role[], children: RouteObject[]): RouteObject {
-  return { element: <RequireRole roles={roles} />, children }
+/** Rol bilan himoyalangan sahifa guruhi; [login] — kirmagan bo'lsa shu manzilda ko'rsatiladigan kirish oynasi. */
+function guarded(roles: Role[], children: RouteObject[], login?: ReactNode): RouteObject {
+  return { element: <RequireRole roles={roles} login={login} />, children }
 }
 
 /**
- * Sahifalar (kirishdan boshqalari kerak bo'lganda yuklanadi — har bir bo'lim alohida fayl):
+ * Sahifalar (kirishdan boshqalari kerak bo'lganda yuklanadi — har bir bo'lim alohida fayl). Yo'llar `basename` ga
+ * nisbatan — serverda xodimlar tizimi `/shorva/` ostida (`vite.config.ts` → `base`; domen ildizida — alohida sahifa),
+ * "NYFF Offline" da — ildizda:
  *
- *   /                    kirish: ish joyi → filial → xodim → PIN  (`?mode=&branch=&user=`); TV / kiosk — ish joyi → filial
+ *   /                    kirish: ish joyi → filial → xodim → PIN  (`?mode=&branch=&user=`); TV / kiosk — ish joyi → filial.
+ *                        Admin bu yerda yo'q — `/admin` ning o'zida email va parol bilan kiradi
  *   /kassa               kassir
  *   /oshxona             oshpaz yordamchisi — "Tayyor" / "Qaytarish"
- *   /tv/:branchId        navbat ekrani — shu filialniki (PINsiz va kodsiz); `/tv` — kirishdagi filial tanlashga
- *   /kiosk/:branchId     kiosk — shu filialniki (PINsiz va kodsiz); `/kiosk` — kirishdagi filial tanlashga
+ *   /tv/:branchId        navbat ekrani — shu filialniki (PINsiz, filial TV kodi bilan); `/tv` — kirishdagi filial tanlashga
+ *   /kiosk/:branchId     kiosk — shu filialniki (PINsiz, filial kiosk kodi bilan); `/kiosk` — kirishdagi filial tanlashga
  *   /ombor/*             ta'minotchi (admin ham kiradi)
- *   /admin/*             admin panel
+ *   /admin/*             admin panel (kirmagan bo'lsa — shu manzilda email va parol oynasi)
  */
 export const router = createBrowserRouter([
   {
@@ -80,7 +85,9 @@ export const router = createBrowserRouter([
             { path: 'chiqimlar', lazy: async () => ({ Component: (await import('@/pages/admin/ExpensesPage')).default }) },
           ],
         },
-      ]),
+      ], <AdminLoginPage />),
+      // kassa kompyuteridagi offline server beradi (internet yo'q paytda); kirish — o'z ekranida (online kassadan yoki PIN)
+      { path: 'offline', lazy: async () => ({ Component: (await import('@/pages/offline/OfflineKassaPage')).default }) },
       { path: 'tv/:branchId', lazy: async () => ({ Component: (await import('@/pages/tv/TvPage')).default }) },
       { path: 'kiosk/:branchId', lazy: async () => ({ Component: (await import('@/pages/kiosk/KioskPage')).default }) },
       // filialsiz manzil (eski xatcho'p) — kirish ekranidagi filial tanlashga

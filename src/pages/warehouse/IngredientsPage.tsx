@@ -5,6 +5,7 @@ import { useIngredients, useProducts } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { Card } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
+import FormFooter from '@/components/ui/FormFooter'
 import Field from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import PageHeader from '@/components/ui/PageHeader'
@@ -14,7 +15,7 @@ import ViewToggle from '@/components/ui/ViewToggle'
 import { INGREDIENT_GROUPS, STOCK_UNITS, type ID, type Ingredient, type IngredientGroup, type LocalizedText, type StockUnit } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatNumber } from '@/lib/format'
-import { showToast } from '@/lib/swal'
+import { confirmDialog, showToast } from '@/lib/swal'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import GroupHeading from './GroupHeading'
 
@@ -27,6 +28,7 @@ type Draft = { name: LocalizedText; group: IngredientGroup; unit: StockUnit; pri
  */
 function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null; onClose: () => void }) {
   const t = useT()
+  const localize = useLocalize()
   const isAdmin = useCurrentUser()?.role === 'admin'
   const [draft, setDraft] = useState<Draft>(
     ingredient
@@ -55,15 +57,22 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
     }
   }
 
+  /** faqat hech qayerda ishlatilmagan mahsulot (aks holda server `in_use` — faolsizlantirish kerak) */
+  const remove = async (current: Ingredient) => {
+    if (!(await confirmDialog(t.ingredients.deleteTitle, `${localize(current.name)}. ${t.ingredients.deleteText}`, t.common.delete))) return
+    try {
+      await api.ingredients.remove(current.id)
+      onClose()
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
   return (
     <Modal
       title={ingredient ? t.ingredients.edit : t.ingredients.add}
       onClose={onClose}
-      footer={
-        <button type="submit" form="ingredient-form" className="btn-primary h-11 w-full rounded text-sm font-bold">
-          {t.common.save}
-        </button>
-      }
+      footer={<FormFooter formId="ingredient-form" saving={false} onDelete={ingredient ? () => void remove(ingredient) : undefined} />}
     >
       <form id="ingredient-form" onSubmit={(event) => void save(event)} className="space-y-3">
         <Field label={t.common.nameUz} htmlFor="ing-uz">

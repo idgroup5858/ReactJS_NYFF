@@ -4,7 +4,7 @@ import { CourierBadge } from '@/components/order/CourierStatus'
 import { OrderTypeBadge, SourceBadge, StatusPill } from '@/components/order/OrderBadges'
 import { PAYMENT_ICONS } from '@/components/order/orderIcons'
 import { tdClass, thClass } from '@/components/ui/styles'
-import { courierStage, orderPayments } from '@/domain/rules'
+import { courierStage, fullName, orderPayments } from '@/domain/rules'
 import { PAYMENT_METHODS, type ID, type Order } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatMoney, formatOnlinePayment } from '@/lib/format'
@@ -33,7 +33,10 @@ export default function OrderDetailsBody({ order }: { order: Order }) {
   const t = useT()
   const users = useUsers().data ?? []
   const localize = useLocalize()
-  const userName = (id: ID | null) => (id ? (users.find((u) => u.id === id)?.name ?? '—') : '—')
+  const userName = (id: ID | null) => {
+    const user = id ? users.find((u) => u.id === id) : undefined
+    return user ? fullName(user) : '—'
+  }
   const payments = PAYMENT_METHODS.map((method) => ({ method, amount: orderPayments(order)[method] })).filter((part) => part.amount > 0)
   const stage = courierStage(order)
   const returnText = order.returnReason ? [t.courier.reasons[order.returnReason], order.returnNote].filter(Boolean).join(' — ') : null

@@ -34,6 +34,7 @@ import type {
   User,
   Warehouse,
 } from '@/domain/types'
+import type { ScreenKind } from '@/store/screenCodes'
 import { http } from './http'
 import { useQuery } from './query'
 
@@ -66,6 +67,14 @@ function keyOf(prefix: string, params: Params = {}): string {
 /** Filiallar va hozirgi online holati (`onlineState`) — kirish ekrani, mobil ilova, admin. */
 export const useBranches = (options: HookOptions = {}) =>
   useQuery(on('branches', options), () => http.get<Branch[]>('/branches', undefined, { token: null }), options)
+
+/** Admin: filial offline kassasi (Electron ilova) kaliti — hali yo'q bo'lsa server yaratadi. */
+export const useOfflineKey = (branchId: ID) =>
+  useQuery(`offline-key:${branchId}`, () => http.get<{ key: string }>(`/branches/${branchId}/offline-key`))
+
+/** Admin: filial TV / kiosk kodi (8 raqam) — hali yo'q bo'lsa server yaratadi. */
+export const useScreenCode = (kind: ScreenKind, branchId: ID) =>
+  useQuery(`${kind}-code:${branchId}`, () => http.get<{ code: string }>(`/branches/${branchId}/${kind}-code`))
 
 export const useWarehouses = () => useQuery('warehouses', () => http.get<Warehouse[]>('/warehouses'))
 
@@ -167,11 +176,14 @@ export const useOrders = (params: OrdersParams) =>
 export const useOrder = (id: ID | null | undefined) =>
   useQuery(id ? `orders:one:${id}` : null, () => http.get<Order>(`/orders/${id}`))
 
-/** TV navbat — PINsiz va kodsiz (ochiq), [branchId] majburiy; noma'lum / faol bo'lmagan filial — 404. */
-export const useTvQueue = (branchId: ID | null, options: HookOptions = {}) =>
+/**
+ * TV navbat — PINsiz, filial TV kodi bilan ([tvCode] yo'q bo'lsa so'ralmaydi). Kod noto'g'ri / yangilangan — 401
+ * `wrong_tv_code`; to'g'ri kod, lekin filial faol emas — 404.
+ */
+export const useTvQueue = (branchId: ID | null, tvCode: string | null, options: HookOptions = {}) =>
   useQuery(
-    branchId ? on(`tv:${branchId}`, options) : null,
-    () => http.get<{ preparing: TvOrder[]; ready: TvOrder[] }>('/tv/queue', { branchId }, { token: null }),
+    branchId && tvCode ? on(`tv:${branchId}:${tvCode}`, options) : null,
+    () => http.get<{ preparing: TvOrder[]; ready: TvOrder[] }>('/tv/queue', { branchId }, { token: null, tvCode: tvCode ?? '' }),
     options,
   )
 

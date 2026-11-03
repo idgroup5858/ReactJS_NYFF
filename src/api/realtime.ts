@@ -8,10 +8,10 @@ import { invalidate } from './query'
  * yoki qayta ulansa ochiq ro'yxatlar REST'dan qaytadan olinadi — uzilish paytidagi xabarlar yo'qolgan bo'lishi mumkin.
  *
  *  - `{ token }` — kassir / oshpaz yordamchisi → o'z filiali xonasi;
- *  - `{ tvBranchId }` — TV (PINsiz va kodsiz) → shu filial navbati (faqat raqam, tur, holat).
+ *  - `{ tvBranchId, tvCode }` — TV (PINsiz, filial TV kodi bilan) → shu filial navbati (faqat raqam, tur, holat).
  * (Mijozning `{ orderId, orderToken }` ulanishi — alohida mobil ilovada.)
  */
-export type SocketAuth = { token: string } | { tvBranchId: string }
+export type SocketAuth = { token: string } | { tvBranchId: string; tvCode: string }
 
 /** `order` xabaridan keyin qaytadan yuklanadigan so'rovlar (kalit prefikslari — `queries.ts`). */
 const LIVE_PREFIXES = ['orders:', 'tv:', 'shift:']
@@ -19,8 +19,11 @@ const LIVE_PREFIXES = ['orders:', 'tv:', 'shift:']
 interface Options {
   /** har bir xabar (masalan yangi online buyurtma ovozi uchun) — xabardagi buyurtma ko'rinishi */
   onOrder?: (order: unknown) => void
-  /** server ulanishni rad etdi yoki huquq bekor bo'ldi (xodim bloklandi; TV — filial noma'lum yoki faol emas) */
-  onAuthError?: () => void
+  /**
+   * Server ulanishni rad etdi yoki huquq bekor bo'ldi: `unauthorized` (xodim bloklandi; TV — filial faol emas), TV da
+   * `wrong_tv_code` (kod noto'g'ri yoki admin yangiladi).
+   */
+  onAuthError?: (code: string) => void
 }
 
 export function useRealtime(auth: SocketAuth | null, options: Options = {}): { connected: boolean } {
@@ -49,10 +52,10 @@ export function useRealtime(auth: SocketAuth | null, options: Options = {}): { c
       refresh()
     })
     socket.on('disconnect', () => setConnected(false))
-    socket.on('auth_error', () => {
+    socket.on('auth_error', (data: { code?: string } | undefined) => {
       socket.disconnect()
       setConnected(false)
-      optionsRef.current.onAuthError?.()
+      optionsRef.current.onAuthError?.(data?.code ?? 'unauthorized')
     })
     return () => {
       window.clearTimeout(timer)

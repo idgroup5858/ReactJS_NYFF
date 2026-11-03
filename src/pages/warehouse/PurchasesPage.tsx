@@ -9,7 +9,7 @@ import Field from '@/components/ui/Field'
 import Pagination from '@/components/ui/Pagination'
 import SegmentedControl from '@/components/ui/SegmentedControl'
 import { selectClass, textareaClass } from '@/components/ui/styles'
-import { purchaseTotal } from '@/domain/rules'
+import { fullName, purchaseTotal } from '@/domain/rules'
 import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatDateTime, formatMoney } from '@/lib/format'
@@ -41,8 +41,8 @@ export function PurchaseRow({ purchase, defaultOpen = false, children }: { purch
         <span className="text-sm font-bold tabular-nums">{purchase.status === 'rejected' ? '—' : formatMoney(Math.round(purchaseTotal(purchase)), t)}</span>
         <ChevronDown size={16} className={`text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`} />
         <span className="w-full text-xs text-neutral-500">
-          {formatDateTime(purchase.createdAt)} · {author?.name ?? '—'}
-          {purchase.decidedAt && ` · ${t.purchase.decidedBy}: ${decider?.name ?? '—'} (${formatDateTime(purchase.decidedAt)})`}
+          {formatDateTime(purchase.createdAt)} · {author ? fullName(author) : '—'}
+          {purchase.decidedAt && ` · ${t.purchase.decidedBy}: ${decider ? fullName(decider) : '—'} (${formatDateTime(purchase.decidedAt)})`}
         </span>
       </button>
       {open && (

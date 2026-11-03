@@ -38,9 +38,15 @@ export function isValidPin(pin: string): boolean {
   return /^\d{4,8}$/.test(pin)
 }
 
-/** Kuryer login: lotin harflari, raqam, «.», «_», «-» — 3–40 (server kichik harfga o'tkazadi). Parol — kamida 6 belgi. */
-export const isValidLogin = (login: string): boolean => /^[a-z0-9._-]{3,40}$/.test(login.trim().toLowerCase())
-export const isValidPassword = (password: string): boolean => password.length >= 6 && password.length <= 64
+/**
+ * Admin va kuryer emaili: `nimadir@domen.uz` shakli, 100 belgigacha (server kichik harfga o'tkazadi va o'zi ham
+ * tekshiradi; pochta yuborilmaydi). Parol — 8 tadan 64 tagacha belgi.
+ */
+export const isValidEmail = (email: string): boolean => {
+  const clean = email.trim()
+  return clean.length <= 100 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)
+}
+export const isValidPassword = (password: string): boolean => password.length >= 8 && password.length <= 64
 
 /** Kassir va oshpaz yordamchisi filialga bog'lanadi; admin, ta'minotchi va kuryer — butun tarmoq uchun. */
 export function roleNeedsBranch(role: Role): boolean {
@@ -72,4 +78,27 @@ export const hasZone = (branch: Pick<Branch, 'deliveryZone'>): boolean => branch
 
 export function purchaseTotal(purchase: Pick<Purchase, 'items'>): number {
   return purchase.items.reduce((sum, item) => sum + (item.price ?? 0) * item.qty, 0)
+}
+
+/** Ekrandagi xodim ismi: "Ism Familiya" (familiya bo'sh bo'lsa — faqat ism). */
+export function fullName(person: { name: string; surname: string }): string {
+  return [person.name, person.surname].filter(Boolean).join(' ')
+}
+
+/**
+ * Admin (web, `/admin`) va kuryer (mobil ilova) — email va parol bilan kiradi, PIN'i yo'q; qolganlar — kirish
+ * ekranidagi ro'yxatdan ism + PIN.
+ */
+export function usesPassword(role: Role): boolean {
+  return role === 'admin' || role === 'courier'
+}
+
+/** Bosh harflar: "Dilnoza Karimova" → "DK", familiyasiz — "D". */
+export function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word.slice(0, 1).toUpperCase())
+    .join('')
 }

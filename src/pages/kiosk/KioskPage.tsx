@@ -1,16 +1,21 @@
+import { ArrowLeftRight, MapPin, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Navigate, useParams } from 'react-router'
+import { Link, Navigate, useParams } from 'react-router'
 import { api } from '@/api'
+import { ApiError } from '@/api/http'
 import { useBranches, useMenu } from '@/api/queries'
+import Brand from '@/components/layout/Brand'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
+import ScreenCodeForm from '@/components/screen/ScreenCodeForm'
 import Modal from '@/components/ui/Modal'
-import type { CustomerOrder, ID, MenuProduct } from '@/domain/types'
+import type { Branch, CustomerOrder, ID, MenuProduct } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { addProduct, changeQty, removeLine, type CartLine } from '@/lib/cart'
 import { printReceipt } from '@/lib/printReceipt'
 import { showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { useIdle } from '@/lib/useIdle'
+import { forgetScreenCode, readScreenCode, rememberScreenCode } from '@/store/screenCodes'
 import KioskCart, { type KioskLine, type KioskOrderType } from './KioskCart'
 import KioskDone from './KioskDone'
 import KioskMenu from './KioskMenu'
@@ -57,20 +62,109 @@ function IdleModal({ onStay, onReset }: { onStay: () => void; onReset: () => voi
   )
 }
 
+/** Filial tanlash — kirish ekranining kiosk qadami. */
+const CHOOSE_BRANCH_PATH = '/?mode=kiosk'
+
 /**
- * Kiosk (`/kiosk/:branchId` — PINsiz va kodsiz, filial manzildan): bosh ekran → menyu → taom oynasi → savat → to'lov →
- * raqam. Karta / Click bilan to'lansa buyurtma darhol tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan"
- * ro'yxatiga tushadi, kassir pulini olib tasdiqlaguncha oshxonaga ketmaydi. Filial noma'lum yoki faol emas — kirishdagi
- * filial tanlashga.
+ * Kiosk kodi so'raladi (bosh ekran uslubida): birinchi ochilganda va admin kodni yangilagandan keyin. Kod serverda
+ * tekshiriladi, to'g'ri bo'lsa — shu kioskda saqlanadi va boshqa so'ralmaydi. Pastda chapda — xodim uchun chiqish va
+ * filialni almashtirish (bosh ekrandagidek).
  */
-export default function KioskPage() {
+function KioskCodeScreen({
+  branchId,
+  branch,
+  notice,
+  onConnected,
+}: {
+  branchId: string
+  branch: Branch | undefined
+  notice: string | null
+  onConnected: (code: string) => void
+}) {
   const t = useT()
-  const { branchId = null } = useParams()
+  return (
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
+      <div className="pointer-events-none absolute -top-40 -right-40 h-[38rem] w-[38rem] rounded-full bg-taxi/40 blur-3xl" />
+      <header className="relative flex items-center justify-between gap-4 px-6 py-5 sm:px-10">
+        <Brand tone="light" size="lg" />
+        {branch && (
+          <span className="flex items-center gap-2 text-sm font-semibold text-neutral-600">
+            <MapPin size={16} className="text-select" />
+            {branch.name}
+          </span>
+        )}
+      </header>
+      <main className="relative flex flex-1 items-center justify-center p-6">
+        <ScreenCodeForm
+          tone="light"
+          title={t.kiosk.codeTitle}
+          hint={t.kiosk.codeHint}
+          notice={notice}
+          verify={(code) => api.kiosk.check(branchId, code)}
+          onConnected={onConnected}
+        />
+      </main>
+      <div className="absolute bottom-3 left-3 flex gap-1">
+        <Link
+          to="/"
+          aria-label={t.kiosk.exit}
+          title={t.kiosk.exit}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
+        >
+          <X size={16} />
+        </Link>
+        <Link
+          to={CHOOSE_BRANCH_PATH}
+          aria-label={t.login.changeBranch}
+          title={t.login.changeBranch}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
+        >
+          <ArrowLeftRight size={16} />
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Kiosk (`/kiosk/:branchId` — PINsiz, filial kiosk kodi bilan, filial manzildan): bosh ekran → menyu → taom oynasi →
+ * savat → to'lov → raqam. Kod kioskda bir marta kiritiladi; ochilganda, har yangi mijoz boshlaganda va har mijozdan keyin
+ * tekshiriladi — admin yangilagan bo'lsa mijoz to'lovgacha kutib qolmasin. Karta / Click bilan to'lansa buyurtma darhol
+ * tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan" ro'yxatiga tushadi, kassir pulini olib tasdiqlaguncha
+ * oshxonaga ketmaydi. Filial noma'lum yoki faol emas — kirishdagi filial tanlashga.
+ */
+function KioskBranch({ branchId }: { branchId: string }) {
+  const t = useT()
   const menu = useMenu(branchId).data
   const branches = useBranches()
   const reloadBranches = branches.reload
   const branch = branches.data?.find((b) => b.id === branchId && b.active)
   useDocumentTitle(t.modes.kiosk.title)
+
+  const [code, setCode] = useState(() => readScreenCode('kiosk', branchId))
+  const [notice, setNotice] = useState<string | null>(null)
+
+  /** Saqlangan kod endi ishlamaydi — kod ekraniga ([message] — sababi). */
+  const forget = useCallback(
+    (message: string) => {
+      forgetScreenCode('kiosk', branchId)
+      setCode(null)
+      setNotice(message)
+    },
+    [branchId],
+  )
+
+  /** Kod hali to'g'rimi — admin yangilagan bo'lsa — kod ekrani. Tarmoq xatosi — indamaydi. */
+  const changedText = t.kiosk.codeChanged
+  const checkCode = useCallback(() => {
+    if (!code) return
+    api.kiosk.check(branchId, code).catch((error: unknown) => {
+      if (error instanceof ApiError && error.code === 'wrong_kiosk_code') forget(changedText)
+    })
+  }, [branchId, code, forget, changedText])
+
+  // ochilganda (kod oldin saqlangan bo'lsa)
+  useEffect(checkCode, [checkCode])
 
   const [step, setStep] = useState<Step>('welcome')
   const [orderType, setOrderType] = useState<KioskOrderType>('dine_in')
@@ -80,15 +174,16 @@ export default function KioskPage() {
   const [idle, setIdle] = useState(false)
 
   const reset = useCallback(() => {
-    // har yangi mijozdan oldin — admin filialni o'chirgan bo'lishi mumkin
+    // har yangi mijozdan oldin — admin filialni o'chirgan yoki kiosk kodini yangilagan bo'lishi mumkin
     reloadBranches()
+    checkCode()
     setStep('welcome')
     setOrderType('dine_in')
     setLines([])
     setDetail(null)
     setOrder(null)
     setIdle(false)
-  }, [reloadBranches])
+  }, [reloadBranches, checkCode])
 
   useIdle(IDLE_AFTER_MS, () => setIdle(true), step === 'menu' || step === 'cart' || step === 'pay')
 
@@ -109,24 +204,43 @@ export default function KioskPage() {
     return counts
   }, [priced])
 
-  if (!branchId || (branches.data && !branch)) return <Navigate to="/?mode=kiosk" replace />
+  if (branches.data && !branch) return <Navigate to={CHOOSE_BRANCH_PATH} replace />
+  if (!code) {
+    return (
+      <KioskCodeScreen
+        branchId={branchId}
+        branch={branch}
+        notice={notice}
+        onConnected={(value) => {
+          rememberScreenCode('kiosk', branchId, value)
+          setNotice(null)
+          setCode(value)
+        }}
+      />
+    )
+  }
 
   /** `null` — kassada to'laydi: buyurtma kassirni kutadi. Karta / Click — to'langan, chek shu yerda chiqadi. */
   const pay = async (payment: 'card' | 'click' | null): Promise<boolean> => {
     try {
-      const created = await api.orders.createKiosk({
-        branchId,
-        type: orderType,
-        items: priced.map((line) => ({ productId: line.productId, qty: line.qty })),
-        payment,
-      })
+      const created = await api.orders.createKiosk(
+        {
+          branchId,
+          type: orderType,
+          items: priced.map((line) => ({ productId: line.productId, qty: line.qty })),
+          payment,
+        },
+        code,
+      )
       if (created.payment) printReceipt({ ...created, source: 'kiosk' }, branch?.name ?? '')
       setOrder(created)
       setLines([])
       setStep('done')
       return true
     } catch (error) {
-      showToast(errorMessage(error), 'error')
+      // admin kodni shu orada yangilagan — xodim yangi kodni kiritadi, mijoz savati bilan to'lovga qaytadi
+      if (error instanceof ApiError && error.code === 'wrong_kiosk_code') forget(t.kiosk.codeChanged)
+      else showToast(errorMessage(error), 'error')
       return false
     }
   }
@@ -136,6 +250,8 @@ export default function KioskPage() {
       <KioskWelcome
         branch={branch}
         onStart={(type) => {
+          // mijoz boshladi — kod hali to'g'rimi (fonda; yangilangan bo'lsa to'lovgacha kutmasin)
+          checkCode()
           setOrderType(type)
           setStep('menu')
         }}
@@ -191,4 +307,12 @@ export default function KioskPage() {
       {idle && <IdleModal onStay={() => setIdle(false)} onReset={reset} />}
     </div>
   )
+}
+
+/** `/kiosk/:branchId` — PINsiz, filial kiosk kodi bilan (kioskda bir marta kiritiladi); filial manzildan. */
+export default function KioskPage() {
+  const { branchId = null } = useParams()
+  if (!branchId) return <Navigate to={CHOOSE_BRANCH_PATH} replace />
+  // filial almashsa — kod va savat holati boshidan
+  return <KioskBranch key={branchId} branchId={branchId} />
 }

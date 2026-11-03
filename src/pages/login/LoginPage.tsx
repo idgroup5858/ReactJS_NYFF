@@ -5,6 +5,7 @@ import { useBranches, useStaffList } from '@/api/queries'
 import { homePathFor, login, useCurrentUser } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
+import { fullName } from '@/domain/rules'
 import type { AuthUser, Branch, ID } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
@@ -150,9 +151,9 @@ export default function LoginPage() {
       content: user ? (
         <div className="space-y-5">
           <div className="flex items-center gap-3">
-            <UserAvatar name={user.name} size="lg" />
+            <UserAvatar name={fullName(user)} size="lg" />
             <div>
-              <p className="text-lg font-bold text-neutral-950">{user.name}</p>
+              <p className="text-lg font-bold text-neutral-950">{fullName(user)}</p>
               <p className="text-xs text-neutral-500">{t.roles[user.role]}</p>
             </div>
           </div>

@@ -3,6 +3,8 @@ import { useState, type FormEvent } from 'react'
 import { api } from '@/api'
 import Modal from '@/components/ui/Modal'
 import SegmentedControl from '@/components/ui/SegmentedControl'
+import { inputClass } from '@/components/ui/styles'
+import Toggle from '@/components/ui/Toggle'
 import { isValidPin } from '@/domain/rules'
 import { errorMessage, useT } from '@/i18n'
 import { showToast } from '@/lib/swal'
@@ -12,6 +14,8 @@ import {
   setCategoryPosition,
   setIconStyle,
   setImageFit,
+  setOfflineEnabled,
+  setOfflineUrl,
   setTheme,
   THEMES,
   useSettings,
@@ -40,10 +44,13 @@ function PinField({ id, label, value, onChange }: { id: string; label: string; v
   )
 }
 
-/** Kassa sozlamalari: kategoriyalar joyi va ko'rinish (shu qurilma uchun), kassirning o'z PIN'ini almashtirish. */
+/**
+ * Kassa sozlamalari: kategoriyalar joyi va ko'rinish, offline kassa (shu qurilma uchun), kassirning o'z PIN'ini
+ * almashtirish.
+ */
 export default function KassaSettingsModal({ onClose }: { onClose: () => void }) {
   const t = useT()
-  const { categoryPosition, theme, iconStyle, imageFit } = useSettings()
+  const { categoryPosition, theme, iconStyle, imageFit, offlineEnabled, offlineUrl } = useSettings()
   const [oldPin, setOldPin] = useState('')
   const [newPin, setNewPin] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -109,6 +116,28 @@ export default function KassaSettingsModal({ onClose }: { onClose: () => void })
             onChange={setImageFit}
             options={IMAGE_FITS.map((value) => ({ value, label: t.theme.imageFits[value] }))}
           />
+        </section>
+
+        <section className="space-y-2 border-t border-neutral-200 pt-5">
+          <h3 className="text-[11px] font-bold tracking-[0.14em] text-neutral-500 uppercase">{t.offline.settingsTitle}</h3>
+          <Toggle checked={offlineEnabled} onChange={setOfflineEnabled} label={t.offline.settingsEnable} />
+          {offlineEnabled && (
+            <div>
+              <label htmlFor="offline-url" className="mb-1 block text-xs font-semibold text-neutral-600">
+                {t.offline.settingsUrl}
+              </label>
+              <input
+                id="offline-url"
+                inputMode="url"
+                autoComplete="off"
+                spellCheck={false}
+                defaultValue={offlineUrl}
+                onBlur={(event) => setOfflineUrl(event.target.value)}
+                className={inputClass}
+              />
+            </div>
+          )}
+          <p className="text-xs text-neutral-400">{t.offline.settingsHint}</p>
         </section>
 
         <form onSubmit={(event) => void savePin(event)} className="space-y-3 border-t border-neutral-200 pt-5">

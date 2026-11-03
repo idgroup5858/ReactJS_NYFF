@@ -10,7 +10,8 @@ import { INGREDIENT_GROUPS, type ID, type LocalizedText, type Product } from '@/
 import { baseUnitOf } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatNumber } from '@/lib/format'
-import { showToast } from '@/lib/swal'
+import { confirmDialog, showToast } from '@/lib/swal'
+import FormFooter from '@/components/ui/FormFooter'
 import ImagePicker from './ImagePicker'
 
 type RecipeDraft = { key: number; ingredientId: ID; qty: string }
@@ -69,16 +70,23 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
     }
   }
 
+  /** faqat hech qachon sotilmagan taom (aks holda server `in_use` — faolsizlantirish kerak) */
+  const remove = async (current: Product) => {
+    if (!(await confirmDialog(t.admin.menu.deleteProductTitle, `${localize(current.name)}. ${t.admin.menu.deleteProductText}`, t.common.delete))) return
+    try {
+      await api.menu.removeProduct(current.id)
+      onClose()
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
   return (
     <Modal
       title={product ? t.admin.menu.editProduct : t.admin.menu.addProduct}
       onClose={onClose}
       size="xl"
-      footer={
-        <button type="submit" form="product-form" disabled={saving} className="btn-primary h-11 w-full rounded text-sm font-bold">
-          {t.common.save}
-        </button>
-      }
+      footer={<FormFooter formId="product-form" saving={saving} onDelete={product ? () => void remove(product) : undefined} />}
     >
       <form id="product-form" onSubmit={(event) => void save(event)} className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-3">

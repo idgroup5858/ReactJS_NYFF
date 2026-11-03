@@ -29,9 +29,11 @@ import type {
   TelegramStatus,
   Transfer,
   TransferItem,
+  TvOrder,
   User,
   WorkHours,
 } from '@/domain/types'
+import type { ScreenKind } from '@/store/screenCodes'
 import { http } from './http'
 import { invalidate } from './query'
 
@@ -47,6 +49,8 @@ export interface OrderLineInput {
 }
 
 export interface NewOrderInput {
+  /** kassa bergan id (`ord_` + 16 hex): javob kelmay qolsa shu id bilan qayta yuborilgani ikki marta yozilmaydi */
+  id?: ID
   type: OrderType
   items: OrderLineInput[]
   note?: string
@@ -79,12 +83,13 @@ export interface IngredientInput {
 export interface UserInput {
   id?: ID
   name: string
+  surname: string
   role: Role
   branchId: ID | null
-  /** kuryerdan boshqasi: yangi xodimda majburiy; tahrirda bo'sh — eski PIN qoladi */
+  /** kassir, oshpaz yordamchisi, ta'minotchi: yangi xodimda majburiy; tahrirda bo'sh — eski PIN qoladi */
   pin?: string
-  /** faqat kuryer: kirish logini va paroli (tahrirda bo'sh parol — eskisi qoladi) */
-  login?: string
+  /** admin va kuryer: kirish emaili va paroli (tahrirda bo'sh parol — eskisi qoladi) */
+  email?: string
   password?: string
   active: boolean
 }
@@ -155,8 +160,9 @@ const ORDER_KEYS = ['orders:', 'tv:', 'shift:', 'shifts', 'stock', 'movements', 
 export const api = {
   orders: {
     create: (input: NewOrderInput) => then(http.post<Order>('/orders', input), ...ORDER_KEYS),
-    /** kiosk — PINsiz va kodsiz (ochiq), filial so'rovda */
-    createKiosk: (input: KioskOrderInput) => http.post<CustomerOrder>('/kiosk/orders', input, { token: null }),
+    /** kiosk — PINsiz, filial kiosk kodi bilan (noto'g'ri / yangilangan — `wrong_kiosk_code`), filial so'rovda */
+    createKiosk: (input: KioskOrderInput, kioskCode: string) =>
+      http.post<CustomerOrder>('/kiosk/orders', input, { token: null, kioskCode }),
     /** kiosk buyurtmasining pulini olish / mobil buyurtmani qabul qilish (mobilda to'lov — mijoz tanlagani) */
     confirm: (orderId: ID, payment?: PaymentMethod, split?: PaymentSplit) =>
       then(http.post<Order>(`/orders/${orderId}/confirm`, { payment, split }), ...ORDER_KEYS),
@@ -188,6 +194,8 @@ export const api = {
         'ingredients',
         'menu:',
       ),
+    /** retseptda, kirimda, ko'chirishda, harakatda yo'q mahsulot — qoldiq yozuvlari bilan (aks holda `in_use`) */
+    remove: (id: ID) => then(http.delete<void>(`/ingredients/${id}`), 'ingredients', 'stock', 'reports'),
     /** ogohlantirish chegarasi — asosiy birlikda (g / ml / dona) */
     setMinQty: (warehouseId: ID, ingredientId: ID, minQty: number) =>
       then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/min-qty`, { minQty }), 'stock', 'reports'),
@@ -196,14 +204,34 @@ export const api = {
     changeOwnPin: (oldPin: string, newPin: string) => http.put<void>('/auth/pin', { oldPin, newPin }),
     save: ({ id, ...input }: UserInput) =>
       then(id ? http.patch<User>(`/users/${id}`, input) : http.post<User>('/users', input), 'users', 'staff:'),
+    /** faqat hech qayerda izi yo'q xodim (aks holda `in_use` — bloklash kerak) */
+    remove: (id: ID) => then(http.delete<void>(`/users/${id}`), 'users', 'staff:'),
   },
   branches: {
     save: ({ id, ...input }: BranchInput) =>
       then(id ? http.patch<Branch>(`/branches/${id}`, input) : http.post<Branch>('/branches', input), 'branches', 'warehouses', 'menu:'),
+    /** faqat ishlatilmagan filial — ombori ham o'chadi (aks holda `in_use`) */
+    remove: (id: ID) => then(http.delete<void>(`/branches/${id}`), 'branches', 'warehouses', 'stock', 'products', 'menu:'),
     saveDelivery: (branchId: ID, input: DeliveryInput) =>
       then(http.put<Branch>(`/branches/${branchId}/delivery`, input), 'branches'),
     setOnline: (branchId: ID, enabled: boolean) =>
       then(http.put<Branch>(`/branches/${branchId}/online`, { enabled }), 'branches'),
+    /** offline kassa (Electron) kalitini yangilash — eskisi bilan kassa kompyuteri endi ulana olmaydi */
+    renewOfflineKey: (branchId: ID) => then(http.post<{ key: string }>(`/branches/${branchId}/offline-key`), `offline-key:${branchId}`),
+    /** joriy TV / kiosk kodi (hali yo'q bo'lsa server yaratadi) — admin "Navbat ekrani" / "Kiosk" ni kodsiz ochishi uchun */
+    screenCode: (kind: ScreenKind, branchId: ID) => http.get<{ code: string }>(`/branches/${branchId}/${kind}-code`),
+    /** kodni yangilash — TV lar darhol uziladi, kiosk keyingi mijozdan oldin; ikkalasi ham yangi kodni so'raydi */
+    renewScreenCode: (kind: ScreenKind, branchId: ID) =>
+      then(http.post<{ code: string }>(`/branches/${branchId}/${kind}-code`), `${kind}-code:${branchId}`),
+  },
+  tv: {
+    /** TV da kiritilgan kodni tekshirish: to'g'ri bo'lsa — navbat, aks holda `wrong_tv_code` */
+    queue: (branchId: ID, tvCode: string) =>
+      http.get<{ preparing: TvOrder[]; ready: TvOrder[] }>('/tv/queue', { branchId }, { token: null, tvCode }),
+  },
+  kiosk: {
+    /** kiosk kodi to'g'rimi (kiritilganda va har yangi mijozdan oldin): aks holda `wrong_kiosk_code` */
+    check: (branchId: ID, kioskCode: string) => http.get<{ ok: true }>('/kiosk/check', { branchId }, { token: null, kioskCode }),
   },
   delivery: {
     /** xaritadagi nuqta qaysi filialga tushadi va yetkazish narxi (keshlanmaydi — har safar hozirgi holat) */
@@ -214,6 +242,9 @@ export const api = {
       then(id ? http.patch<Category>(`/categories/${id}`, input) : http.post<Category>('/categories', input), 'categories', 'menu:'),
     saveProduct: ({ id, ...input }: ProductInput) =>
       then(id ? http.patch<Product>(`/products/${id}`, input) : http.post<Product>('/products', input), 'products', 'menu:'),
+    /** bo'sh kategoriya / hech qachon sotilmagan taom (aks holda `in_use`) */
+    removeCategory: (id: ID) => then(http.delete<void>(`/categories/${id}`), 'categories', 'menu:'),
+    removeProduct: (id: ID) => then(http.delete<void>(`/products/${id}`), 'products', 'menu:'),
     moveCategory: (id: ID, direction: -1 | 1) =>
       then(http.post<void>(`/categories/${id}/move`, { direction }), 'categories', 'menu:'),
     moveProduct: (id: ID, direction: -1 | 1) => then(http.post<void>(`/products/${id}/move`, { direction }), 'products', 'menu:'),
@@ -230,10 +261,6 @@ export const api = {
   expenses: {
     create: (input: NewExpenseInput) => then(http.post<Expense>('/expenses', input), 'expenses', 'reports'),
     delete: (id: ID) => then(http.delete<void>(`/expenses/${id}`), 'expenses', 'reports'),
-  },
-  demo: {
-    /** bazani demo holatga qaytaradi (faqat `DEMO=1` serverda) */
-    reset: () => then(http.post<void>('/demo/reset')),
   },
   ai: {
     /** yangi suhbat — sahifa har ochilganda va "Yangi suhbat" da: oldingisi serverda o'chadi, salom qaytadi */

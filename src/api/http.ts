@@ -1,10 +1,16 @@
 import type { ErrorCode } from '@/domain/errors'
 
 /**
+ * Offline kassa (`/offline`) — kassa kompyuteridagi offline serverdan ochiladi: so'rovlar va rasmlar o'sha serverga
+ * (nisbiy manzil), `VITE_API_URL` bilan build qilingan bo'lsa ham markazga ketmasin.
+ */
+const OFFLINE_PAGE = typeof window !== 'undefined' && window.location.pathname.startsWith(`${import.meta.env.BASE_URL}offline`)
+
+/**
  * Backend (`C:\BACKEND APPS\NestJS_NYFF`) bilan HTTP. Ishlab chiqishda `/api` Vite orqali `localhost:3000` ga uzatiladi
  * (`vite.config.ts`); tayyor ilovani backend o'zi beradi — manzil nisbiy. Boshqa serverda bo'lsa — `VITE_API_URL`.
  */
-export const SERVER_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+export const SERVER_URL = OFFLINE_PAGE ? '' : (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 const BASE = `${SERVER_URL}/api`
 
 /** Backend xatosi: `{ statusCode, code, message, detail? }`. Server javob bermasa — `status: 0`, `code: 'network'`. */
@@ -27,6 +33,10 @@ type Query = Record<string, string | number | boolean | null | undefined>
 /** Kim nomidan: xodim tokeni (standart — sessiyadan); `null` — tokensiz (kirish ekrani, TV, kiosk). */
 export interface RequestAuth {
   token?: string | null
+  /** TV navbati — filial TV kodi (`X-Tv-Code`, admin "Filiallar" → "TV kodi") */
+  tvCode?: string
+  /** kiosk buyurtmasi va tekshiruvi — filial kiosk kodi (`X-Kiosk-Code`, admin "Filiallar" → "Kiosk kodi") */
+  kioskCode?: string
 }
 
 interface RequestOptions {
@@ -60,6 +70,8 @@ export async function request<T>(method: string, path: string, options: RequestO
   const auth = options.auth ?? {}
   const token = auth.token !== undefined ? auth.token : tokenProvider()
   if (token) headers.Authorization = `Bearer ${token}`
+  if (auth.tvCode) headers['X-Tv-Code'] = auth.tvCode
+  if (auth.kioskCode) headers['X-Kiosk-Code'] = auth.kioskCode
   if (options.body !== undefined) headers['Content-Type'] = 'application/json'
 
   let response: Response

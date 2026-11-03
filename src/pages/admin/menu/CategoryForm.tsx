@@ -5,14 +5,16 @@ import Modal from '@/components/ui/Modal'
 import { inputClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import type { Category, LocalizedText } from '@/domain/types'
-import { errorMessage, useT } from '@/i18n'
-import { showToast } from '@/lib/swal'
+import { errorMessage, useLocalize, useT } from '@/i18n'
+import { confirmDialog, showToast } from '@/lib/swal'
+import FormFooter from '@/components/ui/FormFooter'
 import IconPicker from './IconPicker'
 import ImagePicker from './ImagePicker'
 
 /** Kategoriya qo'shish / tahrirlash: nomi 3 tilda, rasmi, ikonkasi, faolligi (faol emas — kassa va kioskda ko'rinmaydi). */
 export default function CategoryForm({ category, onClose }: { category: Category | null; onClose: () => void }) {
   const t = useT()
+  const localize = useLocalize()
   const [name, setName] = useState<LocalizedText>(category?.name ?? { uz: '', ru: '', en: '' })
   const [image, setImage] = useState(category?.image ?? '')
   // server ikonkani doim satr qilib beradi: '' — ikonkasiz
@@ -35,16 +37,23 @@ export default function CategoryForm({ category, onClose }: { category: Category
     }
   }
 
+  /** faqat bo'sh kategoriya (aks holda server `in_use`) */
+  const remove = async (current: Category) => {
+    if (!(await confirmDialog(t.admin.menu.deleteCategoryTitle, `${localize(current.name)}. ${t.admin.menu.deleteCategoryText}`, t.common.delete))) return
+    try {
+      await api.menu.removeCategory(current.id)
+      onClose()
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
   return (
     <Modal
       title={category ? t.admin.menu.editCategory : t.admin.menu.addCategory}
       onClose={onClose}
       size="lg"
-      footer={
-        <button type="submit" form="category-form" disabled={saving} className="btn-primary h-11 w-full rounded text-sm font-bold">
-          {t.common.save}
-        </button>
-      }
+      footer={<FormFooter formId="category-form" saving={saving} onDelete={category ? () => void remove(category) : undefined} />}
     >
       {/* ikki ustun — kichik monitorda ham balandligi sig'sin; ikonkalar to'ri pastda butun kenglikda (qatorlar kam) */}
       <form id="category-form" onSubmit={(event) => void save(event)} className="grid gap-x-5 gap-y-3 sm:grid-cols-2">

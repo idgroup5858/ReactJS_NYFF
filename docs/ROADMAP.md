@@ -24,9 +24,11 @@ olib tashlandi). Qolganlari — 1–4 bo'limlar.
 - **Xodim tokendan olinadi** — `cashierId`, `createdBy`, `adminId`, `userId` so'rov tanasidan o'qilmaydi.
 - **Huquqlar:** "Tayyor" / "Qaytarish" — filialning oshpaz yordamchisi; kiosk / online buyurtmani qabul qilish —
   filial kassiri (ochiq smenasi bilan); bekor qilish — filial kassiri yoki admin; kirim — ta'minotchi, tasdiqlash — admin.
-- **TV va kiosk PINsiz va kodsiz** (qaror o'zgardi — qurilma kaliti, 6 xonali ulash kodi va Admin → Qurilmalar olib
-  tashlandi): kirish ekranida filial tanlanadi → `/tv/<filial>`, `/kiosk/<filial>`. TV navbati va kiosk buyurtmasi —
-  ochiq endpoint'lar, filial so'rovda (`branchId`); noma'lum yoki faol bo'lmagan filial — `not_found`.
+- **TV va kiosk PINsiz** (qaror o'zgardi — qurilma kaliti, 6 xonali ulash kodi va Admin → Qurilmalar olib
+  tashlandi): kirish ekranida filial tanlanadi → `/tv/<filial>`, `/kiosk/<filial>`; filial so'rovda (`branchId`);
+  noma'lum yoki faol bo'lmagan filial — `not_found`. **TV va kiosk — filial kodi bilan** (2026-11-03): admin
+  "Filiallar" → "TV kodi" / "Kiosk kodi" (har biri 8 raqam, bir-biridan va offline kalitdan alohida), ekran bir marta
+  so'raydi va eslab qoladi; kod yangilansa yana so'raydi; admin paneldan — kodsiz (`NestJS_NYFF/API.md` 4.4).
 - **Mobil buyurtma** — dostavkada koordinata majburiy (GPS), filialni server `routeDelivery` bilan tanlaydi. Buyurtma
   yaratilganda server `orderToken` qaytaradi — ilova holatni va `order:<id>` xonasini faqat shu bilan oladi (birovning
   buyurtmasini id bo'yicha ko'rib bo'lmasin).
@@ -53,13 +55,13 @@ Veb ilova backend'ga tayyorlab yozilgan; backend shu loyihadagi tayyor qismlarga
   - **TV va kiosk PINsiz** — ularga mijoz ma'lumoti (ism, telefon, manzil) yuborilmaydi. TV kanaliga faqat raqam, tur
     va holat, faqat `showsOnTv` dan o'tgan buyurtmalar — filtr serverda.
   - **Qayta ulanganda** ro'yxat REST'dan qaytadan olinadi (uzilish paytidagi xabarlar yo'qolgan bo'lishi mumkin).
-  - Ulanishda tekshiruv: xodim — kirish tokeni bilan; TV — faqat filial (`{ tvBranchId }`, kalitsiz — kanalda mijoz
-    ma'lumoti yo'q).
+  - Ulanishda tekshiruv: xodim — kirish tokeni bilan; TV — filial va uning TV kodi (`{ tvBranchId, tvCode }`; kanalda
+    mijoz ma'lumoti yo'q).
   - Hozircha bitta server yetadi; bir nechta server bo'lsa — Redis adapter.
   - SSE va polling tanlanmadi: React Native'da SSE o'zi yo'q (alohida kutubxona kerak), polling — kechikish va ortiqcha
     yuklama (kassaga yangi buyurtma darhol kelishi kerak).
 - **Kirish** — ish joyi → filial → xodim → PIN (`src/api/session.ts`); rollar: admin, cashier, kitchen (oshpaz
-  yordamchisi), supplier. TV, kiosk va mobil ilova — PINsiz (kiosk va TV filialga bog'langan). Buyruqlarda rol
+  yordamchisi), supplier. TV, kiosk va mobil ilova — PINsiz (kiosk va TV filialga bog'langan; TV va kiosk — filial kodi bilan). Buyruqlarda rol
   tekshiruvi serverda ham bo'lsin: masalan "Tayyor" / "Qaytarish" — faqat shu filialning oshpaz yordamchisi (`forbidden`).
 - **Tranzaksiya kerak joylar** — buyurtma raqami (har filialda har kuni 1 dan, `counters`), buyurtmada ombordan
   ayirish va bekor qilinganda qaytarish, kirimni tasdiqlash, ko'chirish.
@@ -83,7 +85,7 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
 
 - **Backend** — ilovadagi buyurtma kassaga tushishi uchun shart; avval backend qilinadi (0-bo'lim).
 - **Kuryer ilovasi — yozildi, keyin mijoz ilovasiga birlashtirildi (2026-10-27).** Kuryer qismi `Kotlin_NYFF` ichida
-  (`courier/` paketi): bosh sahifadagi "NY" belgisiga 10 marta bosib ochiladi, **login va parol** bilan kiriladi (admin
+  (`courier/` paketi): bosh sahifadagi "NY" belgisiga 10 marta bosib ochiladi, **email va parol** (2026-11-02 gacha — login) bilan kiriladi (admin
   "Xodimlar" da ochadi, ismlar ro'yxati yo'q); kuryer kirgan bo'lsa ilova har safar kuryer ekranida ochiladi. Eski
   alohida loyiha `Kotlin_NYFF_Courier` hozircha papkada turadi (yangi backend bilan kira olmaydi). Funksiyalar: "Ishdaman", "Yangi" / "Meniki" /
   "Bugun", kartochka (mijoz, qo'ng'iroq, manzil, Google Maps / Yandex, taomlar, olinadigan pul), "Olaman" →
@@ -169,8 +171,20 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
 
 ## 4. Taklif qilingan, hali kelishilmagan
 
-- Ishlatilmagan ombor mahsulotini o'chirish (hozir faqat "faol emas" qilinadi).
 - Filial yarim tundan keyin ham ishlasa — buyurtma raqami "ish kuni" boshlanish soatidan qayta boshlansin.
 - Admin → Buyurtmalar: oyna o'rniga ichma-ich sahifa (Smenalardagidek).
-- Kassadagi ochiq tiketlar sahifa yangilanganda saqlansin.
 - "Kechikkan" buyurtma chegarasi (hozir 15 daqiqa) sozlanadigan bo'lsin.
+- **Oshxona printeri (ikkinchi chek, 2026-11-02 muhokama qilindi, keyinga qoldirildi):** kassada buyurtma ochilganda
+  ikkinchi chek oshxonadagi printerdan (Xprinter XP-365B, kassadan ≥ 7 m) chiqsin. Brauzer so'ramasdan faqat bitta
+  (asosiy) printerga chiqara oladi, shuning uchun variantlar: **QZ Tray** (tayyor yordamchi dastur, printer nomi bilan;
+  "ruxsat" oynasi chiqmasligi uchun o'z sertifikatimiz — backend imzolaydi), WebUSB (Zadig bilan drayver almashtirish),
+  Electron ilova yoki serverdan (LAN printer + VPN). Kabel: USB 5 m gacha — 7 m uchun aktiv uzaytirgich yoki LAN.
+- **`newyork24.uz` bosh sahifasi (2026-11-03, keyinga qoldirildi).** Domen ildizi uchun mijozlar sahifasi — alohida
+  ishlab chiqiladi, mazmuni keyin kelishiladi. Hozircha ildizda vaqtinchalik sahifa (`NestJS_NYFF/site/index.html` —
+  logo, "Tez orada"); tayyor bo'lgach shu papka (`SITE_DIR`) almashtiriladi. Xodimlar tizimi allaqachon
+  **`newyork24.uz/shorva`** da (bajarildi, `NestJS_NYFF/PLAN.md` — "Manzillar"); subdomen va "ish joyi kodi" — kerak emas.
+
+Bajarilganlar (2026-11-02): ishlatilmagan ombor mahsuloti (va filial, kategoriya, taom, xodim) o'chiriladi; kassadagi
+ochiq cheklar sahifa yangilanganda saqlanadi; **offline kassa** — internet yo'q paytda kassa kompyuteridagi "NYFF
+Offline" (Electron ilova, `C:\BACKEND APPS\ElectronJS_NYFF`) da savdo, internet qaytgach markazga o'zi yuboriladi; kalit —
+admin "Filiallar" → "Offline kalit" (`NestJS_NYFF/API.md` 14).

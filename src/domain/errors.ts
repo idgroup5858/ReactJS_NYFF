@@ -24,6 +24,10 @@ export type ErrorCode =
   | 'invalid_location'
   | 'forbidden'
   | 'invalid_image'
+  | 'surname_required'
+  | 'in_use'
+  // ── offline kassa (kassa kompyuteridagi server): oxirgi raqam aniq emas ──
+  | 'number_required'
   // ── faqat backend (NestJS_NYFF `src/common/errors.ts`) ──
   | 'unauthorized'
   | 'invalid_input'
@@ -36,11 +40,15 @@ export type ErrorCode =
   | 'other_branch'
   | 'courier_busy'
   | 'not_ready'
-  // ── kuryer login va paroli (admin "Xodimlar" da ochadi) ──
+  // ── admin va kuryer email va paroli (admin "Xodimlar" da ochadi) ──
   | 'wrong_login'
-  | 'invalid_login'
+  | 'wrong_password'
+  | 'invalid_email'
   | 'invalid_password'
-  | 'login_taken'
+  | 'email_taken'
+  // ── zal ekranlari kodi — admin "Filiallar" → "TV kodi" / "Kiosk kodi" ──
+  | 'wrong_tv_code'
+  | 'wrong_kiosk_code'
   // ── AI yordamchi va Telegram bot (admin "AI" bo'limi) ──
   | 'ai_not_configured'
   | 'ai_failed'

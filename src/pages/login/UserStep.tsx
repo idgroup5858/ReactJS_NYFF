@@ -1,4 +1,5 @@
 import UserAvatar from '@/components/ui/UserAvatar'
+import { fullName } from '@/domain/rules'
 import type { AuthUser } from '@/domain/types'
 import { useT } from '@/i18n'
 
@@ -15,9 +16,9 @@ export default function UserStep({ users, onSelect }: { users: AuthUser[]; onSel
           onClick={() => onSelect(user)}
           className="flex cursor-pointer items-center gap-3 rounded-card border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:border-select hover:bg-brand-50"
         >
-          <UserAvatar name={user.name} />
+          <UserAvatar name={fullName(user)} />
           <span className="min-w-0">
-            <span className="block text-base leading-tight font-bold text-neutral-950">{user.name}</span>
+            <span className="block text-base leading-tight font-bold text-neutral-950">{fullName(user)}</span>
             <span className="block text-xs text-neutral-500">{t.roles[user.role]}</span>
           </span>
         </button>

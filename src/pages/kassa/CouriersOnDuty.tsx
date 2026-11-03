@@ -1,6 +1,7 @@
 import { useBranches, useCouriers } from '@/api/queries'
 import CourierActivityPill from '@/components/order/CourierActivityPill'
 import { onDutyCouriers } from '@/components/order/courierActivity'
+import { fullName } from '@/domain/rules'
 import { useT } from '@/i18n'
 
 /**
@@ -29,7 +30,7 @@ export default function CouriersOnDuty() {
             title={courier.orders > 0 ? t.courier.holding(courier.orders, branches.find((b) => b.id === courier.branchId)?.name ?? '—') : undefined}
             className="flex items-center gap-1.5 rounded-full bg-white py-0.5 pr-0.5 pl-2.5 text-xs font-semibold text-neutral-900 ring-1 ring-neutral-200"
           >
-            {courier.name}
+            {fullName(courier)}
             <CourierActivityPill courier={courier} />
           </li>
         ))}

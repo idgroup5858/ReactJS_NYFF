@@ -1,6 +1,6 @@
 import { Bike } from 'lucide-react'
 import { useCouriers } from '@/api/queries'
-import { courierStage, type CourierStage } from '@/domain/rules'
+import { courierStage, fullName, type CourierStage } from '@/domain/rules'
 import type { Order } from '@/domain/types'
 import { useT } from '@/i18n'
 
@@ -33,7 +33,8 @@ export function CourierLine({ order }: { order: Order }) {
   const couriers = useCouriers().data
   const stage = courierStage(order)
   if (!stage) return null
-  const name = order.courierId ? couriers?.find((courier) => courier.id === order.courierId)?.name : undefined
+  const courier = order.courierId ? couriers?.find((c) => c.id === order.courierId) : undefined
+  const name = courier && fullName(courier)
   return (
     <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
       <CourierBadge stage={stage} />
