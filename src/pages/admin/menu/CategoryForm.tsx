@@ -11,7 +11,10 @@ import FormFooter from '@/components/ui/FormFooter'
 import IconPicker from './IconPicker'
 import ImagePicker from './ImagePicker'
 
-/** Kategoriya qo'shish / tahrirlash: nomi 3 tilda, rasmi, ikonkasi, faolligi (faol emas — kassa va kioskda ko'rinmaydi). */
+/**
+ * Kategoriya qo'shish / tahrirlash: nomi 3 tilda, rasmi, ikonkasi, faolligi (faol emas — kassa va kioskda ko'rinmaydi),
+ * oshxona chekiga chiqishi (ichimliklarda o'chiriladi).
+ */
 export default function CategoryForm({ category, onClose }: { category: Category | null; onClose: () => void }) {
   const t = useT()
   const localize = useLocalize()
@@ -20,6 +23,7 @@ export default function CategoryForm({ category, onClose }: { category: Category
   // server ikonkani doim satr qilib beradi: '' — ikonkasiz
   const [icon, setIcon] = useState(category?.icon ?? '')
   const [active, setActive] = useState(category?.active ?? true)
+  const [kitchen, setKitchen] = useState(category?.kitchen ?? true)
   const [saving, setSaving] = useState(false)
 
   const save = async (event: FormEvent) => {
@@ -27,7 +31,7 @@ export default function CategoryForm({ category, onClose }: { category: Category
     if (saving) return
     setSaving(true)
     try {
-      await api.menu.saveCategory({ id: category?.id, name, image, icon, active })
+      await api.menu.saveCategory({ id: category?.id, name, image, icon, active, kitchen })
       showToast(t.common.saved)
       onClose()
     } catch (error) {
@@ -64,6 +68,10 @@ export default function CategoryForm({ category, onClose }: { category: Category
             </Field>
           ))}
           <Toggle checked={active} onChange={setActive} label={t.common.active} />
+          <div>
+            <Toggle checked={kitchen} onChange={setKitchen} label={t.admin.menu.kitchen} />
+            <p className="mt-1 text-xs text-neutral-400">{t.admin.menu.kitchenHint}</p>
+          </div>
         </div>
         <Field label={t.common.image}>
           <ImagePicker value={image} onChange={setImage} folder="categories" />

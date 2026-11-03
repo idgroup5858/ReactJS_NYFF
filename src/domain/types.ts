@@ -128,6 +128,8 @@ export interface Category {
   icon: string
   sortOrder: number
   active: boolean
+  /** `false` — taomlari oshxona chekiga chiqmaydi (ichimliklar: kassir o'zi beradi). Eski offline nusxada yo'q — chiqadi. */
+  kitchen: boolean
 }
 
 export interface RecipeLine {

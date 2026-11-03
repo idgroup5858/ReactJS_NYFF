@@ -174,11 +174,24 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
 - Filial yarim tundan keyin ham ishlasa — buyurtma raqami "ish kuni" boshlanish soatidan qayta boshlansin.
 - Admin → Buyurtmalar: oyna o'rniga ichma-ich sahifa (Smenalardagidek).
 - "Kechikkan" buyurtma chegarasi (hozir 15 daqiqa) sozlanadigan bo'lsin.
-- **Oshxona printeri (ikkinchi chek, 2026-11-02 muhokama qilindi, keyinga qoldirildi):** kassada buyurtma ochilganda
-  ikkinchi chek oshxonadagi printerdan (Xprinter XP-365B, kassadan ≥ 7 m) chiqsin. Brauzer so'ramasdan faqat bitta
-  (asosiy) printerga chiqara oladi, shuning uchun variantlar: **QZ Tray** (tayyor yordamchi dastur, printer nomi bilan;
-  "ruxsat" oynasi chiqmasligi uchun o'z sertifikatimiz — backend imzolaydi), WebUSB (Zadig bilan drayver almashtirish),
-  Electron ilova yoki serverdan (LAN printer + VPN). Kabel: USB 5 m gacha — 7 m uchun aktiv uzaytirgich yoki LAN.
+- **Oshxona printeri (ikkinchi chek) — 2026-11-03 bajarildi** (kiosk karta to'lovidan tashqari; tavsif —
+  `ElectronJS_NYFF/README.md`, NYFF Offline 0.2.0). Kassada buyurtma ochilganda
+  ikkinchi chek oshxonadagi printerdan (Xprinter XP-365B, kassadan ≥ 7 m; kabel: USB 5 m gacha — aktiv uzaytirgich
+  yoki LAN, Windows'da printer bo'lib ko'rinsa bo'ldi) chiqsin. Brauzer so'ramasdan faqat bitta (standart) printerga
+  chiqara oladi — yechim **"NYFF Offline" (Electron)**:
+  - Electron asosiy jarayonida chop etish xizmati (`127.0.0.1`, offline serverdan alohida — baza ishlamasa ham chek
+    chiqadi): yashirin oyna + `webContents.print({ silent: true, deviceName })`. Sozlamalar oynasida "Kassa printeri" va
+    "Oshxona printeri" (Windows printerlari ro'yxati) + "Sinov cheki"; `config.json` da.
+  - Web `printReceipt` avval Electron'ga (ikkala chek parallel), u yo'q bo'lsa — hozirgidek brauzer orqali (faqat
+    mijoz cheki). Online kassa (`https://newyork24.uz`) → `localhost`: Chrome bir marta ruxsat so'raydi; offline
+    kassada so'ramaydi. Asosiy printer ham oynasiz chiqadi (`--kiosk-printing` kerak bo'lmaydi).
+  - **Oshxona cheki = kassa cheki, lekin ichimliklarsiz** (ichimlikni kassir o'zi beradi). Kategoriyaga belgi
+    ("Oshxona chekiga chiqmaydi", admin → Kategoriyalar; backend + offline server migratsiyasi), taom → kategoriya —
+    menyudan. Hamma qatori ichimlik bo'lsa — oshxona cheki chiqmaydi.
+  - Avtomatik: kassada to'lov, kiosk / mobil buyurtmani qabul qilish, offline kassada to'lov. Qayta chiqarish — 2 ta
+    tugma: "Mijoz cheki" va "Oshxona cheki".
+  - **Kioskda karta bilan to'langan** buyurtma (kassadan o'tmaydi) — keyin, kiosk karta to'lovi qilinayotganda ko'riladi.
+  - Ikkala chekda ham raqam katta va qalin (72 px Arial Black), eng pastida kichik "by ID GROUP team".
 - **`newyork24.uz` bosh sahifasi (2026-11-03).** Ildizda animatsiyali landing (`ReactJS_NYFF/site/index.html` —
   burger tushib yig'iladi va scroll'da qatlamlarga bo'linadi; hot-dog — bodring, pomidor, chapdan sous; lavash
   masalliq solinib o'raladi; fri qovurilib sousga botiriladi; stakanga sariq sharbat quyiladi; yetkazib berish —

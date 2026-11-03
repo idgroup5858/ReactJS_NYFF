@@ -1,4 +1,4 @@
-import { Banknote, Check, Printer, ReceiptText, Undo2, X } from 'lucide-react'
+import { Banknote, Check, ChefHat, Printer, ReceiptText, Undo2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '@/api'
 import { useActiveOrders, useDeliveryOrders, useShift } from '@/api/queries'
@@ -8,10 +8,10 @@ import { useRecentReady } from '@/components/order/useRecentReady'
 import { SectionTitle } from '@/components/ui/Card'
 import SegmentedControl from '@/components/ui/SegmentedControl'
 import { canReleaseCourier } from '@/domain/rules'
-import { PAYMENT_METHODS, type ID, type Order, type PaymentMethod, type PaymentSplit } from '@/domain/types'
+import { PAYMENT_METHODS, type ID, type Menu, type Order, type PaymentMethod, type PaymentSplit } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatMoney, formatOrderNumber } from '@/lib/format'
-import { printReceipt } from '@/lib/printReceipt'
+import { printKitchen, printOrder, printReceipt } from '@/lib/printReceipt'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useNow } from '@/lib/useNow'
 import CouriersOnDuty from './CouriersOnDuty'
@@ -21,6 +21,8 @@ export type OrdersTab = 'online' | 'kiosk' | 'preparing' | 'delivery' | 'shift'
 
 type Props = {
   branchName: string
+  /** kassa menyusi — oshxona chekida ichimliklarni ajratish uchun (taom → kategoriya) */
+  menu: Menu | undefined
   shiftId: ID | null
   initialTab: OrdersTab
   onClose: () => void
@@ -29,6 +31,7 @@ type Props = {
 type RowProps = {
   order: Order
   branchName: string
+  menu: Menu | undefined
   now: Date
   onAccept: (order: Order) => void
 }
@@ -39,7 +42,7 @@ const ICON_BUTTON = 'btn-ghost flex h-9 w-9 items-center justify-center rounded'
  * Kassir tugmalari: pulini olish / qabul qilish, chek, kuryerdan olish (dostavka), bekor qilish. "Tayyor" va "Qaytarish" —
  * oshpaz yordamchisida.
  */
-function CashierRow({ order, branchName, now, onAccept }: RowProps) {
+function CashierRow({ order, branchName, menu, now, onAccept }: RowProps) {
   const t = useT()
   const number = formatOrderNumber(order.number)
 
@@ -68,7 +71,7 @@ function CashierRow({ order, branchName, now, onAccept }: RowProps) {
     if (!order.online) return
     await act(async () => {
       const accepted = await api.orders.confirm(order.id)
-      printReceipt(accepted, branchName)
+      printOrder(accepted, branchName, menu)
     }, t.orders.acceptedToast(number))
   }
 
@@ -89,10 +92,16 @@ function CashierRow({ order, branchName, now, onAccept }: RowProps) {
             {t.orders.accept}
           </button>
         )}
+        {/* qayta chiqarish (qog'oz tiqildi, chek yo'qoldi) — har biri alohida */}
         {order.status !== 'pending' && order.status !== 'cancelled' && (
-          <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.print} title={t.orders.print} className={ICON_BUTTON}>
-            <Printer size={16} />
-          </button>
+          <>
+            <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.printReceipt} title={t.orders.printReceipt} className={ICON_BUTTON}>
+              <Printer size={16} />
+            </button>
+            <button type="button" onClick={() => printKitchen(order, branchName, menu)} aria-label={t.orders.printKitchen} title={t.orders.printKitchen} className={ICON_BUTTON}>
+              <ChefHat size={16} />
+            </button>
+          </>
         )}
         {canReleaseCourier(order) && (
           <button
@@ -148,7 +157,7 @@ function OrderList({ orders, empty, ...row }: Omit<RowProps, 'order'> & { orders
  * yo'ldagi, "Yetkazib bo'lmadi" bilan qaytgan): kassir kuryerdan oladi yoki bekor qiladi. Smenam — kassirning shu
  * smenadagi savdosi.
  */
-export default function OrdersDrawer({ branchName, shiftId, initialTab, onClose }: Props) {
+export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, onClose }: Props) {
   const t = useT()
   const now = useNow(1000)
   const { data: active } = useActiveOrders()
@@ -179,13 +188,13 @@ export default function OrdersDrawer({ branchName, shiftId, initialTab, onClose 
   // smenaning buyurtmalari va tushumi — serverdan (yangisi birinchi)
   const shiftOrders = shift ? [...shift.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
   const summary = shift?.summary ?? null
-  const row = { branchName, now, onAccept: setAccepting }
+  const row = { branchName, menu, now, onAccept: setAccepting }
 
   const accept = async (payment: PaymentMethod, split?: PaymentSplit): Promise<Order | null> => {
     if (!accepting) return null
     try {
       const order = await api.orders.confirm(accepting.id, payment, split)
-      printReceipt(order, branchName)
+      printOrder(order, branchName, menu)
       return order
     } catch (error) {
       showToast(errorMessage(error), 'error')

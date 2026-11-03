@@ -118,6 +118,7 @@ export interface CategoryInput {
   image: string
   icon: string
   active: boolean
+  kitchen: boolean
 }
 
 export interface ProductInput {

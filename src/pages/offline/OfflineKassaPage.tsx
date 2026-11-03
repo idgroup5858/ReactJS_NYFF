@@ -12,7 +12,7 @@ import type { ID, Order, PaymentMethod, PaymentSplit } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { addProduct, cartQty, changeQty, removeLine } from '@/lib/cart'
 import { formatNumber } from '@/lib/format'
-import { printReceipt } from '@/lib/printReceipt'
+import { printOrder } from '@/lib/printReceipt'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { removeKey } from '@/store/storage'
@@ -180,7 +180,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
         split,
       })
       close(ticketId)
-      printReceipt(order, branchName)
+      // mijoz cheki va oshxona cheki (ichimliklarsiz) — bir vaqtda
+      printOrder(order, branchName, data.menu)
       reload()
       return order
     } catch (error) {
@@ -264,7 +265,7 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
       </main>
 
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
-      {panel === 'orders' && <OfflineOrdersDrawer orders={orders} branchName={branchName} onChanged={() => reload()} onClose={() => setPanel(null)} />}
+      {panel === 'orders' && <OfflineOrdersDrawer orders={orders} branchName={branchName} menu={data.menu} onChanged={() => reload()} onClose={() => setPanel(null)} />}
       {!state.number.confirmed && <NumberPrompt last={state.number.last} onDone={onRefresh} />}
     </div>
   )

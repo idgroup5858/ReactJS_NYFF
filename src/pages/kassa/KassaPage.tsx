@@ -13,7 +13,7 @@ import { errorMessage, useT } from '@/i18n'
 import { addProduct, cartQty, changeQty, removeLine } from '@/lib/cart'
 import { choiceDialog, confirmDialog, showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
-import { printReceipt } from '@/lib/printReceipt'
+import { printOrder } from '@/lib/printReceipt'
 import { removeKey } from '@/store/storage'
 import { ticketsStorageKey } from '@/store/storageKeys'
 import { useSettings } from '@/store/settingsStore'
@@ -180,7 +180,8 @@ export default function KassaPage() {
       // to'langan chek yopiladi, qolgan ochiq cheklar joyida turadi
       close(ticketId)
       if (branchId) rememberOrderNumbers(branchId, [order])
-      printReceipt(order, branchName)
+      // mijoz cheki va oshxona cheki (ichimliklarsiz) — bir vaqtda
+      printOrder(order, branchName, menu.data)
       return order
     } catch (error) {
       // taom shu orada sotuvdan olingan — menyu yangilansin (qator "Sotilmaydi" bo'lib qoladi)
@@ -260,7 +261,7 @@ export default function KassaPage() {
 
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
       {(panel === 'online' || panel === 'kiosk' || panel === 'preparing' || panel === 'delivery' || panel === 'shift') && (
-        <OrdersDrawer branchName={branchName} shiftId={session.shiftId} initialTab={panel} onClose={() => setPanel(null)} />
+        <OrdersDrawer branchName={branchName} menu={menu.data} shiftId={session.shiftId} initialTab={panel} onClose={() => setPanel(null)} />
       )}
       {panel === 'settings' && <KassaSettingsModal onClose={() => setPanel(null)} />}
       {report && <ShiftReportModal shift={report} onDone={finish} />}
