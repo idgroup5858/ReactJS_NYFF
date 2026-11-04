@@ -78,9 +78,8 @@ function CashierRow({ order, branchName, menu, now, onAccept }: RowProps) {
   }
 
   return (
-    <OrderRow order={order} now={now} showCustomer>
-      <span className="text-sm font-bold text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>
-      <div className="flex gap-1.5">
+    <OrderRow order={order} now={now} showCustomer amount={<span className="text-sm font-bold whitespace-nowrap text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>}>
+      <div className="flex flex-wrap justify-end gap-1.5">
         {order.status === 'pending' && order.online && (
           // mobil buyurtma: to'lov usulini mijoz tanlagan — oynasiz, darhol oshxonaga (chek chiqadi)
           <button type="button" onClick={() => void acceptOnline()} className="btn-primary flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase">

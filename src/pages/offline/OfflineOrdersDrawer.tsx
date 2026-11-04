@@ -88,9 +88,13 @@ export default function OfflineOrdersDrawer({ orders, branchName, menu, onChange
           ) : (
             <ul className="divide-y divide-neutral-200">
               {list.map((order) => (
-                <OrderRow key={order.id} order={order} now={now}>
-                  <span className="text-sm font-bold text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>
-                  <div className="flex gap-1.5">
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  now={now}
+                  amount={<span className="text-sm font-bold whitespace-nowrap text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>}
+                >
+                  <div className="flex flex-wrap justify-end gap-1.5">
                     {order.status === 'preparing' && (
                       <button
                         type="button"
