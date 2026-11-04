@@ -1,7 +1,6 @@
 import { ArrowRight, Search, ShoppingBag, X } from 'lucide-react'
 import { useState } from 'react'
 import CategoryTile from '@/components/menu/CategoryTile'
-import { compositionText } from '@/components/menu/composition'
 import ProductCard from '@/components/menu/ProductCard'
 import { SectionTitle } from '@/components/ui/Card'
 import type { ID, Menu, MenuProduct } from '@/domain/types'
@@ -90,7 +89,6 @@ export default function KioskMenu({ menu, cartCounts, cartQty, cartTotal, onOpen
                 product={product}
                 price={product.price}
                 size="lg"
-                subtitle={compositionText(product, localize, 3)}
                 badge={cartCounts.get(product.id)}
                 onClick={product.price !== null ? () => onOpen(product) : undefined}
               />

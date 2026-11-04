@@ -928,7 +928,6 @@ export const en: Dict = {
     search: 'Search food…',
     noResults: 'Nothing found',
     allResults: (query: string) => `Results for “${query}”`,
-    composition: 'Ingredients',
     add: 'Add to cart',
     items: (count: number) => `${count} items`,
     viewCart: 'Cart',

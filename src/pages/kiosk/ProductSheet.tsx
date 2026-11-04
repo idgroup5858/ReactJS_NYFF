@@ -1,6 +1,5 @@
 import { ShoppingBag, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { compositionText } from '@/components/menu/composition'
 import FoodImage from '@/components/ui/FoodImage'
 import QtyStepper from '@/components/ui/QtyStepper'
 import type { MenuProduct } from '@/domain/types'
@@ -15,7 +14,7 @@ type Props = {
 }
 
 /**
- * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, tarkibi, soni va
+ * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, soni va
  * "Savatga qo'shish · narx" tugmasi. Kichik ekranda pastdan chiqadi, kattasida — markazda.
  */
 export default function ProductSheet({ product, price, onAdd, onClose }: Props) {
@@ -23,7 +22,6 @@ export default function ProductSheet({ product, price, onAdd, onClose }: Props) 
   const localize = useLocalize()
   const [qty, setQty] = useState(1)
   const name = localize(product.name)
-  const composition = compositionText(product, localize, 10)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -57,12 +55,6 @@ export default function ProductSheet({ product, price, onAdd, onClose }: Props) 
             <h2 className="pr-10 text-3xl leading-tight font-black text-neutral-950">{name}</h2>
             <p className="text-3xl font-black text-select tabular-nums">{formatMoney(price, t)}</p>
           </div>
-          {composition && (
-            <div>
-              <p className="mb-1 text-[11px] font-bold tracking-[0.2em] text-neutral-400 uppercase">{t.kiosk.composition}</p>
-              <p className="text-base leading-relaxed text-neutral-700">{composition}</p>
-            </div>
-          )}
           {/* tugma sig'masa — soni ostiga, to'liq kenglikka tushadi (matn qisilmaydi) */}
           <div className="mt-auto flex flex-wrap items-center gap-4">
             <QtyStepper value={qty} min={1} size="lg" onChange={(delta) => setQty((value) => Math.max(1, Math.min(20, value + delta)))} />
