@@ -55,7 +55,7 @@ export default function FaceIdRequestPanel({ request, approvedHint }: Props) {
       type="button"
       onClick={() => void ask()}
       disabled={busy}
-      className="btn-ghost flex h-9 w-full items-center justify-center gap-2 rounded text-xs font-bold"
+      className="btn-ghost flex h-9 w-full items-center justify-center gap-2 rounded px-3 text-xs font-bold"
     >
       {busy ? <LoaderCircle size={15} className="animate-spin" /> : <Send size={15} />}
       {label}
