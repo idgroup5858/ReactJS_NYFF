@@ -76,6 +76,7 @@ export const ru: Dict = {
     noUsers: 'Здесь пока нет сотрудников — их добавит администратор',
     noBranches: 'Нет активных филиалов',
     lastUsed: 'Последний',
+    otherBranch: 'Выбрать другой филиал',
     retry: 'Повторить',
     changeBranch: 'Сменить филиал',
   },

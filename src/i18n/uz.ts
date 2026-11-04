@@ -78,6 +78,7 @@ export const uz = {
     noUsers: "Bu yerda hali xodim yo'q — admin qo'shadi",
     noBranches: "Faol filial yo'q",
     lastUsed: 'Oxirgi',
+    otherBranch: 'Boshqa filial tanlash',
     retry: "Qayta urinish",
     changeBranch: 'Filialni almashtirish',
   },

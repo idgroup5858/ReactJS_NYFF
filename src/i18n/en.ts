@@ -76,6 +76,7 @@ export const en: Dict = {
     noUsers: 'No staff here yet — the admin adds them',
     noBranches: 'No active branches',
     lastUsed: 'Last used',
+    otherBranch: 'Choose another branch',
     retry: 'Try again',
     changeBranch: 'Switch branch',
   },

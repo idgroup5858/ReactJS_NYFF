@@ -28,12 +28,23 @@ export type ImageFit = (typeof IMAGE_FITS)[number]
 export const LIST_VIEWS = ['grid', 'list'] as const
 export type ListView = (typeof LIST_VIEWS)[number]
 
+/** Shu kompyuterda oxirgi muvaffaqiyatli kirilgan ish joyi (`cashier` / `kitchen` / `supplier`) va filiali. */
+export interface LastLogin {
+  mode: string
+  branchId: ID | null
+}
+
 /** Shu qurilmaning sozlamalari (localStorage) — kompyuter/planshet bo'yicha, xodim bo'yicha emas. */
 export interface DeviceSettings {
   lang: Lang
   categoryPosition: CategoryPosition
-  /** oxirgi tanlangan filial — kirish ekranida birinchi bo'lib turadi */
+  /** oxirgi tanlangan filial — kirish ekranida "Oxirgi" belgisi bilan turadi */
   lastBranchId: ID | null
+  /**
+   * kassa va oshpaz yordamchisi alohida kompyuterlarda — kirish ekrani ish joyi va filialni so'ramay, to'g'ridan-to'g'ri
+   * shu yerning xodimlar ro'yxatidan ochiladi
+   */
+  lastLogin: LastLogin | null
   theme: Theme
   iconStyle: IconStyle
   imageFit: ImageFit
@@ -65,12 +76,20 @@ function clampVolume(raw: unknown): number {
   return Math.min(1, Math.max(MIN_ALERT_VOLUME, raw))
 }
 
+function sanitizeLastLogin(raw: unknown): LastLogin | null {
+  if (!raw || typeof raw !== 'object') return null
+  const { mode, branchId } = raw as Record<string, unknown>
+  if (typeof mode !== 'string' || !mode) return null
+  return { mode, branchId: typeof branchId === 'string' ? branchId : null }
+}
+
 function sanitize(raw: unknown): DeviceSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof DeviceSettings, unknown>>
   return {
     lang: LANGS.find((lang) => lang === value.lang) ?? 'uz',
     categoryPosition: value.categoryPosition === 'top' ? 'top' : 'left',
     lastBranchId: typeof value.lastBranchId === 'string' ? value.lastBranchId : null,
+    lastLogin: sanitizeLastLogin(value.lastLogin),
     theme: THEMES.find((theme) => theme === value.theme) ?? 'gomeal',
     iconStyle: ICON_STYLES.find((style) => style === value.iconStyle) ?? '3d',
     imageFit: IMAGE_FITS.find((fit) => fit === value.imageFit) ?? 'contain',
@@ -100,6 +119,7 @@ function save(patch: Partial<DeviceSettings>): void {
 export const setLang = (lang: Lang) => save({ lang })
 export const setCategoryPosition = (categoryPosition: CategoryPosition) => save({ categoryPosition })
 export const setLastBranch = (lastBranchId: ID) => save({ lastBranchId })
+export const setLastLogin = (lastLogin: LastLogin) => save({ lastLogin })
 export const setTheme = (theme: Theme) => save({ theme })
 export const setIconStyle = (iconStyle: IconStyle) => save({ iconStyle })
 export const setImageFit = (imageFit: ImageFit) => save({ imageFit })

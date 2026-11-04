@@ -11,7 +11,7 @@ import { fullName } from '@/domain/rules'
 import type { AuthUser, Branch, ID } from '@/domain/types'
 import { errorMessage, pinFailure, useT, type PinFailure } from '@/i18n'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
-import { setLastBranch } from '@/store/settingsStore'
+import { setLastBranch, setLastLogin, useSettings, type LastLogin } from '@/store/settingsStore'
 import { SectionTitle } from '@/components/ui/Card'
 import FaceIdRequestPanel from '@/components/ui/FaceIdRequestPanel'
 import PinPad from '@/components/ui/PinPad'
@@ -31,6 +31,20 @@ type Shell = {
   back?: Record<string, string>
   wide?: boolean
   content: ReactNode
+}
+
+/** Ish joylari ro'yxati — oxirgi kirilgan joyga avtomatik o'tmasdan ("orqaga" bilan qaytilganda). */
+const MODE_LIST = { step: 'mode' }
+
+/**
+ * Shu kompyuterda oxirgi kirilgan ish joyi (va filial) manzili — kirish ekrani tanlovlarsiz shu yerdan ochiladi.
+ * Filial keyin o'chirilgan/nofaol bo'lsa, odatdagi filial tanlash ko'rinadi.
+ */
+function rememberedParams(last: LastLogin | null): Record<string, string> | null {
+  const mode = parseMode(last?.mode ?? null)
+  if (!last || !mode || !isStaffMode(mode)) return null
+  if (!needsBranch(mode)) return { mode }
+  return last.branchId ? { mode, branch: last.branchId } : null
 }
 
 /** Tanlangan ish joyi (va filial) xodimlari — kerakli tanlov bo'lmaguncha so'ralmaydi. */
@@ -64,9 +78,14 @@ function StepStatus({ error, onRetry }: { error: unknown; onRetry: () => void })
  * Kirish: ish joyi → (filial) → xodim → PIN. Har bir qadam manzilda (`?mode=&branch=&user=`), shuning uchun
  * brauzerning "orqaga" tugmasi ham qadamma-qadam qaytaradi. TV va kiosk — PINsiz va kodsiz: ish joyi → filial →
  * ekran ochiladi (`/tv/:branchId`, `/kiosk/:branchId`).
+ *
+ * Kassa va oshpaz yordamchisi alohida kompyuterlarda: muvaffaqiyatli kirilgan ish joyi va filial eslab qolinadi,
+ * keyingi safar sahifa to'g'ridan-to'g'ri o'sha xodimlar ro'yxatidan ochiladi. Adashib tanlangan bo'lsa — har qadamda
+ * "orqaga" bor (`?step=mode` — ish joylari, avtomatik o'tishsiz) va xodimlar ostida "Boshqa filial tanlash".
  */
 export default function LoginPage() {
   const t = useT()
+  const { lastLogin } = useSettings()
   const currentUser = useCurrentUser()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -82,6 +101,9 @@ export default function LoginPage() {
 
   // TV / kiosk sessiyasiz ishlaydi — shu tabda xodim kirgan bo'lsa ham ekran filialini tanlash mumkin
   if (currentUser && !(mode && isScreenMode(mode))) return <Navigate to={homePathFor(currentUser.role)} replace />
+
+  const remembered = params.toString() === '' ? rememberedParams(lastLogin) : null
+  if (remembered) return <Navigate to={{ search: `?${new URLSearchParams(remembered).toString()}` }} replace />
 
   const branches = (branchesQuery.data ?? []).filter((b) => b.active)
   const branch = branches.find((b) => b.id === branchParam)
@@ -108,9 +130,11 @@ export default function LoginPage() {
 
   const submitPin = async (pin: string): Promise<PinFailure | null> => {
     if (!user) return null
+    const branchId = mode && needsBranch(mode) ? (branch?.id ?? null) : null
     try {
       // bir nechta filialda ishlaydigan xodim — sessiya shu tanlangan filialniki
-      const session = await login(user.id, pin, mode && needsBranch(mode) ? (branch?.id ?? null) : null)
+      const session = await login(user.id, pin, branchId)
+      if (mode) setLastLogin({ mode, branchId })
       void navigate(homePathFor(session.role), { replace: true })
       return null
     } catch (error) {
@@ -131,7 +155,7 @@ export default function LoginPage() {
     step: 'branch',
     title: t.login.chooseBranch,
     subtitle: t.modes[selectedMode].title,
-    back: {},
+    back: MODE_LIST,
     content: branchPending ? <StepStatus error={branchesQuery.error} onRetry={branchesQuery.reload} /> : <BranchStep branches={branches} onSelect={onSelect} />,
   })
 
@@ -147,9 +171,22 @@ export default function LoginPage() {
       step: 'user',
       title: t.login.chooseUser,
       subtitle,
-      back: needsBranch(mode) ? { mode } : {},
+      back: needsBranch(mode) ? { mode } : MODE_LIST,
       wide: users.length > 2,
-      content: staffPending ? <StepStatus error={staffQuery.error} onRetry={staffQuery.reload} /> : <UserStep users={users} onSelect={selectUser} />,
+      content: (
+        <>
+          {staffPending ? <StepStatus error={staffQuery.error} onRetry={staffQuery.reload} /> : <UserStep users={users} onSelect={selectUser} />}
+          {needsBranch(mode) && (
+            <button
+              type="button"
+              onClick={() => go({ mode })}
+              className="mx-auto mt-4 block cursor-pointer text-xs text-neutral-500 underline-offset-2 hover:text-coal hover:underline"
+            >
+              {t.login.otherBranch}
+            </button>
+          )}
+        </>
+      ),
     }
   } else {
     shell = {
