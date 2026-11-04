@@ -70,6 +70,8 @@ export const uz = {
     chooseUser: 'Kim kiryapti?',
     enterPin: 'PIN kodni kiriting',
     pinHint: '4 tadan 8 tagacha raqam',
+    /** blok paytida PIN pad ostida (vaqt sanaladi: `4:59`) */
+    lockedFor: (time: string) => `Ko'p marta xato kiritildi — ${time} dan keyin urinib ko'ring`,
     enter: 'Kirish',
     clear: 'Tozalash',
     erase: "O'chirish",
@@ -132,11 +134,20 @@ export const uz = {
     telegram_token_invalid: "Bot tokeni noto'g'ri — @BotFather bergan tokenni to'liq nusxalang",
     telegram_unreachable: "Telegram serveriga ulanib bo'lmadi — internetni tekshiring",
     telegram_not_connected: 'Avval bot tokenini kiriting',
+    faceid_checkin_required: "Terminalda «Kirish» ni bosib, yuzingizni ko'rsating",
+    faceid_checkout_required: "Terminalda «Chiqish» ni bosib, yuzingizni ko'rsating",
+    employee_no_taken: 'Bu tabel raqami shu filialda boshqa kassirda',
+    invalid_employee_no: 'Tabel raqami — 1 dan 999 999 999 gacha butun son',
+    faceid_request_unavailable: "Telegram bot ulanmagan yoki javob bermadi — ruxsat so'rab bo'lmaydi, adminga qo'ng'iroq qiling",
     network: "Server bilan aloqa yo'q — internet yoki serverni tekshiring",
   } satisfies Record<ErrorCode, string>,
   /** `shift_open_elsewhere` — server filial nomini yuborgan bo'lsa */
   shiftOpenAt: (branch: string) =>
     `«${branch}» filialida ochiq smenangiz bor — avval o'sha yerda topshiring yoki adminga ayting`,
+  /** `employee_no_taken` — server raqam kimdaligini yuborgan bo'lsa */
+  employeeNoTakenBy: (name: string) => `Bu tabel raqami shu filialda ${name} da`,
+  /** `wrong_pin`, oxirgi urinish qolganda (server `detail: "1"`) */
+  wrongPinLastTry: "PIN noto'g'ri — 1 ta urinish qoldi, keyingi xatoda 5 daqiqaga bloklanadi",
   unknownError: "Kutilmagan xato yuz berdi",
   errorPage: {
     title: 'Sahifada xato yuz berdi',
@@ -149,7 +160,8 @@ export const uz = {
   payment: { cash: 'Naqd', card: 'Karta', click: 'Click' },
   orderSource: { cashier: 'Kassa', kiosk: 'Kiosk', mobile: 'Mobil ilova' },
   mobilePlatform: { android: 'Android', ios: 'iOS' },
-  units: { kg: 'kg', l: 'l', pcs: 'dona', g: 'g', ml: 'ml' },
+  // pack — qadoqli mahsulotning hisob birligi (600 g lik ketchup — 1 dona), packOfPcs — dona bilan sanaladiganniki (salfetka — 1 qadoq)
+  units: { kg: 'kg', l: 'l', pcs: 'dona', g: 'g', ml: 'ml', pack: 'dona', packOfPcs: 'qadoq' },
   kassa: {
     kioskHint: "Kassada to'lanadigan buyurtmalar",
     onlineHint: 'Mobil ilovadan — qabul qiling',
@@ -275,6 +287,21 @@ export const uz = {
     unlock: 'Ochish',
     switchUser: 'Boshqa xodim kiradi',
     lockNow: 'Bloklash',
+  },
+  /** FaceID: terminal ishlamasa — admindan Telegram orqali ruxsat */
+  faceId: {
+    ask: "Admindan ruxsat so'rash",
+    askAgain: "Qayta so'rash",
+    askHint: "Terminal ishlamayaptimi? Admin Telegram'da ruxsat bersa — 10 daqiqa FaceID'siz kirasiz.",
+    pending: "So'rov yuborildi — admin javobini kuting…",
+    approved: 'Ruxsat berildi.',
+    rejected: 'Admin rad etdi.',
+    expired: "Javob kelmadi yoki ruxsat muddati tugadi — qayta so'rang.",
+    enterPinAgain: 'PIN kodni qayta kiriting.',
+    closeAgain: (logout: string, yes: string) => `Kassada «${logout}» → «${yes}» ni qayta bosing.`,
+    closeTitle: 'Smenani topshirish',
+    closeHint: "Terminalda «Chiqish» ni bosib o'ting, keyin smenani qayta topshiring.",
+    understood: 'Tushunarli',
   },
   offline: {
     title: 'Offline kassa',
@@ -474,6 +501,8 @@ export const uz = {
     price: (unit: string) => `Narx — 1 ${unit}`,
     priceHint: "Keyingi kirimga avtomatik yoziladi; kirim tasdiqlanganda yangilanadi. Bo'sh — narxsiz",
     priceAdminOnly: 'Narxni admin kiritadi (mahsulot oynasida yoki kirimni tasdiqlashda)',
+    packSize: (unit: string) => `Qadoq: 1 ${unit} =`,
+    packSizeHint: "Kirim va ko'chirish donada, qoldiq «9 dona + 550 g». Bo'sh — qadoqsiz",
   },
   admin: {
     profile: {
@@ -550,7 +579,7 @@ export const uz = {
       rejected: 'Kirim rad etildi',
       rejectTitle: (number: string) => `${number} rad etilsinmi?`,
       rejectText: "Mahsulotlar omborga qo'shilmaydi. Ta'minotchi kirimni qaytadan kiritishi mumkin.",
-      priceHint: "Narx — 1 birlik (kg / l / dona) uchun. Tasdiqlangach shu narx keyingi kirimlarda avtomatik yoziladi.",
+      priceHint: "Narx — 1 birlik (kg / l / dona; qadoqli mahsulotda — 1 dona) uchun. Tasdiqlangach shu narx keyingi kirimlarda avtomatik yoziladi.",
       nonePending: "Tasdiq kutayotgan kirim yo'q",
       history: "Ko'rib chiqilganlar",
     },
@@ -606,6 +635,22 @@ export const uz = {
       offlineKeyRenewTitle: 'Kalit yangilansinmi?',
       offlineKeyRenewText: "Eski kalit bilan kassa kompyuteri endi ulana olmaydi — yangisini «NYFF Offline» sozlamalariga kiritasiz.",
       offlineKeyRenewed: 'Yangi kalit yaratildi',
+      hrKey: 'HR kaliti',
+      hrKeyTitle: (name: string) => `HR kaliti — ${name}`,
+      hrKeyHint:
+        "Filialdagi «NYFF HR» dasturi (FaceID davomat) shu kalit bilan terminaldagi «Kirish» / «Chiqish» larni yuboradi — nusxalab, dasturning Sozlamalar → NYFF bo'limiga qo'ying. Kalitni begonalarga bermang.",
+      hrKeyRenewTitle: 'HR kaliti yangilansinmi?',
+      hrKeyRenewText: "Eski kalit bilan filial HR'i endi ulana olmaydi — yangisini «NYFF HR» sozlamalariga kiritasiz.",
+      faceId: 'FaceID tekshiruvi',
+      faceIdHint:
+        "Kassir smenani terminalda «Kirish» bosib ochadi, «Chiqish» bosib topshiradi. Terminal yoki HR buzilsa — o'chiring, kassirlar PIN bilan kiradi",
+      hrSeen: (ago: string) => `HR: ${ago}`,
+      hrNever: 'HR ulanmagan',
+      hrNeverHint: "Filialdagi «NYFF HR» ga shu filialning HR kalitini kiriting",
+      agoNow: 'hozirgina',
+      agoMinutes: (count: number) => `${count} daqiqa oldin`,
+      agoHours: (count: number) => `${count} soat oldin`,
+      agoDays: (count: number) => `${count} kun oldin`,
       tvCode: 'TV kodi',
       tvCodeTitle: (name: string) => `TV kodi — ${name}`,
       tvCodeHint: "Navbat ekrani (TV) birinchi ochilganda shu kodni so'raydi — TV da bir marta kiritiladi va eslab qolinadi. Kod faqat shu filial navbatini ochadi.",
@@ -725,6 +770,10 @@ export const uz = {
       allBranches: 'Barcha filiallar',
       branches: 'Filiallar',
       branchesHint: "Bir nechta filialda ishlasa — hammasini yoqing: kirishda kassa turgan filial tanlanadi. Smena bir vaqtda faqat bitta filialda ochiq bo'ladi",
+      employeeNo: 'Tabel raqami (FaceID)',
+      employeeNoHint:
+        "Shu kassirning o'sha filial «NYFF HR» idagi tabel raqami — terminaldagi Employee ID. Bo'sh qolsa, FaceID yoqilgan filialda kassir smena ocholmaydi",
+      employeeNoPlaceholder: 'masalan 17',
       blocked: 'Bloklangan',
       added: "Qo'shilgan",
     },

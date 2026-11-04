@@ -1,29 +1,36 @@
 import { Lock, UserRoundCog } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { api } from '@/api'
+import { ApiError } from '@/api/http'
 import { logout, unlockSession } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
+import FaceIdRequestPanel from '@/components/ui/FaceIdRequestPanel'
 import PinPad from '@/components/ui/PinPad'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { fullName } from '@/domain/rules'
 import type { AuthUser } from '@/domain/types'
-import { errorMessage, useT } from '@/i18n'
+import { pinFailure, useT, type PinFailure } from '@/i18n'
 
 /**
  * Kassir "Bloklash"ni bosganda kassa ustini to'liq yopadi. Faqat shu kassirning PIN'i bilan ochiladi (server
- * tekshiradi, token yangilanadi); boshqa xodim kirmoqchi bo'lsa — chiqish (smena yopilmaydi).
+ * tekshiradi, token yangilanadi); boshqa xodim kirmoqchi bo'lsa — chiqish (smena yopilmaydi). FaceID filialida —
+ * kassir shu filialda bo'lishi kerak (oxirgi o'tishi — shu yerda «Kirish»); terminal ishlamasa — admindan ruxsat.
  */
 export default function LockScreen({ user }: { user: AuthUser }) {
   const t = useT()
   const navigate = useNavigate()
+  const [faceIdPin, setFaceIdPin] = useState<string | null>(null)
 
   // xato matni PIN pad ostida chiqadi (kirish ekranidagi kabi)
-  const unlock = async (pin: string): Promise<string | null> => {
+  const unlock = async (pin: string): Promise<PinFailure | null> => {
     try {
       await unlockSession(pin)
       return null
     } catch (error) {
-      return errorMessage(error)
+      setFaceIdPin(error instanceof ApiError && error.code === 'faceid_checkin_required' ? pin : null)
+      return pinFailure(error)
     }
   }
 
@@ -31,6 +38,8 @@ export default function LockScreen({ user }: { user: AuthUser }) {
     logout()
     void navigate('/', { replace: true })
   }
+
+  const branchId = user.branchId
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col overflow-y-auto bg-coal">
@@ -58,6 +67,13 @@ export default function LockScreen({ user }: { user: AuthUser }) {
               </div>
             </div>
             <PinPad onSubmit={unlock} submitLabel={t.lock.unlock} />
+            {faceIdPin && branchId && (
+              <FaceIdRequestPanel
+                key={faceIdPin}
+                request={() => api.faceId.requestByPin(user.id, faceIdPin, branchId)}
+                approvedHint={t.faceId.enterPinAgain}
+              />
+            )}
           </div>
         </div>
         <button

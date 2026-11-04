@@ -23,9 +23,9 @@ export default function PeriodFilter({ period }: { period: Period }) {
       />
       {preset === 'custom' && (
         <span className="flex items-center gap-2">
-          <input type="date" value={custom.from} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, from: event.target.value })} aria-label={t.admin.reports.from} className={`${inputClass} h-9! w-40!`} />
+          <input type="date" value={custom.from} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, from: event.target.value })} aria-label={t.admin.reports.from} className={`${inputClass} w-40!`} />
           <span className="text-neutral-400">—</span>
-          <input type="date" value={custom.to} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, to: event.target.value })} aria-label={t.admin.reports.to} className={`${inputClass} h-9! w-40!`} />
+          <input type="date" value={custom.to} max={today} onChange={(event) => event.target.value && setCustom({ ...custom, to: event.target.value })} aria-label={t.admin.reports.to} className={`${inputClass} w-40!`} />
         </span>
       )}
     </>

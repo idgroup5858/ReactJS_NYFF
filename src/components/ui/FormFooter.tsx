@@ -16,12 +16,12 @@ export default function FormFooter({ formId, saving, onDelete }: { formId: strin
           disabled={saving}
           aria-label={t.common.delete}
           title={t.common.delete}
-          className="btn-icon-danger flex h-11 w-11 shrink-0 items-center justify-center rounded"
+          className="btn-icon-danger flex h-9 w-9 shrink-0 items-center justify-center rounded"
         >
           <Trash2 size={16} />
         </button>
       )}
-      <button type="submit" form={formId} disabled={saving} className="btn-primary h-11 flex-1 rounded text-sm font-bold">
+      <button type="submit" form={formId} disabled={saving} className="btn-primary h-9 flex-1 rounded text-sm font-bold">
         {t.common.save}
       </button>
     </div>

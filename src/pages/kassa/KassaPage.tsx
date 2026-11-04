@@ -8,6 +8,8 @@ import { onDutyCouriers } from '@/components/order/courierActivity'
 import { useRealtime } from '@/api/realtime'
 import { closeCurrentShift, ensureCashierShift, lockSession, logout, useCurrentUser, useSession } from '@/api/session'
 import StaffLayout, { HeaderAction } from '@/components/layout/StaffLayout'
+import FaceIdRequestPanel from '@/components/ui/FaceIdRequestPanel'
+import Modal from '@/components/ui/Modal'
 import type { ID, MenuProduct, Order, PaymentMethod, PaymentSplit, ShiftWithSummary } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { addProduct, cartQty, changeQty, removeLine } from '@/lib/cart'
@@ -96,6 +98,8 @@ export default function KassaPage() {
   // buyurtmalar oynasida kassir almashtirgan bo'lim; `null` — ochilgandagi bo'limda turibdi
   const [drawerTab, setDrawerTab] = useState<OrdersTab | null>(null)
   const [report, setReport] = useState<ShiftWithSummary | null>(null)
+  // FaceID: "Smenani topshirish" — terminalda «Chiqish» kerak; terminal ishlamasa — admindan ruxsat so'rash oynasi
+  const [faceIdClose, setFaceIdClose] = useState(false)
   // savatga qo'shilgan taomlar: admin taomni o'chirsa u menyudan butunlay chiqadi — qator nomi va rasmi bilan qoladi
   const [added, setAdded] = useState<Map<ID, MenuProduct>>(() => new Map())
 
@@ -220,6 +224,8 @@ export default function KassaPage() {
     } catch (error) {
       // smena boshqa joyda (admin / boshqa tab) allaqachon yopilgan — topshiradigan narsa yo'q
       if (error instanceof ApiError && error.code === 'shift_not_open') return finish()
+      // FaceID filiali: terminaldan «Chiqish» bilan o'tilmagan — ko'rsatma va admindan ruxsat so'rash
+      if (error instanceof ApiError && error.code === 'faceid_checkout_required') return setFaceIdClose(true)
       showToast(errorMessage(error), 'error')
       return
     }
@@ -297,6 +303,26 @@ export default function KassaPage() {
         />
       )}
       {panel === 'settings' && <KassaSettingsModal onClose={() => setPanel(null)} />}
+      {faceIdClose && (
+        <Modal
+          title={t.faceId.closeTitle}
+          onClose={() => setFaceIdClose(false)}
+          footer={
+            <button type="button" onClick={() => setFaceIdClose(false)} className="btn-primary h-9 w-full rounded text-sm font-bold">
+              {t.faceId.understood}
+            </button>
+          }
+        >
+          {/* eniga keng, past (POS monitori): chapda ko'rsatma, o'ngda admindan ruxsat so'rash */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-neutral-800">{t.errors.faceid_checkout_required}</p>
+              <p className="text-xs text-neutral-500">{t.faceId.closeHint}</p>
+            </div>
+            <FaceIdRequestPanel request={api.faceId.requestForShift} approvedHint={t.faceId.closeAgain(t.common.logout, t.handover.yes)} />
+          </div>
+        </Modal>
+      )}
       {report && <ShiftReportModal shift={report} onDone={finish} />}
       {locked && !report && <LockScreen user={user} />}
       {connectionLost && !report && <OfflineSwitch enabled={offlineEnabled} onSwitch={switchToOffline} />}

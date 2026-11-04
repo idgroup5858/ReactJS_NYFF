@@ -41,7 +41,7 @@ function PinField({ id, label, value, onChange }: { id: string; label: string; v
         autoComplete="off"
         value={value}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
-        className="h-10 w-full rounded border border-neutral-300 bg-white px-3 text-lg tracking-[0.3em]"
+        className="h-8 w-full rounded border border-neutral-300 bg-white px-2.5 text-base tracking-[0.3em]"
       />
     </div>
   )

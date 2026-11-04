@@ -4,7 +4,7 @@ import { inputClass, selectClass } from '@/components/ui/styles'
 import { INGREDIENT_GROUPS, type ID } from '@/domain/types'
 import { toBase } from '@/domain/units'
 import { useLocalize, useT } from '@/i18n'
-import { formatMoney, formatStock } from '@/lib/format'
+import { countUnit, formatMoney, formatStock, formatUnit } from '@/lib/format'
 import { parseQty } from '@/lib/warehouses'
 import { newDraftLine, type DraftLine } from './draftLines'
 
@@ -39,7 +39,8 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
         const qty = parseQty(line.qty)
         const item = ingredient && stock?.find((s) => s.ingredientId === ingredient.id)
         const available = ingredient && stock ? (item?.qty ?? 0) : null
-        const tooMuch = mode === 'transfer' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit) > available
+        // qadoqli mahsulot (ketchup 600 g) — miqdor donada, qoldiq grammda
+        const tooMuch = mode === 'transfer' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit, ingredient.packSize) > available
         // Qoldiqlar sahifasidagi "Kam" bilan bir xil: chegara qo'yilgan va qoldiq undan kam
         const low = mode === 'purchase' && !!item && item.minQty > 0 && item.qty < item.minQty
         return (
@@ -80,18 +81,18 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
                 className={`${inputClass} pr-12 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">
-                {ingredient ? t.units[ingredient.unit] : ''}
+                {ingredient ? countUnit(ingredient, t) : ''}
               </span>
             </label>
             <span className={`order-last col-span-2 text-xs sm:order-none sm:col-span-1 ${tooMuch ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
               {ingredient && (
                 <>
                   <span className={`block ${low ? 'font-semibold text-red-700' : ''}`}>
-                    {t.transfer.available}: {available !== null ? formatStock(available, ingredient.unit, t) : '—'}
+                    {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
                   </span>
                   {mode === 'purchase' && (
                     <span className="block">
-                      {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${t.units[ingredient.unit]}` : '—'}
+                      {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${formatUnit(ingredient, t)}` : '—'}
                     </span>
                   )}
                 </>

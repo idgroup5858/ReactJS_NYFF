@@ -108,7 +108,7 @@ export default function ShiftsPage() {
               { value: 'closed', label: t.admin.shifts.closed },
             ]}
           />
-          <select value={cashierId} onChange={(event) => setCashierId(event.target.value)} aria-label={t.admin.orders.cashier} className={`${selectClass} h-9! w-56!`}>
+          <select value={cashierId} onChange={(event) => setCashierId(event.target.value)} aria-label={t.admin.orders.cashier} className={`${selectClass} w-56!`}>
             <option value="all">{t.admin.orders.allCashiers}</option>
             {cashiers.map((user) => (
               <option key={user.id} value={user.id}>

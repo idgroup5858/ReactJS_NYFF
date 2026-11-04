@@ -14,17 +14,34 @@ import Toggle from '@/components/ui/Toggle'
 import ViewToggle from '@/components/ui/ViewToggle'
 import { INGREDIENT_GROUPS, STOCK_UNITS, type ID, type Ingredient, type IngredientGroup, type LocalizedText, type StockUnit } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatMoney, formatNumber } from '@/lib/format'
+import { baseUnitOf, convertPrice, unitSize } from '@/domain/units'
+import { countUnit, formatMoney, formatNumber, formatUnit } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import GroupHeading from './GroupHeading'
 
-/** `price` — 1 birlik narxi, faqat raqamlar; bo'sh — narxsiz */
-type Draft = { name: LocalizedText; group: IngredientGroup; unit: StockUnit; price: string; active: boolean }
+/**
+ * `packSize` — qadoq hajmi asosiy birlikda (faqat raqamlar; bo'sh — qadoqsiz). `price` — kiritilgan narx (faqat
+ * raqamlar; bo'sh — narxsiz), `priceSize` — u qaysi hisob birligi uchun kiritilgan (asosiy birlikda: 1 kg = 1000).
+ */
+type Draft = {
+  name: LocalizedText
+  group: IngredientGroup
+  unit: StockUnit
+  packSize: string
+  price: string
+  priceSize: number
+  active: boolean
+}
+
+/** Maydondagi qadoq hajmi: bo'sh yoki 0 — qadoqsiz. */
+const packOf = (draft: Draft): number | null => (Number(draft.packSize) > 0 ? Number(draft.packSize) : null)
 
 /**
- * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (faqat yangi mahsulotda), 1 birlik
- * narxi (faqat admin; ta'minotchi ko'radi — narxni kirim tasdiqlashda ham admin kiritadi).
+ * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (faqat yangi mahsulotda), qadoq hajmi
+ * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (faqat admin; ta'minotchi ko'radi —
+ * narxni kirim tasdiqlashda ham admin kiritadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
+ * 16 800 / dona) — kiritilgan narxdan, oraliq qiymatlardan emas (yozilayotgan "6" → "60" → "600" yaxlitlashni yig'masin).
  */
 function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null; onClose: () => void }) {
   const t = useT()
@@ -36,20 +53,28 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
           name: ingredient.name,
           group: ingredient.group,
           unit: ingredient.unit,
+          packSize: ingredient.packSize !== null ? String(ingredient.packSize) : '',
           price: ingredient.lastPrice !== null ? String(ingredient.lastPrice) : '',
+          priceSize: unitSize(ingredient.unit, ingredient.packSize),
           active: ingredient.active,
         }
-      : { name: { uz: '', ru: '', en: '' }, group: 'vegetables', unit: 'kg', price: '', active: true },
+      : { name: { uz: '', ru: '', en: '' }, group: 'vegetables', unit: 'kg', packSize: '', price: '', priceSize: unitSize('kg'), active: true },
   )
   const setName = (lang: keyof LocalizedText, value: string) => setDraft({ ...draft, name: { ...draft.name, [lang]: value } })
+  const size = unitSize(draft.unit, packOf(draft))
+  /** hozirgi birlikdagi narx (ko'rsatiladi va yuboriladi) */
+  const price = draft.price === '' ? '' : String(convertPrice(Number(draft.price), draft.priceSize, size))
+  const count = countUnit({ unit: draft.unit, packSize: packOf(draft) }, t)
 
   const save = async (event: FormEvent) => {
     event.preventDefault()
     try {
-      const { price, ...fields } = draft
-      // ta'minotchi narxni o'zgartirmaydi — yuborilmaydi (o'zgarmaydi)
+      const { name, group, unit, active } = draft
+      // ta'minotchi narxni o'zgartirmaydi — yuborilmaydi (qadoq hajmi o'zgarsa server o'zi qayta hisoblaydi)
       const lastPrice = isAdmin ? (price === '' ? null : Number(price)) : undefined
-      await api.ingredients.save({ id: ingredient?.id, ...fields, lastPrice })
+      // 0 — serverda `invalid_qty` (bo'sh — qadoqsiz)
+      const packSize = draft.packSize === '' ? null : Number(draft.packSize)
+      await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, packSize, lastPrice })
       showToast(t.common.saved)
       onClose()
     } catch (error) {
@@ -72,19 +97,23 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
     <Modal
       title={ingredient ? t.ingredients.edit : t.ingredients.add}
       onClose={onClose}
+      size="lg"
       footer={<FormFooter formId="ingredient-form" saving={false} onDelete={ingredient ? () => void remove(ingredient) : undefined} />}
     >
+      {/* eniga keng, past (POS monitori): 3 tildagi nom bir qatorda; guruh · birlik · qadoq · narx */}
       <form id="ingredient-form" onSubmit={(event) => void save(event)} className="space-y-3">
-        <Field label={t.common.nameUz} htmlFor="ing-uz">
-          <input id="ing-uz" autoFocus value={draft.name.uz} onChange={(event) => setName('uz', event.target.value)} className={inputClass} />
-        </Field>
-        <Field label={t.common.nameRu} htmlFor="ing-ru">
-          <input id="ing-ru" value={draft.name.ru} onChange={(event) => setName('ru', event.target.value)} className={inputClass} />
-        </Field>
-        <Field label={t.common.nameEn} htmlFor="ing-en">
-          <input id="ing-en" value={draft.name.en} onChange={(event) => setName('en', event.target.value)} className={inputClass} />
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label={t.common.nameUz} htmlFor="ing-uz">
+            <input id="ing-uz" autoFocus value={draft.name.uz} onChange={(event) => setName('uz', event.target.value)} className={inputClass} />
+          </Field>
+          <Field label={t.common.nameRu} htmlFor="ing-ru">
+            <input id="ing-ru" value={draft.name.ru} onChange={(event) => setName('ru', event.target.value)} className={inputClass} />
+          </Field>
+          <Field label={t.common.nameEn} htmlFor="ing-en">
+            <input id="ing-en" value={draft.name.en} onChange={(event) => setName('en', event.target.value)} className={inputClass} />
+          </Field>
+        </div>
+        <div className="grid items-start gap-3 sm:grid-cols-4">
           <Field label={t.ingredients.group} htmlFor="ing-group">
             <select id="ing-group" value={draft.group} onChange={(event) => setDraft({ ...draft, group: event.target.value as IngredientGroup })} className={selectClass}>
               {INGREDIENT_GROUPS.map((group) => (
@@ -99,7 +128,11 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
               id="ing-unit"
               value={draft.unit}
               disabled={!!ingredient}
-              onChange={(event) => setDraft({ ...draft, unit: event.target.value as StockUnit })}
+              onChange={(event) => {
+                // birlikni tuzatish (yangi mahsulotda) — kiritilgan narx o'zgarmaydi
+                const unit = event.target.value as StockUnit
+                setDraft({ ...draft, unit, price, priceSize: unitSize(unit, packOf(draft)) })
+              }}
               className={selectClass}
             >
               {STOCK_UNITS.map((unit) => (
@@ -109,18 +142,31 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
               ))}
             </select>
           </Field>
+          <Field label={t.ingredients.packSize(draft.unit === 'pcs' ? t.units.packOfPcs : t.units.pack)} htmlFor="ing-pack" hint={t.ingredients.packSizeHint}>
+            <div className="relative">
+              <input
+                id="ing-pack"
+                value={draft.packSize === '' ? '' : formatNumber(Number(draft.packSize))}
+                onChange={(event) => setDraft({ ...draft, packSize: event.target.value.replace(/\D/g, '').slice(0, 7) })}
+                inputMode="numeric"
+                placeholder="—"
+                className={`${inputClass} pr-12 text-right font-bold tabular-nums`}
+              />
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">{t.units[baseUnitOf(draft.unit)]}</span>
+            </div>
+          </Field>
+          <Field label={t.ingredients.price(count)} htmlFor="ing-price" hint={isAdmin ? t.ingredients.priceHint : t.ingredients.priceAdminOnly}>
+            <input
+              id="ing-price"
+              value={price === '' ? '' : formatNumber(Number(price))}
+              onChange={(event) => setDraft({ ...draft, price: event.target.value.replace(/\D/g, '').slice(0, 9), priceSize: size })}
+              disabled={!isAdmin}
+              inputMode="numeric"
+              placeholder="—"
+              className={`${inputClass} text-right font-bold tabular-nums`}
+            />
+          </Field>
         </div>
-        <Field label={t.ingredients.price(t.units[draft.unit])} htmlFor="ing-price" hint={isAdmin ? t.ingredients.priceHint : t.ingredients.priceAdminOnly}>
-          <input
-            id="ing-price"
-            value={draft.price === '' ? '' : formatNumber(Number(draft.price))}
-            onChange={(event) => setDraft({ ...draft, price: event.target.value.replace(/\D/g, '').slice(0, 9) })}
-            disabled={!isAdmin}
-            inputMode="numeric"
-            placeholder="—"
-            className={`${inputClass} text-right font-bold tabular-nums`}
-          />
-        </Field>
         <Toggle checked={draft.active} onChange={(active) => setDraft({ ...draft, active })} label={t.common.active} />
       </form>
     </Modal>
@@ -207,7 +253,7 @@ export default function IngredientsPage() {
                         <span className="font-semibold text-neutral-950">{localize(ingredient.name)}</span>
                         <span className="ml-2 text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</span>
                       </td>
-                      <td className={`${cellClass} text-neutral-600`}>{t.units[ingredient.unit]}</td>
+                      <td className={`${cellClass} whitespace-nowrap text-neutral-600`}>{formatUnit(ingredient, t)}</td>
                       <td className={`${cellClass} text-right font-bold text-neutral-950 tabular-nums`}>{ingredient.lastPrice !== null ? formatMoney(ingredient.lastPrice, t) : '—'}</td>
                       {isAdmin && (
                         <td className={`${cellClass} text-neutral-500`}>
@@ -244,10 +290,10 @@ export default function IngredientsPage() {
                     <p className="leading-snug font-semibold text-neutral-950">{localize(ingredient.name)}</p>
                     <p className="text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</p>
                   </div>
-                  {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg" */}
+                  {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg", qadoqli — "16 800 so'm / dona (600 g)" */}
                   <p className="mt-auto text-lg font-extrabold whitespace-nowrap text-neutral-950 tabular-nums" title={t.purchase.lastPrice}>
                     {ingredient.lastPrice !== null ? formatMoney(ingredient.lastPrice, t) : '—'}
-                    <span className="text-xs font-semibold text-neutral-500"> / {t.units[ingredient.unit]}</span>
+                    <span className="text-xs font-semibold text-neutral-500"> / {formatUnit(ingredient, t)}</span>
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     {/* ta'minotchida bo'sh — tahrirlash tugmasi o'ngda qoladi */}

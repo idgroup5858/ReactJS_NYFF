@@ -1,4 +1,4 @@
-import { baseUnitOf, fromBase } from '@/domain/units'
+import { baseUnitOf, fromBase, splitPacks } from '@/domain/units'
 import type { OnlineInfo, OrderType, StockUnit } from '@/domain/types'
 import type { Dict } from '@/i18n/uz'
 
@@ -32,9 +32,32 @@ export function formatCompact(value: number, t: Dict): string {
   return formatNumber(value)
 }
 
-/** Asosiy birlikdagi qoldiqni ombor birligida ko'rsatadi: 12500 g → "12,5 kg". */
-export function formatStock(baseQty: number, unit: StockUnit, t: Dict): string {
-  return `${formatNumber(fromBase(baseQty, unit), 3)}${NBSP}${t.units[unit]}`
+/** Ombor mahsulotining birligi va qadog'i (mahsulot yoki hujjat qatoridagi surat). */
+type Counted = { unit: StockUnit; packSize: number | null }
+
+/** Hisob birligi nomi: qadoqsiz — "kg" / "l" / "dona", qadoqli — "dona" (dona bilan sanaladigan mahsulotda — "qadoq"). */
+export function countUnit({ unit, packSize }: Counted, t: Dict): string {
+  return packSize === null ? t.units[unit] : unit === 'pcs' ? t.units.packOfPcs : t.units.pack
+}
+
+/** Birlik qadog'i bilan: "dona (600 g)"; qadoqsiz — "kg". */
+export function formatUnit(item: Counted, t: Dict): string {
+  if (item.packSize === null) return t.units[item.unit]
+  return `${countUnit(item, t)} (${formatNumber(item.packSize)}${NBSP}${t.units[baseUnitOf(item.unit)]})`
+}
+
+/**
+ * Asosiy birlikdagi qoldiqni ombor birligida ko'rsatadi: 12500 g → "12,5 kg"; qadoqli mahsulotda — to'liq donalar va
+ * ochilganida qolgani: 5950 g, 1 dona = 600 g → "9 dona + 550 g" (50 g → "50 g", 6000 g → "10 dona").
+ */
+export function formatStock(baseQty: number, item: Counted, t: Dict): string {
+  if (item.packSize === null) return `${formatNumber(fromBase(baseQty, item.unit), 3)}${NBSP}${t.units[item.unit]}`
+  const { packs, rest } = splitPacks(Math.abs(baseQty), item.packSize)
+  const parts = [
+    packs > 0 || rest === 0 ? `${formatNumber(packs)}${NBSP}${countUnit(item, t)}` : null,
+    rest > 0 ? `${formatNumber(rest)}${NBSP}${t.units[baseUnitOf(item.unit)]}` : null,
+  ].filter(Boolean)
+  return `${baseQty < 0 ? '−' : ''}${parts.join(' + ')}`
 }
 
 /** Buyurtma raqami: 7 → "#007" — TV, kassa va chekda bir xil. */

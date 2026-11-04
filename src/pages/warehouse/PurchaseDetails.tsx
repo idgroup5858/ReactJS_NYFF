@@ -2,7 +2,7 @@ import { useIngredients } from '@/api/queries'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
-import { formatMoney, formatNumber } from '@/lib/format'
+import { formatMoney, formatNumber, formatUnit } from '@/lib/format'
 
 const STATUS_CLASSES: Record<PurchaseStatus, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -53,8 +53,9 @@ export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
             return (
               <tr key={item.ingredientId}>
                 <td className={tdClass}>{ingredient ? localize(ingredient.name) : item.ingredientId}</td>
+                {/* birlik — hujjat yozilgan paytdagi qadoq bilan ("10 dona (600 g)"), mahsulotniki keyin o'zgargan bo'lsa ham */}
                 <td className={`${tdClass} text-right whitespace-nowrap tabular-nums`}>
-                  {formatNumber(item.qty, 3)} {ingredient ? t.units[ingredient.unit] : ''}
+                  {formatNumber(item.qty, 3)} {ingredient ? formatUnit({ unit: ingredient.unit, packSize: item.packSize }, t) : ''}
                 </td>
                 <td className={`${tdClass} text-right whitespace-nowrap`}>
                   {editable ? (
@@ -63,7 +64,7 @@ export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
                       onChange={(event) => onPrice(item.ingredientId, event.target.value.replace(/\D/g, '').slice(0, 10))}
                       inputMode="numeric"
                       aria-label={t.purchase.price}
-                      className={`${inputClass} h-9! w-32! text-right font-bold tabular-nums ${price === null ? 'border-red-300' : ''}`}
+                      className={`${inputClass} w-32! text-right font-bold tabular-nums ${price === null ? 'border-red-300' : ''}`}
                     />
                   ) : (
                     <span className="tabular-nums">{price !== null ? formatMoney(price, t) : '—'}</span>

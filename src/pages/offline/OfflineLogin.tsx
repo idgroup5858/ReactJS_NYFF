@@ -7,7 +7,7 @@ import { SectionTitle } from '@/components/ui/Card'
 import PinPad from '@/components/ui/PinPad'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { fullName } from '@/domain/rules'
-import { errorMessage, useT } from '@/i18n'
+import { pinFailure, useT, type PinFailure } from '@/i18n'
 import UserStep from '../login/UserStep'
 
 /** Kirish ekrani qobig'i (oddiy kirishdagidek) — qizil "Offline" belgisi bilan. */
@@ -61,13 +61,13 @@ export default function OfflineLogin({ branchName, cashiers }: { branchName: str
   const [selected, setSelected] = useState<OfflineCashier | null>(null)
   const asUser = (cashier: OfflineCashier) => ({ ...cashier, role: 'cashier' as const, branchId: null, email: null })
 
-  const submitPin = async (pin: string): Promise<string | null> => {
+  const submitPin = async (pin: string): Promise<PinFailure | null> => {
     if (!selected) return null
     try {
       await offlineApi.login(selected.id, pin)
       return null
     } catch (error) {
-      return errorMessage(error)
+      return pinFailure(error)
     }
   }
 

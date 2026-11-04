@@ -128,8 +128,8 @@ export default function ExpensesPage() {
             title={t.admin.expenses.list}
             actions={
               <span className="flex flex-wrap items-center gap-2">
-                <input type="month" value={month} max={today.slice(0, 7)} onChange={(event) => event.target.value && setMonth(event.target.value)} aria-label={t.admin.expenses.month} className={`${inputClass} h-9! w-40!`} />
-                <select value={filterBranch} onChange={(event) => setFilterBranch(event.target.value)} aria-label={t.common.branch} className={`${selectClass} h-9! w-40!`}>
+                <input type="month" value={month} max={today.slice(0, 7)} onChange={(event) => event.target.value && setMonth(event.target.value)} aria-label={t.admin.expenses.month} className={`${inputClass} w-40!`} />
+                <select value={filterBranch} onChange={(event) => setFilterBranch(event.target.value)} aria-label={t.common.branch} className={`${selectClass} w-40!`}>
                   <option value="all">{t.admin.reports.allBranches}</option>
                   {allBranches.map((branch) => (
                     <option key={branch.id} value={branch.id}>

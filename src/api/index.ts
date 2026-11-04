@@ -7,6 +7,7 @@ import type {
   DateKey,
   DeliveryRoute,
   Expense,
+  FaceIdRequest,
   ExpenseKind,
   ID,
   ImageFile,
@@ -28,7 +29,6 @@ import type {
   StockUnit,
   TelegramStatus,
   Transfer,
-  TransferItem,
   TvOrder,
   User,
   WorkHours,
@@ -75,8 +75,13 @@ export interface IngredientInput {
   group: IngredientGroup
   /** faqat yangi mahsulotda — keyin o'zgarmaydi */
   unit: StockUnit
-  /** 1 birlik narxi (faqat admin); berilmasa — o'zgarmaydi, `null` — narxsiz */
+  /**
+   * 1 birlik (qadoq bo'lsa — 1 dona) narxi (faqat admin); berilmasa — o'zgarmaydi (qadoq hajmi o'zgarsa server yangi
+   * birlikka qayta hisoblaydi), `null` — narxsiz
+   */
   lastPrice?: number | null
+  /** qadoq hajmi asosiy birlikda (600 — 1 dona = 600 g), butun 1…1 000 000; `null` — qadoqsiz */
+  packSize: number | null
   active: boolean
 }
 
@@ -87,6 +92,11 @@ export interface UserInput {
   role: Role
   /** kassir va oshpaz yordamchisi — kamida bitta filial (server: `branch_required`); boshqa rollarda `[]` */
   branchIds: ID[]
+  /**
+   * kassir (FaceID): filial id → tabel raqami (o'sha filial HR'idagi / terminaldagi raqam, butun son); bo'sh filial —
+   * raqamsiz. Server: band — `employee_no_taken`, noto'g'ri — `invalid_employee_no`
+   */
+  employeeNos?: Record<ID, number>
   /** kassir, oshpaz yordamchisi, ta'minotchi: yangi xodimda majburiy; tahrirda bo'sh — eski PIN qoladi */
   pin?: string
   /** admin va kuryer: kirish emaili va paroli (tahrirda bo'sh parol — eskisi qoladi) */
@@ -140,7 +150,7 @@ export interface ProductInput {
 
 export interface DocumentLine {
   ingredientId: ID
-  /** ombor birligida (kg / l / dona) */
+  /** ombor birligida (kg / l / dona); qadoq hajmi berilgan mahsulotda — donada */
   qty: number
 }
 
@@ -181,6 +191,19 @@ export const api = {
     /** admin: kassir yopmay ketgan smenani yopish */
     close: (shiftId: ID) => then(http.post<ShiftWithSummary>(`/shifts/${shiftId}/close`), 'shift:', 'shifts', 'branches'),
   },
+  /**
+   * FaceID: kassir terminaldan o'tolmadi — admindan Telegram orqali ruxsat (10 daqiqa). Bot ulanmagan —
+   * `faceid_request_unavailable`. Javob kutilayotgan so'rov bo'lsa — o'sha qaytadi.
+   */
+  faceId: {
+    /** kirish / blok ekranidan — PIN bilan (kassir hali kirmagan) */
+    requestByPin: (userId: ID, pin: string, branchId: ID) =>
+      http.post<FaceIdRequest>('/auth/faceid-request', { userId, pin, branchId }, { token: null }),
+    /** ochiq kassadan — "Smenani topshirish" uchun */
+    requestForShift: () => http.post<FaceIdRequest>('/shifts/current/faceid-request'),
+    /** admin javobini kutish */
+    status: (id: ID) => http.get<FaceIdRequest>(`/auth/faceid-request/${id}`, undefined, { token: null }),
+  },
   purchases: {
     create: (input: { warehouseId: ID; items: DocumentLine[]; note?: string }) =>
       then(http.post<Purchase>('/purchases', input), 'purchases', 'reports'),
@@ -189,7 +212,7 @@ export const api = {
     reject: (purchaseId: ID) => then(http.post<Purchase>(`/purchases/${purchaseId}/reject`), 'purchases', 'reports'),
   },
   transfers: {
-    create: (input: { fromWarehouseId: ID; toWarehouseId: ID; items: TransferItem[]; note?: string }) =>
+    create: (input: { fromWarehouseId: ID; toWarehouseId: ID; items: DocumentLine[]; note?: string }) =>
       then(http.post<Transfer>('/transfers', input), 'transfers', 'stock', 'movements', 'reports'),
   },
   ingredients: {
@@ -221,6 +244,11 @@ export const api = {
       then(http.put<Branch>(`/branches/${branchId}/delivery`, input), 'branches'),
     setOnline: (branchId: ID, enabled: boolean) =>
       then(http.put<Branch>(`/branches/${branchId}/online`, { enabled }), 'branches'),
+    /** FaceID tekshiruvi (kassir smenani terminaldan o'tib ochadi / topshiradi) — terminal buzilsa darhol o'chiriladi */
+    setFaceId: (branchId: ID, enabled: boolean) =>
+      then(http.put<Branch>(`/branches/${branchId}/faceid`, { enabled }), 'branches'),
+    /** filial HR tizimi kalitini yangilash — eskisi bilan HR endi ulana olmaydi */
+    renewHrKey: (branchId: ID) => then(http.post<{ key: string }>(`/branches/${branchId}/hr-key`), `hr-key:${branchId}`),
     /** offline kassa (Electron) kalitini yangilash — eskisi bilan kassa kompyuteri endi ulana olmaydi */
     renewOfflineKey: (branchId: ID) => then(http.post<{ key: string }>(`/branches/${branchId}/offline-key`), `offline-key:${branchId}`),
     /** joriy TV / kiosk kodi (hali yo'q bo'lsa server yaratadi) — admin "Navbat ekrani" / "Kiosk" ni kodsiz ochishi uchun */

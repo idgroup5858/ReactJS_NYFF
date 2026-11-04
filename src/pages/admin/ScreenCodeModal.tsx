@@ -47,11 +47,11 @@ export default function ScreenCodeModal({ kind, branch, onClose }: { kind: Scree
       onClose={onClose}
       footer={
         <div className="flex w-full gap-2">
-          <button type="button" onClick={() => void renew()} disabled={!code} className="btn-ghost flex h-11 items-center gap-2 rounded px-4 text-xs font-bold">
+          <button type="button" onClick={() => void renew()} disabled={!code} className="btn-ghost flex h-9 items-center gap-2 rounded px-4 text-xs font-bold">
             <RefreshCw size={15} />
             {b.tvCodeRenew}
           </button>
-          <button type="button" onClick={() => void copy()} disabled={!code} className="btn-primary flex h-11 flex-1 items-center justify-center gap-2 rounded text-sm font-bold">
+          <button type="button" onClick={() => void copy()} disabled={!code} className="btn-primary flex h-9 flex-1 items-center justify-center gap-2 rounded text-sm font-bold">
             <Copy size={16} />
             {b.tvCodeCopy}
           </button>
@@ -65,7 +65,7 @@ export default function ScreenCodeModal({ kind, branch, onClose }: { kind: Scree
         ) : (
           <p
             aria-label={text.label}
-            className="rounded border border-neutral-200 bg-neutral-50 py-4 text-center font-mono text-4xl font-black tracking-[0.2em] text-neutral-950 tabular-nums select-all"
+            className="rounded border border-neutral-200 bg-neutral-50 py-3 text-center font-mono text-4xl font-black tracking-[0.2em] text-neutral-950 tabular-nums select-all"
           >
             {code ? grouped(code) : ' '}
           </p>

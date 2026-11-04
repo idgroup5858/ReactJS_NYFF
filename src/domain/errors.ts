@@ -60,6 +60,16 @@ export type ErrorCode =
   | 'telegram_token_invalid'
   | 'telegram_unreachable'
   | 'telegram_not_connected'
+  // ── FaceID (filial terminali → HR tizimi → markaz; admin "Filiallar" → "FaceID tekshiruvi") ──
+  /** smena ochish / kassaga kirish — terminalda «Kirish» kerak (yoki boshqa filialda «Kirish» bosilgan) */
+  | 'faceid_checkin_required'
+  /** smenani topshirish — terminalda «Chiqish» kerak */
+  | 'faceid_checkout_required'
+  /** tabel raqami shu filialda boshqa kassirda (`detail` — kimda) */
+  | 'employee_no_taken'
+  | 'invalid_employee_no'
+  /** Telegram bot ulanmagan yoki hech bir admin chatiga yetmadi — ruxsat so'rab bo'lmaydi */
+  | 'faceid_request_unavailable'
   /** server javob bermadi (tarmoq / server o'chiq) */
   | 'network'
 

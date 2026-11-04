@@ -56,8 +56,9 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal title={t.admin.profile.title} onClose={onClose}>
-      <div className="space-y-6">
+    <Modal title={t.admin.profile.title} onClose={onClose} size="lg">
+      {/* eniga keng, past (POS monitori): chapda shaxsiy ma'lumot, o'ngda parol */}
+      <div className="grid gap-6 md:grid-cols-2">
         <form onSubmit={(event) => void saveProfile(event)} className="space-y-3">
           <SectionTitle>{t.admin.profile.personal}</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -80,12 +81,15 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
               className={inputClass}
             />
           </Field>
-          <button type="submit" disabled={saving !== null} className="btn-primary h-11 w-full rounded text-sm font-bold">
+          <button type="submit" disabled={saving !== null} className="btn-primary h-9 w-full rounded text-sm font-bold">
             {t.common.save}
           </button>
         </form>
 
-        <form onSubmit={(event) => void savePassword(event)} className="space-y-3 border-t border-neutral-200 pt-5">
+        <form
+          onSubmit={(event) => void savePassword(event)}
+          className="space-y-3 border-t border-neutral-200 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-6"
+        >
           <SectionTitle>{t.admin.profile.password}</SectionTitle>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t.admin.profile.currentPassword} htmlFor="pr-old">
@@ -109,7 +113,7 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
               />
             </Field>
           </div>
-          <button type="submit" disabled={saving !== null || !oldPassword || !newPassword} className="btn-ghost h-11 w-full rounded text-sm font-bold">
+          <button type="submit" disabled={saving !== null || !oldPassword || !newPassword} className="btn-ghost h-9 w-full rounded text-sm font-bold">
             {t.admin.profile.changePassword}
           </button>
           <p className="text-xs text-neutral-500">{t.admin.profile.forgot}</p>

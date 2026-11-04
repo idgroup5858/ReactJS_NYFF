@@ -121,9 +121,9 @@ export default function OrdersPage() {
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
           <label className="relative block">
             <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
-            <input value={filters.query} onChange={(event) => set('query', event.target.value)} placeholder={t.admin.orders.search} inputMode="numeric" className={`${inputClass} h-9! pl-9`} />
+            <input value={filters.query} onChange={(event) => set('query', event.target.value)} placeholder={t.admin.orders.search} inputMode="numeric" className={`${inputClass} pl-9`} />
           </label>
-          <select value={filters.status} onChange={(event) => set('status', event.target.value as Filters['status'])} aria-label={t.admin.orders.status} className={`${selectClass} h-9!`}>
+          <select value={filters.status} onChange={(event) => set('status', event.target.value as Filters['status'])} aria-label={t.admin.orders.status} className={`${selectClass}`}>
             <option value="all">{t.admin.orders.allStatuses}</option>
             {STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -131,7 +131,7 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
-          <select value={filters.type} onChange={(event) => set('type', event.target.value as Filters['type'])} aria-label={t.kassa.orderType} className={`${selectClass} h-9!`}>
+          <select value={filters.type} onChange={(event) => set('type', event.target.value as Filters['type'])} aria-label={t.kassa.orderType} className={`${selectClass}`}>
             <option value="all">{t.admin.orders.allTypes}</option>
             {ORDER_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -139,7 +139,7 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
-          <select value={filters.source} onChange={(event) => set('source', event.target.value as Filters['source'])} aria-label={t.admin.orders.source} className={`${selectClass} h-9!`}>
+          <select value={filters.source} onChange={(event) => set('source', event.target.value as Filters['source'])} aria-label={t.admin.orders.source} className={`${selectClass}`}>
             <option value="all">{t.admin.orders.allSources}</option>
             {ORDER_SOURCES.map((source) => (
               <option key={source} value={source}>
@@ -147,7 +147,7 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
-          <select value={filters.payment} onChange={(event) => set('payment', event.target.value as Filters['payment'])} aria-label={t.admin.orders.payment} className={`${selectClass} h-9!`}>
+          <select value={filters.payment} onChange={(event) => set('payment', event.target.value as Filters['payment'])} aria-label={t.admin.orders.payment} className={`${selectClass}`}>
             <option value="all">{t.admin.orders.allPayments}</option>
             {PAYMENT_METHODS.map((method) => (
               <option key={method} value={method}>
@@ -155,7 +155,7 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
-          <select value={filters.cashierId} onChange={(event) => set('cashierId', event.target.value)} aria-label={t.admin.orders.cashier} className={`${selectClass} h-9!`}>
+          <select value={filters.cashierId} onChange={(event) => set('cashierId', event.target.value)} aria-label={t.admin.orders.cashier} className={`${selectClass}`}>
             <option value="all">{t.admin.orders.allCashiers}</option>
             {cashiers.map((user) => (
               <option key={user.id} value={user.id}>

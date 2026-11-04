@@ -31,38 +31,43 @@ export default function ShiftReportModal({ shift, onDone }: { shift: ShiftWithSu
       title={t.report.title}
       onClose={onDone}
       dismissable={false}
-      size="sm"
+      size="md"
       footer={
-        <button type="button" autoFocus onClick={onDone} className="btn-primary h-12 w-full rounded text-sm font-bold tracking-[0.14em] uppercase">
+        <button type="button" autoFocus onClick={onDone} className="btn-primary h-10 w-full rounded text-sm font-bold tracking-[0.14em] uppercase">
           {t.report.done}
         </button>
       }
     >
-      <dl className="divide-y divide-dashed divide-neutral-200 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex justify-between gap-3 py-1.5">
-            <dt className="text-neutral-500">{label}</dt>
-            <dd className="font-semibold text-neutral-950 tabular-nums">{value}</dd>
+      {/* eniga keng, past (POS monitori): chapda smena ma'lumoti, o'ngda to'lov turlari va jami */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <dl className="divide-y divide-dashed divide-neutral-200 text-sm">
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-3 py-1.5">
+              <dt className="text-neutral-500">{label}</dt>
+              <dd className="font-semibold text-neutral-950 tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div>
+          <div className="space-y-1.5 rounded border border-neutral-200 p-3">
+            {PAYMENT_METHODS.map((method) => {
+              const Icon = PAYMENT_ICONS[method]
+              return (
+                <p key={method} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex items-center gap-2 text-neutral-600">
+                    <Icon size={16} className="text-neutral-400" />
+                    {t.payment[method]}
+                  </span>
+                  <span className="font-bold tabular-nums">{formatMoney(summary.byPayment[method], t)}</span>
+                </p>
+              )
+            })}
           </div>
-        ))}
-      </dl>
-      <div className="mt-4 space-y-1.5 rounded border border-neutral-200 p-3">
-        {PAYMENT_METHODS.map((method) => {
-          const Icon = PAYMENT_ICONS[method]
-          return (
-            <p key={method} className="flex items-center justify-between gap-3 text-sm">
-              <span className="flex items-center gap-2 text-neutral-600">
-                <Icon size={16} className="text-neutral-400" />
-                {t.payment[method]}
-              </span>
-              <span className="font-bold tabular-nums">{formatMoney(summary.byPayment[method], t)}</span>
-            </p>
-          )
-        })}
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3 rounded bg-brand-50 px-3 py-3">
-        <span className="text-xs font-bold tracking-[0.12em] text-neutral-600 uppercase">{t.report.total}</span>
-        <span className="text-2xl font-black text-neutral-950 tabular-nums">{formatMoney(summary.total, t)}</span>
+          <div className="mt-3 flex items-end justify-between gap-3 rounded bg-brand-50 px-3 py-3">
+            <span className="text-xs font-bold tracking-[0.12em] text-neutral-600 uppercase">{t.report.total}</span>
+            <span className="text-2xl font-black text-neutral-950 tabular-nums">{formatMoney(summary.total, t)}</span>
+          </div>
+        </div>
       </div>
     </Modal>
   )

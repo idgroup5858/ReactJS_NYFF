@@ -69,8 +69,12 @@ export const useBranches = (options: HookOptions = {}) =>
   useQuery(on('branches', options), () => http.get<Branch[]>('/branches', undefined, { token: null }), options)
 
 /** Admin: filial offline kassasi (Electron ilova) kaliti — hali yo'q bo'lsa server yaratadi. */
-export const useOfflineKey = (branchId: ID) =>
-  useQuery(`offline-key:${branchId}`, () => http.get<{ key: string }>(`/branches/${branchId}/offline-key`))
+export const useOfflineKey = (branchId: ID, options: HookOptions = {}) =>
+  useQuery(on(`offline-key:${branchId}`, options), () => http.get<{ key: string }>(`/branches/${branchId}/offline-key`))
+
+/** Admin: filial HR tizimi ("NYFF HR", FaceID) kaliti — hali yo'q bo'lsa server yaratadi. */
+export const useHrKey = (branchId: ID, options: HookOptions = {}) =>
+  useQuery(on(`hr-key:${branchId}`, options), () => http.get<{ key: string }>(`/branches/${branchId}/hr-key`))
 
 /** Admin: filial TV / kiosk kodi (8 raqam) — hali yo'q bo'lsa server yaratadi. */
 export const useScreenCode = (kind: ScreenKind, branchId: ID) =>

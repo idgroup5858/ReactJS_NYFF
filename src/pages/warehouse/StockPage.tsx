@@ -13,7 +13,7 @@ import ViewToggle from '@/components/ui/ViewToggle'
 import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup, type StockItem } from '@/domain/types'
 import { fromBase, toBase } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatMoney, formatNumber, formatStock } from '@/lib/format'
+import { countUnit, formatMoney, formatNumber, formatStock } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, parseQty, warehouseLabel } from '@/lib/warehouses'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
@@ -23,22 +23,25 @@ import { useLastData } from './serverPagination'
 
 type Row = { ingredient: Ingredient; stock: StockItem | undefined; qty: number; min: number; low: boolean }
 
-/** To'ldirish uchun taklif: chegaraning ikki barobarigacha (ombor birligida, yaxlitlangan). */
+/** Ombor birligidagi miqdor (qadoqli mahsulotda — donada). */
+const inUnits = (baseQty: number, ingredient: Ingredient) => fromBase(baseQty, ingredient.unit, ingredient.packSize)
+
+/** To'ldirish uchun taklif: chegaraning ikki barobarigacha (ombor birligida, yaxlitlangan; dona va qadoq — butun). */
 function suggestedRefill(row: Row): number {
   const missing = Math.max(row.min * 2 - row.qty, row.min)
-  const units = fromBase(missing, row.ingredient.unit)
-  return row.ingredient.unit === 'pcs' ? Math.ceil(units) : Math.ceil(units * 10) / 10
+  const units = inUnits(missing, row.ingredient)
+  return row.ingredient.unit === 'pcs' || row.ingredient.packSize !== null ? Math.ceil(units) : Math.ceil(units * 10) / 10
 }
 
-/** Chegarani joyida tahrirlash (ombor birligida). */
+/** Chegarani joyida tahrirlash (ombor birligida, qadoqli mahsulotda — donada). */
 function MinEditor({ row, warehouseId, onDone }: { row: Row; warehouseId: ID; onDone: () => void }) {
   const t = useT()
-  const [value, setValue] = useState(String(fromBase(row.min, row.ingredient.unit)))
+  const [value, setValue] = useState(String(Number(inUnits(row.min, row.ingredient).toFixed(3))))
   const save = async () => {
     const qty = parseQty(value)
     if (!(qty >= 0)) return showToast(t.errors.invalid_qty, 'error')
     try {
-      await api.ingredients.setMinQty(warehouseId, row.ingredient.id, toBase(qty, row.ingredient.unit))
+      await api.ingredients.setMinQty(warehouseId, row.ingredient.id, toBase(qty, row.ingredient.unit, row.ingredient.packSize))
       showToast(t.stock.minSaved)
       onDone()
     } catch (error) {
@@ -53,8 +56,8 @@ function MinEditor({ row, warehouseId, onDone }: { row: Row; warehouseId: ID; on
         void save()
       }}
     >
-      <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} inputMode="decimal" className={`${inputClass} h-8! w-20!`} />
-      <span className="text-xs text-neutral-500">{t.units[row.ingredient.unit]}</span>
+      <input autoFocus value={value} onChange={(event) => setValue(event.target.value)} inputMode="decimal" className={`${inputClass} w-20!`} />
+      <span className="text-xs text-neutral-500">{countUnit(row.ingredient, t)}</span>
       <button type="submit" aria-label={t.common.save} className="btn-primary flex h-8 w-8 items-center justify-center rounded">
         <Check size={14} />
       </button>
@@ -70,7 +73,7 @@ type ItemProps = { row: Row; warehouseId: ID; refillTo: string; onHistory: () =>
 /** Qoldiq qiymati oxirgi kirim narxida; narx hali noma'lum bo'lsa — `null`. */
 function rowValue(row: Row): number | null {
   const { ingredient } = row
-  return ingredient.lastPrice !== null ? Math.round(Math.max(0, fromBase(row.qty, ingredient.unit)) * ingredient.lastPrice) : null
+  return ingredient.lastPrice !== null ? Math.round(Math.max(0, inUnits(row.qty, ingredient)) * ingredient.lastPrice) : null
 }
 
 /** "Kam" / "Tugagan" belgisi; qoldiq yetarli bo'lsa — hech narsa. */
@@ -95,7 +98,7 @@ function MinButton({ row, onEdit }: { row: Row; onEdit: () => void }) {
       title={t.stock.editMin}
       className="group flex cursor-pointer items-center gap-1.5 font-semibold whitespace-nowrap text-neutral-700 tabular-nums hover:text-neutral-950"
     >
-      {row.min > 0 ? formatStock(row.min, row.ingredient.unit, t) : '—'}
+      {row.min > 0 ? formatStock(row.min, row.ingredient, t) : '—'}
       <Pencil size={12} className="text-neutral-300 group-hover:text-select" />
     </button>
   )
@@ -132,7 +135,7 @@ function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
         <p className="min-w-0 leading-snug font-semibold text-neutral-950">{localize(row.ingredient.name)}</p>
         <LowBadge row={row} />
       </div>
-      <p className={`text-2xl leading-none font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient.unit, t)}</p>
+      <p className={`text-2xl leading-none font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient, t)}</p>
       {editing ? (
         <MinEditor row={row} warehouseId={warehouseId} onDone={() => setEditing(false)} />
       ) : (
@@ -170,7 +173,7 @@ function StockRow({ row, warehouseId, refillTo, onHistory }: ItemProps) {
           <LowBadge row={row} />
         </span>
       </td>
-      <td className={`${cellClass} text-right font-extrabold tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient.unit, t)}</td>
+      <td className={`${cellClass} text-right font-extrabold whitespace-nowrap tabular-nums ${row.low ? 'text-red-700' : 'text-neutral-950'}`}>{formatStock(row.qty, row.ingredient, t)}</td>
       <td className={cellClass}>{editing ? <MinEditor row={row} warehouseId={warehouseId} onDone={() => setEditing(false)} /> : <MinButton row={row} onEdit={() => setEditing(true)} />}</td>
       <td className={`${cellClass} text-right font-semibold text-neutral-700 tabular-nums`}>{value !== null ? formatMoney(value, t) : '—'}</td>
       <td className={cellClass}>
@@ -229,7 +232,7 @@ export default function StockPage() {
     (section) => section.rows.length > 0,
   )
 
-  const totalValue = rows.reduce((sum, row) => sum + Math.max(0, fromBase(row.qty, row.ingredient.unit)) * (row.ingredient.lastPrice ?? 0), 0)
+  const totalValue = rows.reduce((sum, row) => sum + Math.max(0, inUnits(row.qty, row.ingredient)) * (row.ingredient.lastPrice ?? 0), 0)
   const lowCount = rows.filter((row) => row.low).length
 
   const refillLink = (row: Row) => {

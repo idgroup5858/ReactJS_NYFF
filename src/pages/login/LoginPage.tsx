@@ -1,16 +1,19 @@
 import { ChevronLeft, LoaderCircle } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import { api } from '@/api'
+import { ApiError } from '@/api/http'
 import { useBranches, useStaffList } from '@/api/queries'
 import { homePathFor, login, useCurrentUser } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { fullName } from '@/domain/rules'
 import type { AuthUser, Branch, ID } from '@/domain/types'
-import { errorMessage, useT } from '@/i18n'
+import { errorMessage, pinFailure, useT, type PinFailure } from '@/i18n'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { setLastBranch } from '@/store/settingsStore'
 import { SectionTitle } from '@/components/ui/Card'
+import FaceIdRequestPanel from '@/components/ui/FaceIdRequestPanel'
 import PinPad from '@/components/ui/PinPad'
 import UserAvatar from '@/components/ui/UserAvatar'
 import BranchStep from './BranchStep'
@@ -74,6 +77,8 @@ export default function LoginPage() {
   const userParam = params.get('user')
   const branchesQuery = useBranches()
   const staffQuery = useLoginStaff(mode && isStaffMode(mode) ? mode : null, branchParam)
+  // FaceID: PIN to'g'ri, lekin terminaldan o'tilmagan — shu PIN bilan admindan ruxsat so'rash mumkin (xodim almashsa — yo'q)
+  const [faceIdPin, setFaceIdPin] = useState<{ userId: string; pin: string } | null>(null)
 
   // TV / kiosk sessiyasiz ishlaydi — shu tabda xodim kirgan bo'lsa ham ekran filialini tanlash mumkin
   if (currentUser && !(mode && isScreenMode(mode))) return <Navigate to={homePathFor(currentUser.role)} replace />
@@ -101,7 +106,7 @@ export default function LoginPage() {
 
   const selectUser = (selected: AuthUser) => go({ ...Object.fromEntries(params), user: selected.id })
 
-  const submitPin = async (pin: string): Promise<string | null> => {
+  const submitPin = async (pin: string): Promise<PinFailure | null> => {
     if (!user) return null
     try {
       // bir nechta filialda ishlaydigan xodim — sessiya shu tanlangan filialniki
@@ -109,9 +114,12 @@ export default function LoginPage() {
       void navigate(homePathFor(session.role), { replace: true })
       return null
     } catch (error) {
-      return errorMessage(error)
+      const faceId = error instanceof ApiError && error.code === 'faceid_checkin_required'
+      setFaceIdPin(faceId ? { userId: user.id, pin } : null)
+      return pinFailure(error)
     }
   }
+  const faceIdRequest = faceIdPin && user && faceIdPin.userId === user.id && branch ? { ...faceIdPin, branchId: branch.id } : null
 
   // ma'lumot kelguncha qadam manzildan aniqlanadi — yuklangach sarlavha va karta sakramaydi
   const branchPending = !branchesQuery.data
@@ -159,6 +167,13 @@ export default function LoginPage() {
             </div>
           </div>
           <PinPad key={user.id} onSubmit={submitPin} />
+          {faceIdRequest && (
+            <FaceIdRequestPanel
+              key={`${faceIdRequest.userId}|${faceIdRequest.pin}`}
+              request={() => api.faceId.requestByPin(faceIdRequest.userId, faceIdRequest.pin, faceIdRequest.branchId)}
+              approvedHint={t.faceId.enterPinAgain}
+            />
+          )}
         </div>
       ) : (
         <StepStatus error={staffQuery.error} onRetry={staffQuery.reload} />

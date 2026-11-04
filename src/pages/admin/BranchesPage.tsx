@@ -8,6 +8,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  ScanFace,
   Store,
   TabletSmartphone,
   Trash2,
@@ -27,18 +28,37 @@ import { inputClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import { hasZone } from '@/domain/rules'
 import type { Branch, ID, WorkHours } from '@/domain/types'
+import type { Dict } from '@/i18n/uz'
 import { errorMessage, useT } from '@/i18n'
-import { formatDeliveryFee, formatMoney, formatNumber } from '@/lib/format'
+import { formatDateTime, formatDeliveryFee, formatMoney, formatNumber } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
-import { useToday } from '@/lib/useNow'
+import { minutesSince, useNow, useToday } from '@/lib/useNow'
 import { rememberScreenCode, type ScreenKind } from '@/store/screenCodes'
+import BranchKeyModal, { type BranchKeyKind } from './BranchKeyModal'
 import OnlineStatePill from './delivery/OnlineStatePill'
 import { deliveryMapPath } from './delivery/paths'
-import OfflineKeyModal from './OfflineKeyModal'
 import ListPlaceholder from './orders/ListPlaceholder'
 import ScreenCodeModal from './ScreenCodeModal'
 
 const DEFAULT_HOURS: WorkHours = { open: '09:00', close: '23:00' }
+
+/** HR shu vaqt ichida murojaat qilgan bo'lsa — ishlayapti (HR har 5 daqiqada o'zini bildiradi). */
+const HR_FRESH_MINUTES = 15
+
+/** "HR: 3 daqiqa oldin" — filial HR tizimi oxirgi marta qachon murojaat qilgan; `fresh` — yaqinda (ishlayapti). */
+function hrSeenText(hrSeenAt: string | null, now: Date, t: Dict): { text: string; fresh: boolean } {
+  if (!hrSeenAt) return { text: t.admin.branches.hrNever, fresh: false }
+  const minutes = Math.max(0, Math.floor(minutesSince(hrSeenAt, now)))
+  const ago =
+    minutes < 1
+      ? t.admin.branches.agoNow
+      : minutes < 60
+        ? t.admin.branches.agoMinutes(minutes)
+        : minutes < 48 * 60
+          ? t.admin.branches.agoHours(Math.floor(minutes / 60))
+          : t.admin.branches.agoDays(Math.floor(minutes / 1440))
+  return { text: t.admin.branches.hrSeen(ago), fresh: minutes < HR_FRESH_MINUTES }
+}
 
 /**
  * Filial qo'shish / tahrirlash; yangi filialda menyudagi hamma taom o'sha narxda darhol sotuvda. Ish vaqti — faqat
@@ -72,37 +92,63 @@ function BranchForm({ branch, onClose }: { branch: Branch | null; onClose: () =>
     <Modal
       title={branch ? t.admin.branches.edit : t.admin.branches.add}
       onClose={onClose}
+      size="lg"
       footer={
-        <button type="submit" form="branch-form" className="btn-primary h-11 w-full rounded text-sm font-bold">
+        <button type="submit" form="branch-form" className="btn-primary h-9 w-full rounded text-sm font-bold">
           {t.common.save}
         </button>
       }
     >
+      {/* eniga keng, past (POS monitori): nomi · manzil · telefon; ish vaqti · ochiladi · yopiladi · faol */}
       <form id="branch-form" onSubmit={(event) => void save(event)} className="space-y-3">
-        <Field label={t.admin.branches.name} htmlFor="br-name">
-          <input id="br-name" autoFocus value={name} onChange={(event) => setName(event.target.value)} className={inputClass} />
-        </Field>
-        <Field label={t.admin.branches.address} htmlFor="br-address">
-          <input id="br-address" value={address} onChange={(event) => setAddress(event.target.value)} className={inputClass} />
-        </Field>
-        <Field label={t.admin.branches.phone} htmlFor="br-phone">
-          <input id="br-phone" value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" placeholder="+998 __ ___ __ __" className={inputClass} />
-        </Field>
-        <div className="space-y-2">
-          <Toggle checked={hoursOn} onChange={setHoursOn} label={t.admin.branches.workHours} />
-          {hoursOn && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t.admin.branches.opensAt} htmlFor="br-open">
-                <input id="br-open" type="time" value={hours.open} onChange={(event) => event.target.value && setHours({ ...hours, open: event.target.value })} className={inputClass} />
-              </Field>
-              <Field label={t.admin.branches.closesAt} htmlFor="br-close">
-                <input id="br-close" type="time" value={hours.close} onChange={(event) => event.target.value && setHours({ ...hours, close: event.target.value })} className={inputClass} />
-              </Field>
-            </div>
-          )}
-          <p className="text-xs text-neutral-500">{t.admin.branches.workHoursHint}</p>
+        <div className="grid gap-3 sm:grid-cols-[1fr_1.5fr_1fr]">
+          <Field label={t.admin.branches.name} htmlFor="br-name">
+            <input id="br-name" autoFocus value={name} onChange={(event) => setName(event.target.value)} className={inputClass} />
+          </Field>
+          <Field label={t.admin.branches.address} htmlFor="br-address">
+            <input id="br-address" value={address} onChange={(event) => setAddress(event.target.value)} className={inputClass} />
+          </Field>
+          <Field label={t.admin.branches.phone} htmlFor="br-phone">
+            <input id="br-phone" value={phone} onChange={(event) => setPhone(event.target.value)} inputMode="tel" placeholder="+998 __ ___ __ __" className={inputClass} />
+          </Field>
         </div>
-        <Toggle checked={active} onChange={setActive} label={t.common.active} />
+        {/* "Ish vaqti [09:00] – [23:00]" yoki o'chiq bo'lsa "Ish vaqti · 24/7" — qiymat switch yonida, bo'sh joyda osilib qolmasin */}
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+          <div className="flex min-h-8 flex-wrap items-center gap-x-3 gap-y-2">
+            <Toggle checked={hoursOn} onChange={setHoursOn} label={t.admin.branches.workHours} />
+            {hoursOn ? (
+              <span className="flex items-center gap-2">
+                <span className="w-28">
+                  <input
+                    id="br-open"
+                    type="time"
+                    aria-label={t.admin.branches.opensAt}
+                    title={t.admin.branches.opensAt}
+                    value={hours.open}
+                    onChange={(event) => event.target.value && setHours({ ...hours, open: event.target.value })}
+                    className={inputClass}
+                  />
+                </span>
+                <span className="text-neutral-400">–</span>
+                <span className="w-28">
+                  <input
+                    id="br-close"
+                    type="time"
+                    aria-label={t.admin.branches.closesAt}
+                    title={t.admin.branches.closesAt}
+                    value={hours.close}
+                    onChange={(event) => event.target.value && setHours({ ...hours, close: event.target.value })}
+                    className={inputClass}
+                  />
+                </span>
+              </span>
+            ) : (
+              <span className="rounded-chip bg-neutral-100 px-2 py-0.5 text-xs font-bold text-neutral-600">{t.admin.branches.allDay}</span>
+            )}
+          </div>
+          <Toggle checked={active} onChange={setActive} label={t.common.active} />
+        </div>
+        <p className="text-xs text-neutral-500">{t.admin.branches.workHoursHint}</p>
       </form>
     </Modal>
   )
@@ -123,12 +169,22 @@ export default function BranchesPage() {
   const overview = useOverview().data
   const todayReport = useSalesReport({ from: today, to: today, branchId: null }).data
   const [editing, setEditing] = useState<Branch | 'new' | null>(null)
-  const [keyFor, setKeyFor] = useState<Branch | null>(null)
+  const [keyFor, setKeyFor] = useState<{ kind: BranchKeyKind; branch: Branch } | null>(null)
   const [codeFor, setCodeFor] = useState<{ kind: ScreenKind; branch: Branch } | null>(null)
+  const now = useNow(30_000)
 
   const setOnline = async (branchId: ID, enabled: boolean) => {
     try {
       await api.branches.setOnline(branchId, enabled)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
+  /** FaceID tekshiruvi — terminal yoki HR buzilsa admin darhol o'chiradi (kassirlar PIN bilan kiradi). */
+  const setFaceId = async (branchId: ID, enabled: boolean) => {
+    try {
+      await api.branches.setFaceId(branchId, enabled)
     } catch (error) {
       showToast(errorMessage(error), 'error')
     }
@@ -194,59 +250,70 @@ export default function BranchesPage() {
           // bir nechta filialda ishlaydigan xodim — har birida sanaladi
           const staff = users.filter((u) => u.branchIds.includes(branch.id) && u.active).length
           const fallback = branches.find((b) => b.id === branch.fallbackBranchId)
+          const hr = hrSeenText(branch.hrSeenAt, now, t)
           return (
             <Card key={branch.id} className={`space-y-4 p-5 ${branch.active ? '' : 'opacity-60'}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-lg font-extrabold text-neutral-950">{branch.name}</p>
-                  <p className="mt-1 flex items-start gap-1.5 text-sm text-neutral-500">
-                    <MapPin size={14} className="mt-0.5 shrink-0 text-select" />
-                    {branch.address || '—'}
-                  </p>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
-                    <Phone size={14} className="shrink-0 text-select" />
-                    {branch.phone || '—'}
-                  </p>
-                  <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500" title={t.admin.branches.workHoursHint}>
-                    <Clock size={14} className="shrink-0 text-select" />
-                    {branch.workHours ? `${branch.workHours.open}–${branch.workHours.close}` : t.admin.branches.allDay}
-                  </p>
+              {/* nom va tugmalar: sig'sa bir qatorda, tor kartochkada tugmalar nom ostida — manzil doim to'liq kenglikda */}
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                  <p className="min-w-0 text-lg font-extrabold text-neutral-950">{branch.name}</p>
+                  <div className="flex shrink-0 gap-1">
+                    <button type="button" onClick={() => setEditing(branch)} aria-label={t.common.edit} className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded">
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKeyFor({ kind: 'offline', branch })}
+                      aria-label={t.admin.branches.offlineKey}
+                      title={t.admin.branches.offlineKey}
+                      className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded"
+                    >
+                      <WifiOff size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setKeyFor({ kind: 'hr', branch })}
+                      aria-label={t.admin.branches.hrKey}
+                      title={t.admin.branches.hrKey}
+                      className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded"
+                    >
+                      <ScanFace size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCodeFor({ kind: 'tv', branch })}
+                      aria-label={t.admin.branches.tvCode}
+                      title={t.admin.branches.tvCode}
+                      className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded"
+                    >
+                      <Tv size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCodeFor({ kind: 'kiosk', branch })}
+                      aria-label={t.admin.branches.kioskCode}
+                      title={t.admin.branches.kioskCode}
+                      className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded"
+                    >
+                      <TabletSmartphone size={15} />
+                    </button>
+                    <button type="button" onClick={() => void remove(branch)} aria-label={t.common.delete} className="btn-icon-danger flex h-8 w-8 shrink-0 items-center justify-center rounded">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <button type="button" onClick={() => setEditing(branch)} aria-label={t.common.edit} className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded">
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setKeyFor(branch)}
-                    aria-label={t.admin.branches.offlineKey}
-                    title={t.admin.branches.offlineKey}
-                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
-                  >
-                    <WifiOff size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCodeFor({ kind: 'tv', branch })}
-                    aria-label={t.admin.branches.tvCode}
-                    title={t.admin.branches.tvCode}
-                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
-                  >
-                    <Tv size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setCodeFor({ kind: 'kiosk', branch })}
-                    aria-label={t.admin.branches.kioskCode}
-                    title={t.admin.branches.kioskCode}
-                    className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded"
-                  >
-                    <TabletSmartphone size={15} />
-                  </button>
-                  <button type="button" onClick={() => void remove(branch)} aria-label={t.common.delete} className="btn-icon-danger flex h-9 w-9 shrink-0 items-center justify-center rounded">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                <p className="mt-1 flex items-start gap-1.5 text-sm text-neutral-500">
+                  <MapPin size={14} className="mt-0.5 shrink-0 text-select" />
+                  {branch.address || '—'}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500">
+                  <Phone size={14} className="shrink-0 text-select" />
+                  {branch.phone || '—'}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1.5 text-sm text-neutral-500" title={t.admin.branches.workHoursHint}>
+                  <Clock size={14} className="shrink-0 text-select" />
+                  {branch.workHours ? `${branch.workHours.open}–${branch.workHours.close}` : t.admin.branches.allDay}
+                </p>
               </div>
               {/* tushum ustuni matnga qarab kengayadi — summa qisilmaydi */}
               <div className="grid grid-cols-[auto_1fr_1fr] gap-2 text-center">
@@ -293,6 +360,19 @@ export default function BranchesPage() {
                   </Link>
                 </div>
               </div>
+              {/* FaceID: kassir smenani terminalda «Kirish» bosib ochadi, «Chiqish» bosib topshiradi — buzilsa bir bosishda o'chadi */}
+              <div className="space-y-1.5 rounded-card border border-line p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <Toggle checked={branch.faceIdRequired} onChange={(enabled) => void setFaceId(branch.id, enabled)} label={t.admin.branches.faceId} />
+                  <span
+                    title={branch.hrSeenAt ? formatDateTime(branch.hrSeenAt) : t.admin.branches.hrNeverHint}
+                    className={`shrink-0 cursor-help text-xs font-semibold ${hr.fresh ? 'text-emerald-700' : 'text-amber-700'}`}
+                  >
+                    {hr.text}
+                  </span>
+                </div>
+                <p className="text-xs leading-relaxed text-neutral-500">{t.admin.branches.faceIdHint}</p>
+              </div>
               {branch.active && (
                 <div className="flex gap-2">
                   <Link
@@ -327,7 +407,7 @@ export default function BranchesPage() {
         })}
       </div>
       {editing && <BranchForm branch={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
-      {keyFor && <OfflineKeyModal branch={keyFor} onClose={() => setKeyFor(null)} />}
+      {keyFor && <BranchKeyModal kind={keyFor.kind} branch={keyFor.branch} onClose={() => setKeyFor(null)} />}
       {codeFor && <ScreenCodeModal kind={codeFor.kind} branch={codeFor.branch} onClose={() => setCodeFor(null)} />}
     </div>
   )

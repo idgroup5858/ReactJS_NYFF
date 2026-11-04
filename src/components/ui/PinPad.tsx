@@ -1,20 +1,31 @@
 import { Delete, LogIn } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useT } from '@/i18n'
+import { useT, type PinFailure } from '@/i18n'
 
 const MIN = 4
 const MAX = 8
 const DIGITS = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
+/** `4:59` */
+const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+
 type Props = {
-  /** PIN tekshiruvchi: xato bo'lsa matnini qaytaradi, muvaffaqiyatli bo'lsa `null` */
-  onSubmit: (pin: string) => Promise<string | null>
+  /**
+   * PIN tekshiruvchi: muvaffaqiyatli bo'lsa `null`, xato bo'lsa — matni yoki `pinFailure(error)` (blok bo'lsa necha
+   * soniya kutish — pad o'sha vaqtgacha o'chadi)
+   */
+  onSubmit: (pin: string) => Promise<string | PinFailure | null>
   submitLabel?: string
 }
 
 /**
  * Sensorli ekran uchun katta tugmali PIN pad; klaviaturadan ham ishlaydi (raqamlar, Backspace, Esc, Enter).
- * Kirish (shu ekran), kassa bloki va PIN almashtirishda qayta ishlatiladi.
+ * Kirish (shu ekran), kassa bloki va offline kassada qayta ishlatiladi.
+ *
+ * Ko'p xatodan keyin blok (2026-11-04): server qolgan vaqtni aytsa, hamma tugma (va klaviatura) o'sha vaqtgacha o'chadi,
+ * xato qatorida "4:59 dan keyin" sanaladi, tugagach o'zi yoqiladi — bloklangan kassir bosaverib filialning IP
+ * chegarasini (PIN bilan kirish — daqiqasiga 20 ta, hamma xodimga umumiy) to'ldirib qo'ymasin. Blok xodimniki — boshqa
+ * xodim tanlansa pad yangidan (`key`).
  */
 export default function PinPad({ onSubmit, submitLabel }: Props) {
   const t = useT()
@@ -22,15 +33,32 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [shakeKey, setShakeKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [now, setNow] = useState(() => Date.now())
   // klaviaturadan tez yozilganda Enter qayta chizilishni kutmasdan keladi — joriy qiymat ref'dan o'qiladi
   const pinRef = useRef('')
   const busyRef = useRef(false)
+
+  const lockLeft = lockedUntil === null ? 0 : Math.max(0, Math.ceil((lockedUntil - now) / 1000))
+  const locked = lockLeft > 0
+
+  // blok sanog'i: har soniyada; tugagach — pad yana ishlaydi
+  useEffect(() => {
+    if (lockedUntil === null) return
+    const timer = setInterval(() => {
+      const current = Date.now()
+      setNow(current)
+      if (current >= lockedUntil) setLockedUntil(null)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [lockedUntil])
 
   const update = (next: string) => {
     pinRef.current = next
     setPin(next)
   }
   const press = (digit: string) => {
+    if (locked) return
     setError(null)
     if (pinRef.current.length < MAX) update(pinRef.current + digit)
   }
@@ -39,22 +67,29 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
 
   const submit = async () => {
     const value = pinRef.current
-    if (value.length < MIN || busyRef.current) return
+    if (value.length < MIN || busyRef.current || locked) return
     busyRef.current = true
     setBusy(true)
-    const message = await onSubmit(value)
+    const failure = await onSubmit(value)
     busyRef.current = false
     setBusy(false)
-    if (message) {
+    if (!failure) return
+    const { message, lockSeconds } = typeof failure === 'string' ? { message: failure, lockSeconds: undefined } : failure
+    update('')
+    setShakeKey((key) => key + 1)
+    if (lockSeconds) {
+      const current = Date.now()
+      setNow(current)
+      setLockedUntil(current + lockSeconds * 1000)
+      setError(null)
+    } else {
       setError(message)
-      update('')
-      setShakeKey((key) => key + 1)
     }
   }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.altKey) return
+      if (event.ctrlKey || event.metaKey || event.altKey || locked) return
       if (/^\d$/.test(event.key)) press(event.key)
       else if (event.key === 'Backspace') erase()
       else if (event.key === 'Escape') clear()
@@ -68,7 +103,7 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
 
   const slots = Math.max(MIN, pin.length)
   const keyClass =
-    'flex h-16 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-2xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100'
+    'flex h-16 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-2xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
 
   return (
     <div className="space-y-4">
@@ -81,21 +116,35 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
         ))}
       </div>
       {/* uzun xato (masalan, qaysi filialda smena ochiq qolgani) — qatorga sig'masa pastga suriladi, tugmalar ustiga chiqmaydi */}
-      <p className={`min-h-5 text-center text-sm leading-5 ${error ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>{error ?? t.login.pinHint}</p>
+      <p className={`min-h-5 text-center text-sm leading-5 ${error || locked ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>
+        {locked ? t.login.lockedFor(clock(lockLeft)) : (error ?? t.login.pinHint)}
+      </p>
 
       <div className="grid grid-cols-3 gap-2">
         {DIGITS.map((digit) => (
-          <button key={digit} type="button" onClick={() => press(digit)} className={keyClass}>
+          <button key={digit} type="button" onClick={() => press(digit)} disabled={locked} className={keyClass}>
             {digit}
           </button>
         ))}
-        <button type="button" onClick={clear} className={`${keyClass} text-sm font-bold tracking-wider text-neutral-500 uppercase`}>
+        <button
+          type="button"
+          onClick={clear}
+          disabled={locked}
+          className={`${keyClass} text-sm font-bold tracking-wider text-neutral-500 uppercase`}
+        >
           {t.login.clear}
         </button>
-        <button type="button" onClick={() => press('0')} className={keyClass}>
+        <button type="button" onClick={() => press('0')} disabled={locked} className={keyClass}>
           0
         </button>
-        <button type="button" onClick={erase} aria-label={t.login.erase} title={t.login.erase} className={`${keyClass} text-neutral-500`}>
+        <button
+          type="button"
+          onClick={erase}
+          disabled={locked}
+          aria-label={t.login.erase}
+          title={t.login.erase}
+          className={`${keyClass} text-neutral-500`}
+        >
           <Delete size={24} />
         </button>
       </div>
@@ -103,7 +152,7 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
       <button
         type="button"
         onClick={() => void submit()}
-        disabled={pin.length < MIN || busy}
+        disabled={pin.length < MIN || busy || locked}
         className="btn-primary flex h-14 w-full items-center justify-center gap-2 rounded text-sm font-bold tracking-[0.14em] uppercase"
       >
         <LogIn size={18} />

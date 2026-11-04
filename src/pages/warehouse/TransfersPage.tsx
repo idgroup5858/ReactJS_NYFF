@@ -10,7 +10,7 @@ import Pagination from '@/components/ui/Pagination'
 import { selectClass, textareaClass } from '@/components/ui/styles'
 import { fullName } from '@/domain/rules'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatDateTime, formatNumber } from '@/lib/format'
+import { formatDateTime, formatNumber, formatUnit } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
 import { newDraftLine, readyLines, type DraftLine } from './draftLines'
@@ -144,7 +144,10 @@ export default function TransfersPage() {
                       {transfer.items
                         .map((item) => {
                           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
-                          return ingredient ? `${localize(ingredient.name)} — ${formatNumber(item.qty, 3)} ${t.units[ingredient.unit]}` : item.ingredientId
+                          // birlik — hujjat yozilgan paytdagi qadoq bilan
+                          return ingredient
+                            ? `${localize(ingredient.name)} — ${formatNumber(item.qty, 3)} ${formatUnit({ unit: ingredient.unit, packSize: item.packSize }, t)}`
+                            : item.ingredientId
                         })
                         .join(' · ')}
                     </p>

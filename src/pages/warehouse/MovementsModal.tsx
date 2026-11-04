@@ -62,7 +62,7 @@ export default function MovementsModal({ warehouseId, ingredientId, onClose }: {
                   <td className={`${tdClass} text-neutral-600`}>{reference(movement)}</td>
                   <td className={`${tdClass} text-right font-bold whitespace-nowrap tabular-nums ${movement.qty > 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                     {movement.qty > 0 ? '+' : ''}
-                    {formatStock(movement.qty, ingredient.unit, t)}
+                    {formatStock(movement.qty, ingredient, t)}
                   </td>
                 </tr>
               ))}

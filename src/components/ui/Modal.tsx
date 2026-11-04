@@ -7,13 +7,18 @@ type Props = {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  /** wide — md dan biroz keng (to'lov oynasi: 4 ta to'lov turi bir qatorda sig'sin) */
+  /** wide — md dan biroz keng; lg / xl — ko'p maydonli formalar (maydonlar 2–3 ustunda) */
   size?: 'sm' | 'md' | 'wide' | 'lg' | 'xl'
   /** false — fon va Esc bilan yopilmaydi (masalan smena hisoboti: faqat tugma bilan) */
   dismissable?: boolean
 }
 
-const WIDTHS = { sm: 'max-w-sm', md: 'max-w-md', wide: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-6xl' }
+/**
+ * Kassa POS monitorlari past (balandligi kichik) — oynalar eniga keng va past bo'ladi: maydonlar bir nechta ustunda,
+ * bo'shliqlar ixcham. Balandlikka sig'masa — ichi o'raladi (sarlavha va tugmalar joyida qoladi).
+ */
+// juda keng ham emas — 1000 px atrofidagi POS ekranida cho'zilib ketmasin (foydalanuvchi: lg 896 px — "juda cho'zilib ketibdi")
+const WIDTHS = { sm: 'max-w-md', md: 'max-w-xl', wide: 'max-w-2xl', lg: 'max-w-3xl', xl: 'max-w-6xl' }
 
 /** Ilova oynasi — SweetAlert dialoglari bilan bir xil anatomiya: sarlavha · ✕ → matn → tugmalar. */
 export default function Modal({ title, onClose, children, footer, size = 'md', dismissable = true }: Props) {
@@ -30,7 +35,7 @@ export default function Modal({ title, onClose, children, footer, size = 'md', d
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3"
       onMouseDown={(event) => dismissable && event.target === event.currentTarget && onClose()}
     >
       <div
@@ -39,7 +44,7 @@ export default function Modal({ title, onClose, children, footer, size = 'md', d
         aria-label={title}
         className={`page-enter flex max-h-full w-full flex-col overflow-hidden rounded-card border border-line bg-white shadow-2xl ${WIDTHS[size]}`}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 py-2.5 pr-3 pl-5">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 py-2 pr-3 pl-4">
           <h2 className="title-section text-neutral-900">{title}</h2>
           {dismissable && (
             <button
@@ -53,8 +58,8 @@ export default function Modal({ title, onClose, children, footer, size = 'md', d
             </button>
           )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex shrink-0 gap-2 border-t border-neutral-200 px-5 py-4">{footer}</div>}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{children}</div>
+        {footer && <div className="flex shrink-0 gap-2 border-t border-neutral-200 px-4 py-2.5">{footer}</div>}
       </div>
     </div>
   )

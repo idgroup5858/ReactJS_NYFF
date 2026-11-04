@@ -46,6 +46,13 @@ export interface Branch {
   workHours: WorkHours | null
   /** hozir online buyurtma oladimi — `GET /branches` javobida (server hisoblaydi) */
   onlineState?: BranchOnlineState
+  /**
+   * FaceID tekshiruvi: kassir smenani filial terminalida «Kirish» bosib ochadi, «Chiqish» bosib topshiradi (HR tizimi
+   * yuboradi). Admin kartochkadan bir bosishda o'chiradi (terminal buzilsa)
+   */
+  faceIdRequired: boolean
+  /** filial HR tizimi markazga oxirgi marta murojaat qilgan vaqt; `null` — hali ulanmagan */
+  hrSeenAt: Timestamp | null
 }
 
 export interface WorkHours {
@@ -87,10 +94,28 @@ export interface User {
    * turgan filial tanlanadi); admin, ta'minotchi va kuryer — `[]`
    */
   branchIds: ID[]
+  /**
+   * Kassir (FaceID): filial id → tabel raqami (o'sha filial HR tizimidagi / terminaldagi `employeeNo`; HR har filialda
+   * alohida — raqam ham filialga xos). Boshqa rollarda `{}`
+   */
+  employeeNos: Record<ID, number>
   /** admin va kuryer: kirish emaili (kichik harfda); PIN bilan kiradiganlarda `null` */
   email: string | null
   active: boolean
   createdAt: Timestamp
+}
+
+/**
+ * Kassir terminaldan o'tolmadi — admindan Telegram orqali so'ralgan ruxsat (`POST /auth/faceid-request`,
+ * `/shifts/current/faceid-request`). `open` — smena ochish, `resume` — smenasi ochiq kassaga kirish, `close` — topshirish.
+ */
+export interface FaceIdRequest {
+  id: ID
+  action: 'open' | 'resume' | 'close'
+  /** `expired` — javob berilmadi yoki ruxsat muddati (10 daqiqa) tugadi */
+  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  /** `pending` — javob kutish muddati, `approved` — ruxsat tugash vaqti */
+  until: Timestamp | null
 }
 
 /** Kuryer va hozirgi holati (`GET /users/couriers`) — admin "Xodimlar" va kassa "Dostavka" uchun. */
@@ -214,7 +239,12 @@ export interface Ingredient {
   name: LocalizedText
   group: IngredientGroup
   unit: StockUnit
-  /** oxirgi tasdiqlangan kirimdagi 1 birlik (kg / l / dona) narxi — keyingi kirimda avtomatik yoziladi */
+  /**
+   * Qadoq hajmi asosiy birlikda (g / ml / dona): 600 — 1 dona ketchup 600 g. Berilgan bo'lsa kirim, ko'chirish, narx va
+   * qoldiqni ko'rsatish — donada ("9 dona + 550 g"); qoldiq, retsept va chegara baribir asosiy birlikda. `null` — qadoqsiz
+   */
+  packSize: number | null
+  /** oxirgi tasdiqlangan kirimdagi 1 birlik (qadoq bo'lsa — 1 dona, aks holda kg / l / dona) narxi — keyingi kirimda avtomatik yoziladi */
   lastPrice: number | null
   active: boolean
 }
@@ -233,10 +263,12 @@ export type PurchaseStatus = 'pending' | 'approved' | 'rejected'
 
 export interface PurchaseItem {
   ingredientId: ID
-  /** ombor birligida (kg / l / dona) */
+  /** ombor birligida (kg / l / dona); [packSize] bo'lsa — donada (qadoqda) */
   qty: number
-  /** 1 birlik narxi — admin kiritadi; tasdiqlanmaguncha `null` bo'lishi mumkin */
+  /** 1 birlik ([packSize] bo'lsa — 1 dona) narxi — admin kiritadi; tasdiqlanmaguncha `null` bo'lishi mumkin */
   price: number | null
+  /** hujjat yozilgan paytdagi qadoq hajmi (asosiy birlikda) — mahsulotniki keyin o'zgarsa ham shu bilan ko'rsatiladi */
+  packSize: number | null
 }
 
 /** Ta'minotchi kiritgan kirim. Admin narxlarni kiritib tasdiqlamaguncha omborga qo'shilmaydi. */
@@ -255,8 +287,10 @@ export interface Purchase {
 
 export interface TransferItem {
   ingredientId: ID
-  /** ombor birligida (kg / l / dona) */
+  /** ombor birligida (kg / l / dona); [packSize] bo'lsa — donada (qadoqda) */
   qty: number
+  /** hujjat yozilgan paytdagi qadoq hajmi (asosiy birlikda) */
+  packSize: number | null
 }
 
 /** Omborlar orasidagi ko'chirish (markaziy → filial yoki filial → filial). */

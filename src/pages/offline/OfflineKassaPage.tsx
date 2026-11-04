@@ -101,7 +101,7 @@ function NumberPrompt({ last, onDone }: { last: number; onDone: () => void }) {
       dismissable={false}
       size="sm"
       footer={
-        <button type="submit" form="offline-number" disabled={busy || value === ''} className="btn-primary h-12 w-full rounded text-sm font-bold tracking-[0.12em] uppercase">
+        <button type="submit" form="offline-number" disabled={busy || value === ''} className="btn-primary h-10 w-full rounded text-sm font-bold tracking-[0.12em] uppercase">
           {t.offline.numberSave}
         </button>
       }
