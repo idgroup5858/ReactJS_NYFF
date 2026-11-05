@@ -1,6 +1,6 @@
-import { ArrowLeftRight, ChefHat, ChevronLeft, Maximize, MapPin, PartyPopper } from 'lucide-react'
+import { ChefHat, MapPin, PartyPopper } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import { Navigate, useNavigate, useParams } from 'react-router'
 import { api } from '@/api'
 import { ApiError } from '@/api/http'
 import { useBranches, useTvQueue } from '@/api/queries'
@@ -9,10 +9,12 @@ import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import ScreenCodeForm from '@/components/screen/ScreenCodeForm'
+import { useScreenStaff } from '@/components/screen/useScreenStaff'
 import { READY_SHOWN_MS } from '@/domain/rules'
 import type { TvOrder } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatOrderNumber, formatTime } from '@/lib/format'
+import { enterFullscreen } from '@/lib/fullscreen'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { minutesSince, useNow } from '@/lib/useNow'
 import { forgetScreenCode, readScreenCode, rememberScreenCode } from '@/store/screenCodes'
@@ -71,39 +73,24 @@ function Tile({ order, tone, fresh = false }: { order: TvOrder; tone: 'preparing
   )
 }
 
-const headerButtonClass =
-  'flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-coal-line text-white/60 transition-colors hover:border-taxi hover:text-taxi'
-
-/** Filialni almashtirish (kirishdagi TV qadami) va orqaga. */
-function TvNavLinks() {
-  const t = useT()
-  return (
-    <>
-      <Link to={CHOOSE_BRANCH_PATH} title={t.login.changeBranch} aria-label={t.login.changeBranch} className={headerButtonClass}>
-        <ArrowLeftRight size={16} />
-      </Link>
-      <Link to="/" title={t.common.back} aria-label={t.common.back} className={headerButtonClass}>
-        <ChevronLeft size={16} />
-      </Link>
-    </>
-  )
-}
-
 /**
  * TV kodi so'raladi: birinchi ochilganda va admin kodni yangilaganda. Kod serverda tekshiriladi (navbat so'rovi bilan),
- * to'g'ri bo'lsa — shu TV da saqlanadi va boshqa so'ralmaydi.
+ * to'g'ri bo'lsa — shu TV da saqlanadi va boshqa so'ralmaydi. Chiqish tugmalari yo'q — xodim logotipni 10 soniya bosib
+ * turadi ([onBrandHold]).
  */
 function TvCodeScreen({
   branchId,
   branchName,
   notice,
   onConnected,
+  onBrandHold,
 }: {
   branchId: string
   branchName: string
   /** nima uchun yana so'ralyapti (kod yangilangan, ko'p xato) */
   notice: string | null
   onConnected: (code: string) => void
+  onBrandHold: () => void
 }) {
   const t = useT()
   useDocumentTitle(t.modes.tv.title)
@@ -112,7 +99,7 @@ function TvCodeScreen({
     <div className="flex h-screen flex-col overflow-hidden bg-coal text-white">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-6 py-3">
         <div className="flex items-center gap-5">
-          <Brand size="lg" />
+          <Brand size="lg" onHold={onBrandHold} />
           {branchName && (
             <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
               <MapPin size={16} className="text-taxi" />
@@ -120,10 +107,7 @@ function TvCodeScreen({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <LanguageSwitcher tone="dark" />
-          <TvNavLinks />
-        </div>
+        <LanguageSwitcher tone="dark" />
       </header>
       <main className="flex min-h-0 flex-1 items-center justify-center p-6">
         <ScreenCodeForm
@@ -144,7 +128,7 @@ function TvCodeScreen({
  * "Tayyor" bosgach raqam o'ngga o'tadi va 5 daqiqadan keyin o'zi tushadi (server bu haqda xabar yubormaydi). Navbatda
  * faqat kassa va kioskdagi zalda / olib ketish buyurtmalari — saralashni server qiladi.
  */
-function TvScreen({ branchName, queue }: { branchName: string; queue: Queue | undefined }) {
+function TvScreen({ branchName, queue, onBrandHold }: { branchName: string; queue: Queue | undefined; onBrandHold: () => void }) {
   const t = useT()
   const now = useNow(1000)
   const [preparingGrid, setPreparingGrid] = useState<HTMLDivElement | null>(null)
@@ -158,16 +142,11 @@ function TvScreen({ branchName, queue }: { branchName: string; queue: Queue | un
   const preparingFit = fit(preparing, preparingCapacity)
   const readyFit = fit(ready, readyCapacity)
 
-  const fullscreen = () => {
-    if (document.fullscreenElement) void document.exitFullscreen()
-    else void document.documentElement.requestFullscreen?.()
-  }
-
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-coal text-white">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-6 py-3">
         <div className="flex items-center gap-5">
-          <Brand size="lg" />
+          <Brand size="lg" onHold={onBrandHold} />
           {branchName && (
             <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
               <MapPin size={16} className="text-taxi" />
@@ -178,10 +157,6 @@ function TvScreen({ branchName, queue }: { branchName: string; queue: Queue | un
         <div className="flex items-center gap-3">
           <span className="text-3xl font-black text-taxi tabular-nums">{formatTime(now.toISOString())}</span>
           <LanguageSwitcher tone="dark" />
-          <button type="button" onClick={fullscreen} title={t.tv.fullscreen} aria-label={t.tv.fullscreen} className={headerButtonClass}>
-            <Maximize size={16} />
-          </button>
-          <TvNavLinks />
         </div>
       </header>
 
@@ -237,7 +212,9 @@ function TvScreen({ branchName, queue }: { branchName: string; queue: Queue | un
 /**
  * Bitta filial TV si: kod yo'q bo'lsa — kod so'raladi; bor bo'lsa — navbat socket orqali jonli. Admin kodni yangilasa
  * (socket `wrong_tv_code` bilan uziladi yoki navbat 401) — kod unutiladi va yana so'raladi. Filial noma'lum yoki faol
- * emas (ekran ochiq turganda admin o'chirgan bo'lsa ham) — kirishdagi filial tanlashga.
+ * emas (ekran ochiq turganda admin o'chirgan bo'lsa ham) — kirishdagi filial tanlashga. Zalda — mijozdan manzil qatori
+ * yashirin: to'liq ekranda ushlab turiladi (o'chib-yongach — birinchi bosishda), chiqish tugmasi yo'q — Esc yoki
+ * logotipni 10 soniya bosib turib, TV kodi bilan (`useScreenStaff`).
  */
 function TvBranch({ branchId }: { branchId: string }) {
   const t = useT()
@@ -276,23 +253,36 @@ function TvBranch({ branchId }: { branchId: string }) {
     if (notFound) reloadBranches()
   }, [notFound, reloadBranches])
 
+  const staff = useScreenStaff({ verify: (value) => api.tv.queue(branchId, value), changeBranchPath: CHOOSE_BRANCH_PATH })
+
   const branch = branches.data?.find((b) => b.id === branchId && b.active)
   if (branches.data && !branch) return <Navigate to={CHOOSE_BRANCH_PATH} replace />
   if (!code || codeRejected) {
     return (
-      <TvCodeScreen
-        branchId={branchId}
-        branchName={branch?.name ?? ''}
-        notice={codeRejected ? t.tv.codeChanged : notice}
-        onConnected={(value) => {
-          rememberScreenCode('tv', branchId, value)
-          setNotice(null)
-          setCode(value)
-        }}
-      />
+      <>
+        <TvCodeScreen
+          branchId={branchId}
+          branchName={branch?.name ?? ''}
+          notice={codeRejected ? t.tv.codeChanged : notice}
+          onBrandHold={staff.onBrandHold}
+          onConnected={(value) => {
+            // "Ulash" bosilgani — brauzer ruxsati: TV darhol to'liq ekranda
+            enterFullscreen()
+            rememberScreenCode('tv', branchId, value)
+            setNotice(null)
+            setCode(value)
+          }}
+        />
+        {staff.dialog}
+      </>
     )
   }
-  return <TvScreen branchName={branch?.name ?? ''} queue={queue.data} />
+  return (
+    <>
+      <TvScreen branchName={branch?.name ?? ''} queue={queue.data} onBrandHold={staff.onBrandHold} />
+      {staff.dialog}
+    </>
+  )
 }
 
 /** `/tv/:branchId` — PINsiz, filial TV kodi bilan (TV da bir marta kiritiladi); filial manzildan. */

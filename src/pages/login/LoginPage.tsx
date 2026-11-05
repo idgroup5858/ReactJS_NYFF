@@ -10,6 +10,7 @@ import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { fullName } from '@/domain/rules'
 import type { AuthUser, Branch, ID } from '@/domain/types'
 import { errorMessage, pinFailure, useT, type PinFailure } from '@/i18n'
+import { enterFullscreen } from '@/lib/fullscreen'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { setLastBranch, setLastLogin, useSettings, type LastLogin } from '@/store/settingsStore'
 import { SectionTitle } from '@/components/ui/Card'
@@ -120,8 +121,9 @@ export default function LoginPage() {
     go({ mode: selectedMode, branch: selected.id })
   }
 
-  // TV va kiosk — filial tanlanishi bilan ekran ochiladi ("orqaga" — shu filial tanloviga qaytaradi)
+  // TV va kiosk — filial tanlanishi bilan ekran ochiladi, darhol to'liq ekranda (mijozdan manzil qatori yashirin)
   const openScreen = (screen: ScreenMode, selected: Branch) => {
+    enterFullscreen()
     setLastBranch(selected.id)
     void navigate(`/${screen}/${selected.id}`)
   }
@@ -134,6 +136,8 @@ export default function LoginPage() {
     try {
       // bir nechta filialda ishlaydigan xodim — sessiya shu tanlangan filialniki
       const session = await login(user.id, pin, branchId)
+      // kassa va oshxona — darhol to'liq ekranda (sahifa yuklanishini kutmay: brauzer ruxsati PIN bosilgandan bir necha soniya)
+      if (session.role === 'cashier' || session.role === 'kitchen') enterFullscreen()
       if (mode) setLastLogin({ mode, branchId })
       void navigate(homePathFor(session.role), { replace: true })
       return null

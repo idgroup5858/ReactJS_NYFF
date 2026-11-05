@@ -913,7 +913,6 @@ export const uz = {
     readyEmpty: 'Tayyor buyurtmalar shu yerda chiqadi',
     more: (count: number) => `+ yana ${count} ta`,
     hint: "Raqamingiz «Tayyor» ustunida chiqqanda buyurtmangizni kassadan oling",
-    fullscreen: "To'liq ekran",
     codeTitle: 'TV kodi',
     codeHint: 'Admin panel → Filiallar → «TV kodi» dagi 8 xonali kodni kiriting',
     codeChanged: "Kod yangilangan — yangisini kiriting",
@@ -922,6 +921,15 @@ export const uz = {
   screenCode: {
     label: '8 xonali kod',
     submit: 'Ulash',
+  },
+  /** TV va kiosk: logotipni 10 soniya bosib turilganda — xodim oynasi (ekran kodi bilan) */
+  screenStaff: {
+    title: 'Xodim uchun',
+    codeHint: 'Ekran kodini kiriting (Admin panel → Filiallar)',
+    submit: 'Tasdiqlash',
+    unlocked: "To'liq ekrandan chiqildi — sahifa qayta yuklanmaguncha o'zi qaytmaydi.",
+    backToFullscreen: "To'liq ekranga qaytish",
+    switchMode: 'Ish joyini almashtirish',
   },
   kiosk: {
     codeTitle: 'Kiosk kodi',
@@ -936,7 +944,6 @@ export const uz = {
     takeaway: 'Olib ketaman',
     takeawayHint: "O'zim bilan olib ketaman",
     dineInOnlyRemoved: (names: string) => `${names} — faqat zalda beriladi, savatdan olib tashlandi`,
-    exit: 'Ish joyini almashtirish',
     startOver: 'Boshidan',
     search: 'Taom qidirish…',
     noResults: 'Hech narsa topilmadi',

@@ -1,29 +1,17 @@
 import { Maximize, Minimize, Minus, Plus } from 'lucide-react'
-import { useSyncExternalStore } from 'react'
 import { HeaderAction } from '@/components/layout/StaffLayout'
 import { useT } from '@/i18n'
+import { toggleFullscreen, useFullscreen } from '@/lib/fullscreen'
 import { MENU_SCALES, setMenuScale, useSettings } from '@/store/settingsStore'
-
-const subscribeFullscreen = (onChange: () => void) => {
-  document.addEventListener('fullscreenchange', onChange)
-  return () => document.removeEventListener('fullscreenchange', onChange)
-}
-const isFullscreen = () => document.fullscreenElement !== null
-
-/**
- * Sahifa to'liq ekranda (Fullscreen API). Esc yoki brauzer o'zi chiqarsa ham kuzatiladi. F11 dagi brauzer to'liq ekrani
- * bu yerda ko'rinmaydi (sahifa uni bilmaydi) — tugma "to'liq ekran" holatida qoladi, bosilsa baribir to'liq ekranga o'tadi.
- */
-function useFullscreen(): boolean {
-  return useSyncExternalStore(subscribeFullscreen, isFullscreen)
-}
 
 const STEP_BUTTON =
   'flex h-full w-8 cursor-pointer items-center justify-center transition-colors enabled:hover:text-taxi disabled:cursor-default disabled:opacity-30'
 
 /**
  * Kassa header'i (online va offline): to'liq ekran va taom kartochkalari o'lchami "− 80% +" — POS monitori kichik
- * bo'lsa kichraytiriladi, 100% dan katta qilinmaydi. O'lcham shu kompyuterda saqlanadi.
+ * bo'lsa kichraytiriladi, 100% dan katta qilinmaydi. O'lcham shu kompyuterda saqlanadi. Kassir PIN bilan kirganda kassa
+ * o'zi to'liq ekranda ochiladi (`enterFullscreen` — kirish oynalarida); F11 dagi to'liq ekranda tugma "to'liq ekran"
+ * holatida qoladi.
  */
 export default function ScreenControls() {
   const t = useT()
@@ -32,12 +20,6 @@ export default function ScreenControls() {
   const index = MENU_SCALES.indexOf(menuScale)
   const smaller = MENU_SCALES[index - 1]
   const larger = MENU_SCALES[index + 1]
-
-  const toggleFullscreen = () => {
-    const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
-    // brauzer ruxsat bermasa — hech narsa bo'lmaydi
-    request.catch(() => undefined)
-  }
 
   return (
     <>

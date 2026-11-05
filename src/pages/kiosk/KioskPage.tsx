@@ -1,16 +1,18 @@
-import { ArrowLeftRight, MapPin, X } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
+import { Navigate, useParams } from 'react-router'
 import { api } from '@/api'
 import { ApiError } from '@/api/http'
 import { useBranches, useMenu } from '@/api/queries'
 import Brand from '@/components/layout/Brand'
 import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import ScreenCodeForm from '@/components/screen/ScreenCodeForm'
+import { useScreenStaff } from '@/components/screen/useScreenStaff'
 import Modal from '@/components/ui/Modal'
 import { allowedForType, type Branch, type CustomerOrder, type ID, type Menu, type MenuProduct } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { addProduct, changeQty, removeLine, type CartLine } from '@/lib/cart'
+import { enterFullscreen } from '@/lib/fullscreen'
 import { printReceipt } from '@/lib/printReceipt'
 import { showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
@@ -67,26 +69,28 @@ const CHOOSE_BRANCH_PATH = '/?mode=kiosk'
 
 /**
  * Kiosk kodi so'raladi (bosh ekran uslubida): birinchi ochilganda va admin kodni yangilagandan keyin. Kod serverda
- * tekshiriladi, to'g'ri bo'lsa — shu kioskda saqlanadi va boshqa so'ralmaydi. Pastda chapda — xodim uchun chiqish va
- * filialni almashtirish (bosh ekrandagidek).
+ * tekshiriladi, to'g'ri bo'lsa — shu kioskda saqlanadi va boshqa so'ralmaydi. Mijoz ham ko'rishi mumkin (admin kodni
+ * yangilasa) — chiqish tugmalari yo'q, xodim logotipni 10 soniya bosib turadi ([onBrandHold]).
  */
 function KioskCodeScreen({
   branchId,
   branch,
   notice,
   onConnected,
+  onBrandHold,
 }: {
   branchId: string
   branch: Branch | undefined
   notice: string | null
   onConnected: (code: string) => void
+  onBrandHold: () => void
 }) {
   const t = useT()
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="pointer-events-none absolute -top-40 -right-40 h-[38rem] w-[38rem] rounded-full bg-taxi/40 blur-3xl" />
       <header className="relative flex items-center justify-between gap-4 px-6 py-5 sm:px-10">
-        <Brand tone="light" size="lg" />
+        <Brand tone="light" size="lg" onHold={onBrandHold} />
         {branch && (
           <span className="flex items-center gap-2 text-sm font-semibold text-neutral-600">
             <MapPin size={16} className="text-select" />
@@ -104,24 +108,6 @@ function KioskCodeScreen({
           onConnected={onConnected}
         />
       </main>
-      <div className="absolute bottom-3 left-3 flex gap-1">
-        <Link
-          to="/"
-          aria-label={t.kiosk.exit}
-          title={t.kiosk.exit}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
-        >
-          <X size={16} />
-        </Link>
-        <Link
-          to={CHOOSE_BRANCH_PATH}
-          aria-label={t.login.changeBranch}
-          title={t.login.changeBranch}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
-        >
-          <ArrowLeftRight size={16} />
-        </Link>
-      </div>
     </div>
   )
 }
@@ -131,7 +117,9 @@ function KioskCodeScreen({
  * savat → to'lov → raqam. Kod kioskda bir marta kiritiladi; ochilganda, har yangi mijoz boshlaganda va har mijozdan keyin
  * tekshiriladi — admin yangilagan bo'lsa mijoz to'lovgacha kutib qolmasin. Karta / Click bilan to'lansa buyurtma darhol
  * tayyorlanadi; "kassada to'layman" bo'lsa — kassada "Kioskdan" ro'yxatiga tushadi, kassir pulini olib tasdiqlaguncha
- * oshxonaga ketmaydi. Filial noma'lum yoki faol emas — kirishdagi filial tanlashga.
+ * oshxonaga ketmaydi. Filial noma'lum yoki faol emas — kirishdagi filial tanlashga. Mijozdan manzil qatori yashirin:
+ * kiosk to'liq ekranda ushlab turiladi, chiqish tugmasi yo'q — xodim logotipni 10 soniya bosib turib, kiosk kodi bilan
+ * chiqadi (`useScreenStaff`).
  */
 function KioskBranch({ branchId }: { branchId: string }) {
   const t = useT()
@@ -166,6 +154,9 @@ function KioskBranch({ branchId }: { branchId: string }) {
 
   // ochilganda (kod oldin saqlangan bo'lsa)
   useEffect(checkCode, [checkCode])
+
+  // to'liq ekranda ushlab turiladi; xodim — logotipni 10 soniya bosib turib, shu filialning kiosk kodi bilan chiqadi
+  const staff = useScreenStaff({ verify: (value) => api.kiosk.check(branchId, value), changeBranchPath: CHOOSE_BRANCH_PATH })
 
   const [step, setStep] = useState<Step>('welcome')
   const [orderType, setOrderType] = useState<KioskOrderType>('dine_in')
@@ -216,16 +207,22 @@ function KioskBranch({ branchId }: { branchId: string }) {
   if (branches.data && !branch) return <Navigate to={CHOOSE_BRANCH_PATH} replace />
   if (!code) {
     return (
-      <KioskCodeScreen
-        branchId={branchId}
-        branch={branch}
-        notice={notice}
-        onConnected={(value) => {
-          rememberScreenCode('kiosk', branchId, value)
-          setNotice(null)
-          setCode(value)
-        }}
-      />
+      <>
+        <KioskCodeScreen
+          branchId={branchId}
+          branch={branch}
+          notice={notice}
+          onBrandHold={staff.onBrandHold}
+          onConnected={(value) => {
+            // "Ulash" bosilgani — brauzer ruxsati: kiosk darhol to'liq ekranda
+            enterFullscreen()
+            rememberScreenCode('kiosk', branchId, value)
+            setNotice(null)
+            setCode(value)
+          }}
+        />
+        {staff.dialog}
+      </>
     )
   }
 
@@ -267,15 +264,19 @@ function KioskBranch({ branchId }: { branchId: string }) {
 
   if (step === 'welcome') {
     return (
-      <KioskWelcome
-        branch={branch}
-        onStart={(type) => {
-          // mijoz boshladi — kod hali to'g'rimi (fonda; yangilangan bo'lsa to'lovgacha kutmasin)
-          checkCode()
-          setOrderType(type)
-          setStep('menu')
-        }}
-      />
+      <>
+        <KioskWelcome
+          branch={branch}
+          onBrandHold={staff.onBrandHold}
+          onStart={(type) => {
+            // mijoz boshladi — kod hali to'g'rimi (fonda; yangilangan bo'lsa to'lovgacha kutmasin)
+            checkCode()
+            setOrderType(type)
+            setStep('menu')
+          }}
+        />
+        {staff.dialog}
+      </>
     )
   }
 
@@ -294,7 +295,7 @@ function KioskBranch({ branchId }: { branchId: string }) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <KioskTopBar center={typeToggle} onStartOver={reset} />
+      <KioskTopBar center={typeToggle} onStartOver={reset} onBrandHold={staff.onBrandHold} />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {step === 'menu' && <KioskMenu menu={typeMenu} cartCounts={cartCounts} cartQty={qty} cartTotal={total} onOpen={setDetail} onCart={() => setStep('cart')} />}
         {step === 'cart' && (
@@ -325,6 +326,7 @@ function KioskBranch({ branchId }: { branchId: string }) {
         />
       )}
       {idle && <IdleModal onStay={() => setIdle(false)} onReset={reset} />}
+      {staff.dialog}
     </div>
   )
 }

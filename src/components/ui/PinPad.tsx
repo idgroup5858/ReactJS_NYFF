@@ -16,18 +16,20 @@ type Props = {
    */
   onSubmit: (pin: string) => Promise<string | PinFailure | null>
   submitLabel?: string
+  /** xato bo'lmaganda raqamlar ostidagi izoh; standart — "4 tadan 8 tagacha raqam" */
+  hint?: string
 }
 
 /**
  * Sensorli ekran uchun katta tugmali PIN pad; klaviaturadan ham ishlaydi (raqamlar, Backspace, Esc, Enter).
- * Kirish (shu ekran), kassa bloki va offline kassada qayta ishlatiladi.
+ * Kirish (shu ekran), kassa bloki, offline kassa va TV / kiosk xodim oynasida (ekran kodi — 8 raqam) qayta ishlatiladi.
  *
  * Ko'p xatodan keyin blok (2026-11-04): server qolgan vaqtni aytsa, hamma tugma (va klaviatura) o'sha vaqtgacha o'chadi,
  * xato qatorida "4:59 dan keyin" sanaladi, tugagach o'zi yoqiladi — bloklangan kassir bosaverib filialning IP
  * chegarasini (PIN bilan kirish — daqiqasiga 20 ta, hamma xodimga umumiy) to'ldirib qo'ymasin. Blok xodimniki — boshqa
  * xodim tanlansa pad yangidan (`key`).
  */
-export default function PinPad({ onSubmit, submitLabel }: Props) {
+export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
   const t = useT()
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -117,7 +119,7 @@ export default function PinPad({ onSubmit, submitLabel }: Props) {
       </div>
       {/* uzun xato (masalan, qaysi filialda smena ochiq qolgani) — qatorga sig'masa pastga suriladi, tugmalar ustiga chiqmaydi */}
       <p className={`min-h-5 text-center text-sm leading-5 ${error || locked ? 'font-semibold text-red-700' : 'text-neutral-400'}`}>
-        {locked ? t.login.lockedFor(clock(lockLeft)) : (error ?? t.login.pinHint)}
+        {locked ? t.login.lockedFor(clock(lockLeft)) : (error ?? hint ?? t.login.pinHint)}
       </p>
 
       <div className="grid grid-cols-3 gap-2">

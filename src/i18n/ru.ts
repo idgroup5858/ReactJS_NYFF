@@ -906,7 +906,6 @@ export const ru: Dict = {
     readyEmpty: 'Здесь появятся готовые заказы',
     more: (count: number) => `+ ещё ${count}`,
     hint: 'Когда ваш номер появится в колонке «Готово», заберите заказ на кассе',
-    fullscreen: 'Во весь экран',
     codeTitle: 'Код ТВ',
     codeHint: 'Введите 8-значный код из админ-панели → Филиалы → «Код ТВ»',
     codeChanged: 'Код обновлён — введите новый',
@@ -914,6 +913,14 @@ export const ru: Dict = {
   screenCode: {
     label: '8-значный код',
     submit: 'Подключить',
+  },
+  screenStaff: {
+    title: 'Для сотрудника',
+    codeHint: 'Введите код экрана (админ-панель → Филиалы)',
+    submit: 'Подтвердить',
+    unlocked: 'Полный экран выключен — до перезагрузки страницы сам не включится.',
+    backToFullscreen: 'Вернуться в полный экран',
+    switchMode: 'Сменить рабочее место',
   },
   kiosk: {
     codeTitle: 'Код киоска',
@@ -928,7 +935,6 @@ export const ru: Dict = {
     takeaway: 'С собой',
     takeawayHint: 'Заберу с собой',
     dineInOnlyRemoved: (names: string) => `${names} — подаётся только в зале, убрано из корзины`,
-    exit: 'Сменить рабочее место',
     startOver: 'Сначала',
     search: 'Поиск блюда…',
     noResults: 'Ничего не найдено',

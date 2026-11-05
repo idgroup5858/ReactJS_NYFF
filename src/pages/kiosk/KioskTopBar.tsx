@@ -5,16 +5,19 @@ import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import ThemeMenu from '@/components/layout/ThemeMenu'
 import { useT } from '@/i18n'
 
-/** Kiosk tepa paneli: brend, o'rtada qo'shimcha element (buyurtma turi), til, ko'rinish va "Boshidan". */
-export default function KioskTopBar({ center, onStartOver }: { center?: ReactNode; onStartOver: () => void }) {
+/**
+ * Kiosk tepa paneli: brend (10 soniya bosib turilsa — xodim oynasi), o'rtada qo'shimcha element (buyurtma turi), til,
+ * ko'rinish va "Boshidan".
+ */
+export default function KioskTopBar({ center, onStartOver, onBrandHold }: { center?: ReactNode; onStartOver: () => void; onBrandHold: () => void }) {
   const t = useT()
   return (
     <header className="flex shrink-0 items-center gap-2 bg-white px-3 py-3 text-neutral-950 shadow-card sm:gap-4 sm:px-6">
       <span className="hidden sm:block">
-        <Brand tone="light" size="lg" />
+        <Brand tone="light" size="lg" onHold={onBrandHold} />
       </span>
       <span className="sm:hidden">
-        <Brand tone="light" />
+        <Brand tone="light" onHold={onBrandHold} />
       </span>
       <div className="flex min-w-0 flex-1 justify-center">{center}</div>
       <LanguageSwitcher tone="light" />

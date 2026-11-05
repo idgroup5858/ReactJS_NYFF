@@ -906,7 +906,6 @@ export const en: Dict = {
     readyEmpty: 'Ready orders appear here',
     more: (count: number) => `+ ${count} more`,
     hint: 'When your number shows up under “Ready”, pick up your order at the counter',
-    fullscreen: 'Full screen',
     codeTitle: 'TV code',
     codeHint: 'Enter the 8-digit code from admin panel → Branches → «TV code»',
     codeChanged: 'The code was renewed — enter the new one',
@@ -914,6 +913,14 @@ export const en: Dict = {
   screenCode: {
     label: '8-digit code',
     submit: 'Connect',
+  },
+  screenStaff: {
+    title: 'Staff only',
+    codeHint: 'Enter the screen code (admin panel → Branches)',
+    submit: 'Confirm',
+    unlocked: 'Full screen is off — it will not come back on its own until the page is reloaded.',
+    backToFullscreen: 'Back to full screen',
+    switchMode: 'Switch workstation',
   },
   kiosk: {
     codeTitle: 'Kiosk code',
@@ -928,7 +935,6 @@ export const en: Dict = {
     takeaway: 'Take away',
     takeawayHint: 'I’ll take it with me',
     dineInOnlyRemoved: (names: string) => `${names} — dine-in only, removed from the cart`,
-    exit: 'Switch workstation',
     startOver: 'Start over',
     search: 'Search food…',
     noResults: 'Nothing found',

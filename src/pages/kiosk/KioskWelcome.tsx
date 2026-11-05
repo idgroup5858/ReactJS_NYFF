@@ -1,5 +1,4 @@
-import { ArrowLeftRight, ChevronRight, MapPin, ShoppingBag, Utensils, X } from 'lucide-react'
-import { Link } from 'react-router'
+import { ChevronRight, MapPin, ShoppingBag, Utensils } from 'lucide-react'
 import { useKioskImages } from '@/api/queries'
 import Brand from '@/components/layout/Brand'
 import FoodImage from '@/components/ui/FoodImage'
@@ -23,9 +22,17 @@ const SMALL_RING = 'shadow-[0_0_0_6px_#fff,0_0_0_14px_var(--color-taxi),0_24px_4
 /**
  * Kioskning bosh ekrani ("Och qoldingizmi? Buyurtma bering." — mobil ilova andozasi): katta sarlavha, taom rasmlari,
  * til tanlovi va "Shu yerda / Olib ketaman" tanlovi — bosilgach menyu ochiladi. Filial (manzildagi) yuklanguncha
- * nomi ko'rinmaydi.
+ * nomi ko'rinmaydi. Mijoz uchun chiqish yo'q: xodim — logotipni 10 soniya bosib turib ([onBrandHold], kod bilan).
  */
-export default function KioskWelcome({ branch, onStart }: { branch: Branch | undefined; onStart: (type: KioskOrderType) => void }) {
+export default function KioskWelcome({
+  branch,
+  onStart,
+  onBrandHold,
+}: {
+  branch: Branch | undefined
+  onStart: (type: KioskOrderType) => void
+  onBrandHold: () => void
+}) {
   const t = useT()
   const { lang } = useSettings()
   const kioskImages = useKioskImages()
@@ -41,7 +48,7 @@ export default function KioskWelcome({ branch, onStart }: { branch: Branch | und
     <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="pointer-events-none absolute -top-40 -right-40 h-[38rem] w-[38rem] rounded-full bg-taxi/40 blur-3xl" />
       <header className="relative flex items-center justify-between gap-4 px-6 py-5 sm:px-10">
-        <Brand tone="light" size="lg" />
+        <Brand tone="light" size="lg" onHold={onBrandHold} />
         {/* "Olib ketaman" tugmasi uslubida: sariq blok, qora doirada sariq ikonka, qalin nom + manzil (bosilmaydi — strelkasiz) */}
         {/* filial yuklanguncha — xuddi shu balandlikdagi bo'sh joy (sarlavha sakramasin) */}
         {!branch && <span aria-hidden="true" className="h-15" />}
@@ -125,25 +132,6 @@ export default function KioskWelcome({ branch, onStart }: { branch: Branch | und
         </div>
       </main>
 
-      {/* xodim uchun (mijozga ko'zga tashlanmaydi): ish joyini va filialni almashtirish */}
-      <div className="absolute bottom-3 left-3 flex gap-1">
-        <Link
-          to="/"
-          aria-label={t.kiosk.exit}
-          title={t.kiosk.exit}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
-        >
-          <X size={16} />
-        </Link>
-        <Link
-          to="/?mode=kiosk"
-          aria-label={t.login.changeBranch}
-          title={t.login.changeBranch}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-300 transition-colors hover:bg-white hover:text-neutral-600"
-        >
-          <ArrowLeftRight size={16} />
-        </Link>
-      </div>
     </div>
   )
 }

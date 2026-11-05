@@ -22,6 +22,8 @@ type Props = {
   onLogout?: () => void
   /** `page` — markazda cheklangan kenglik va chekka bo'shliqlar (admin, ombor); `fill` — butun ekran (kassa) */
   variant?: 'page' | 'fill'
+  /** yashirin tugma — logotip 10 soniya bosib turilsa (oshxona: to'liq ekran) */
+  onBrandHold?: () => void
 }
 
 type ActionProps = {
@@ -59,7 +61,7 @@ export function HeaderAction({ label, icon, onClick, badge, compact = true }: Ac
  * Xodim ekranlari qobig'i: tepada qora panel (brend · bo'lim · filial | amallar · til · xodim · chiqish), admin va omborda —
  * chapda yig'iladigan menyu ([Sidebar]).
  */
-export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page' }: Props) {
+export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page', onBrandHold }: Props) {
   const t = useT()
   const branches = useBranches().data
   const user = useCurrentUser()
@@ -78,7 +80,7 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
       <header className="sticky top-0 z-30 shrink-0 bg-coal text-white">
         <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={t.common.home}>
-            <Brand />
+            <Brand onHold={onBrandHold} />
           </Link>
           <span className="hidden h-6 w-px bg-coal-line sm:block" />
           <div className="flex min-w-0 flex-1 items-center gap-3">

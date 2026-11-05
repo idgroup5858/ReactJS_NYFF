@@ -1,4 +1,5 @@
-import { CheckCheck, ChefHat, PartyPopper, ReceiptText, Undo2, type LucideIcon } from 'lucide-react'
+import { CheckCheck, ChefHat, Maximize, PartyPopper, ReceiptText, Undo2, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api } from '@/api'
 import { useActiveOrders } from '@/api/queries'
@@ -7,9 +8,11 @@ import { logout, useCurrentUser, useSession } from '@/api/session'
 import StaffLayout from '@/components/layout/StaffLayout'
 import OrderRow from '@/components/order/OrderRow'
 import { useRecentReady } from '@/components/order/useRecentReady'
+import Modal from '@/components/ui/Modal'
 import type { Order } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatOrderNumber } from '@/lib/format'
+import { enterFullscreen, exitFullscreen } from '@/lib/fullscreen'
 import { showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { useNow } from '@/lib/useNow'
@@ -71,6 +74,10 @@ function ColumnTitle({ icon: Icon, title, count, highlight = false }: { icon: Lu
  * oddiy: yangisi oxiriga qo'shiladi (tayyorlanayotganlar — oshxonaga tushgan, tayyorlar — tayyor bo'lgan vaqti bo'yicha).
  * Kartochka ko'rinishi kassa panelidagi qator bilan bir xil; narx, chek va bekor qilish — kassirda.
  * Ro'yxatlar serverdan, socket xabari kelganda (va qayta ulanganda) yangilanadi.
+ *
+ * To'liq ekran: PIN bilan kirganda o'zi; tugmasi yo'q — logotipni 10 soniya bosib turish: to'liq ekranda bo'lsa chiqadi,
+ * bo'lmasa (sahifa qayta yuklangan) "To'liq ekran" oynasi (brauzer to'liq ekranga faqat bosilgan zahoti ruxsat beradi —
+ * 10 soniyadan keyin emas). Esc ham chiqaradi.
  */
 export default function KitchenPage() {
   const t = useT()
@@ -78,6 +85,7 @@ export default function KitchenPage() {
   const user = useCurrentUser()
   const navigate = useNavigate()
   const now = useNow(1000)
+  const [askFullscreen, setAskFullscreen] = useState(false)
   useDocumentTitle(t.modes.kitchen.title)
   // huquq bekor bo'ldi (xodim bloklandi, filiali o'zgardi) — kirish ekraniga
   useRealtime(session ? { token: session.token } : null, {
@@ -96,8 +104,13 @@ export default function KitchenPage() {
   // server — yangisi birinchi (TV uchun); bu yerda aksincha: yangisi pastga qo'shiladi
   const ready = [...(recent ?? [])].reverse()
 
+  const onBrandHold = () => {
+    if (document.fullscreenElement) exitFullscreen()
+    else setAskFullscreen(true)
+  }
+
   return (
-    <StaffLayout title={t.modes.kitchen.title} variant="fill">
+    <StaffLayout title={t.modes.kitchen.title} variant="fill" onBrandHold={onBrandHold}>
       {/* kichik ekranda — ustma-ust, bitta aylantirish; kengida — yonma-yon, har ustun o'zi aylanadi */}
       <div className="h-full overflow-y-auto md:flex md:overflow-hidden">
         <section className="p-4 sm:p-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
@@ -131,6 +144,21 @@ export default function KitchenPage() {
           )}
         </section>
       </div>
+      {askFullscreen && (
+        <Modal title={t.kassaSettings.fullscreen} onClose={() => setAskFullscreen(false)} size="sm">
+          <button
+            type="button"
+            onClick={() => {
+              enterFullscreen()
+              setAskFullscreen(false)
+            }}
+            className="btn-primary my-1 flex h-14 w-full items-center justify-center gap-2 rounded text-sm font-bold"
+          >
+            <Maximize size={18} />
+            {t.kassaSettings.fullscreen}
+          </button>
+        </Modal>
+      )}
     </StaffLayout>
   )
 }
