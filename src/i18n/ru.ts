@@ -939,6 +939,7 @@ export const ru: Dict = {
     search: 'Поиск блюда…',
     noResults: 'Ничего не найдено',
     allResults: (query: string) => `Результаты по «${query}»`,
+    composition: 'Состав',
     add: 'В корзину',
     items: (count: number) => `${count} шт.`,
     viewCart: 'Корзина',

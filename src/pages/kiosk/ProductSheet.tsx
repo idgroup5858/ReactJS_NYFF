@@ -14,14 +14,20 @@ type Props = {
 }
 
 /**
- * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, soni va
- * "Savatga qo'shish · narx" tugmasi. Kichik ekranda pastdan chiqadi, kattasida — markazda.
+ * Taom oynasi (mobil ilovadagi "Details" sahifasi kabi): katta rasm, nom, tarkibi, soni va
+ * "Savatga qo'shish · narx" tugmasi. Kichik ekranda pastdan chiqadi, kattasida — markazda. Tarkibi — retseptdagi
+ * mahsulotlar (qadoq, yog', ziravorlarsiz — server ajratadi), hammasi; sig'masa o'z joyida suriladi, tugmalar joyida.
+ *
+ * Kattasida o'lcham har taomda bir xil (foydalanuvchi: "aniq standart bo'lsin") — balandlik qat'iy, rasm chap ustunga
+ * butunligicha sig'adi (qirqilmaydi) va oyna o'lchamini o'zgartirmaydi: avval rasm o'z nisbatida chizilib, tik rasmli
+ * taomda (Cola 1,5 l) oyna butun ekranni egallardi, pastida — past chiqardi.
  */
 export default function ProductSheet({ product, price, onAdd, onClose }: Props) {
   const t = useT()
   const localize = useLocalize()
   const [qty, setQty] = useState(1)
   const name = localize(product.name)
+  const composition = product.composition.map(localize).join(', ')
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -37,7 +43,7 @@ export default function ProductSheet({ product, price, onAdd, onClose }: Props) 
         role="dialog"
         aria-modal="true"
         aria-label={name}
-        className="page-enter relative flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-2xl sm:grid sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:rounded-card"
+        className="page-enter relative flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-[28px] bg-white shadow-2xl sm:grid sm:h-[min(36rem,90vh)] sm:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] sm:rounded-card"
       >
         <button
           type="button"
@@ -47,14 +53,21 @@ export default function ProductSheet({ product, price, onAdd, onClose }: Props) 
         >
           <X size={22} />
         </button>
-        <div className="relative bg-brand-50 sm:min-h-full">
-          <FoodImage src={product.image} alt={name} className="aspect-[4/3] h-full w-full sm:aspect-auto" />
+        {/* kattasida rasm ustunni to'ldiradi (absolute — balandlikka ta'sir qilmaydi), butunligicha, chetlardan bo'shliq bilan */}
+        <div className="relative shrink-0 bg-brand-50 sm:h-full">
+          <FoodImage src={product.image} alt={name} fit="contain" className="aspect-[4/3] w-full p-4 sm:absolute sm:inset-0 sm:aspect-auto sm:h-full sm:p-8" />
         </div>
         <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-6">
           <div className="space-y-2">
             <h2 className="pr-10 text-3xl leading-tight font-black text-neutral-950">{name}</h2>
             <p className="text-3xl font-black text-select tabular-nums">{formatMoney(price, t)}</p>
           </div>
+          {composition && (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <p className="mb-1.5 text-[11px] font-bold tracking-[0.2em] text-neutral-400 uppercase">{t.kiosk.composition}</p>
+              <p className="text-base leading-relaxed text-neutral-700">{composition}</p>
+            </div>
+          )}
           {/* tugma sig'masa — soni ostiga, to'liq kenglikka tushadi (matn qisilmaydi) */}
           <div className="mt-auto flex flex-wrap items-center gap-4">
             <QtyStepper value={qty} min={1} size="lg" onChange={(delta) => setQty((value) => Math.max(1, Math.min(20, value + delta)))} />

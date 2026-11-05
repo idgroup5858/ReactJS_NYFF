@@ -948,6 +948,7 @@ export const uz = {
     search: 'Taom qidirish…',
     noResults: 'Hech narsa topilmadi',
     allResults: (query: string) => `«${query}» bo'yicha natijalar`,
+    composition: 'Tarkibi',
     add: "Savatga qo'shish",
     items: (count: number) => `${count} ta taom`,
     viewCart: 'Savat',
