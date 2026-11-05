@@ -28,6 +28,13 @@ export type ImageFit = (typeof IMAGE_FITS)[number]
 export const LIST_VIEWS = ['grid', 'list'] as const
 export type ListView = (typeof LIST_VIEWS)[number]
 
+/**
+ * Kassa: taom kartochkalari va ulardan pastdagi tugmalar o'lchami — POS monitori kichik bo'lsa kichraytiriladi. `1` — asl
+ * o'lcham va eng kattasi (kattalashtirish yo'q).
+ */
+export const MENU_SCALES = [0.6, 0.7, 0.8, 0.9, 1] as const
+export type MenuScale = (typeof MENU_SCALES)[number]
+
 /** Shu kompyuterda oxirgi muvaffaqiyatli kirilgan ish joyi (`cashier` / `kitchen` / `supplier`) va filiali. */
 export interface LastLogin {
   mode: string
@@ -63,6 +70,8 @@ export interface DeviceSettings {
    * ko'rmay qolmasin
    */
   alertVolume: number
+  /** kassa (online va offline): taomlar to'ri va undan pastdagi tugmalar o'lchami */
+  menuScale: MenuScale
 }
 
 /** Offline server standart manzili (`OFFLINE_PORT=3100`). */
@@ -99,6 +108,7 @@ function sanitize(raw: unknown): DeviceSettings {
     offlineEnabled: value.offlineEnabled === true,
     offlineUrl: typeof value.offlineUrl === 'string' && value.offlineUrl.trim() ? value.offlineUrl.trim() : DEFAULT_OFFLINE_URL,
     alertVolume: clampVolume(value.alertVolume),
+    menuScale: MENU_SCALES.find((scale) => scale === value.menuScale) ?? 1,
   }
 }
 
@@ -129,3 +139,4 @@ export const setWarehouseView = (warehouseView: ListView) => save({ warehouseVie
 export const setOfflineEnabled = (offlineEnabled: boolean) => save({ offlineEnabled })
 export const setOfflineUrl = (offlineUrl: string) => save({ offlineUrl })
 export const setAlertVolume = (alertVolume: number) => save({ alertVolume: clampVolume(alertVolume) })
+export const setMenuScale = (menuScale: MenuScale) => save({ menuScale })

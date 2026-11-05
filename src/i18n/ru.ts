@@ -352,6 +352,10 @@ export const ru: Dict = {
     testOnline: 'Онлайн',
     testKiosk: 'Киоск',
     testSound: 'Проверить звук',
+    fullscreen: 'Полный экран',
+    exitFullscreen: 'Выйти из полного экрана',
+    menuSmaller: 'Уменьшить карточки',
+    menuLarger: 'Увеличить карточки',
   },
   theme: {
     title: 'Оформление',

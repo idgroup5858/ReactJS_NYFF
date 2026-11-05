@@ -30,6 +30,7 @@ import OfflineSwitch from './OfflineSwitch'
 import OrdersDrawer, { type OrdersTab } from './OrdersDrawer'
 import PaymentModal from './PaymentModal'
 import QueueButtons from './QueueButtons'
+import ScreenControls from './ScreenControls'
 import ShiftReportModal from './ShiftReportModal'
 import TicketTabs from './TicketTabs'
 import { useOrderAlerts } from './useOrderAlerts'
@@ -240,12 +241,14 @@ export default function KassaPage() {
       onLogout={() => void onLogout()}
       actions={
         <>
+          <ScreenControls />
           <HeaderAction label={t.kassaSettings.open} icon={<Settings size={16} />} onClick={() => setPanel('settings')} />
           <HeaderAction label={t.lock.lockNow} icon={<Lock size={16} />} onClick={lockSession} />
         </>
       }
     >
-      <div className="flex h-full min-h-0 flex-col lg:flex-row">
+      {/* yotiq ekranda (POS monitori, 1024 dan torrog'i ham) savat doim o'ngda; ostida — faqat telefon / tik planshetda */}
+      <div className="flex h-full min-h-0 flex-col md:flex-row">
         <div className="min-h-0 min-w-0 flex-1">
           {/* taomlar ostida — eng ko'p bosiladigan "Kioskdan" va "Tayyorlanmoqda" katta tugmalari */}
           <MenuPanel

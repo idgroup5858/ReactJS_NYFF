@@ -18,9 +18,12 @@ type Props = {
 /**
  * Kassa menyusi: kategoriyalar (sozlamaga ko'ra chapda — admin paneldagi kabi yig'iladigan menyu, yoki tepada rasmli
  * qator) va tanlangan kategoriyaning taomlari filial narxida. Sotuvda yo'q taom (`price: null`) ko'rinadi, lekin bosilmaydi.
+ * Taomlar to'ri va [footer] header'dagi "− +" bilan kichrayadi (`zoom` — rasm, yozuv, tugma bir xil nisbatda, qatorga
+ * ko'proq kartochka sig'adi); kategoriyalar o'zgarmaydi.
  */
 export default function MenuPanel({ menu, cartCounts, onAdd, footer }: Props) {
-  const { categoryPosition } = useSettings()
+  const { categoryPosition, menuScale } = useSettings()
+  const zoom = { zoom: menuScale }
   const categories = [...(menu?.categories ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
   const [selectedId, setSelectedId] = useState<ID | null>(null)
   const categoryId = categories.some((c) => c.id === selectedId) ? selectedId : (categories[0]?.id ?? null)
@@ -29,7 +32,7 @@ export default function MenuPanel({ menu, cartCounts, onAdd, footer }: Props) {
   const products = allProducts.filter((p) => p.categoryId === categoryId).sort((a, b) => a.sortOrder - b.sortOrder)
 
   const grid = (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(176px,1fr))] gap-3" style={zoom}>
       {products.map((product) => (
         <ProductCard
           key={product.id}
@@ -41,6 +44,11 @@ export default function MenuPanel({ menu, cartCounts, onAdd, footer }: Props) {
       ))}
     </div>
   )
+  const bottom = footer && (
+    <div className="shrink-0" style={zoom}>
+      {footer}
+    </div>
+  )
 
   if (categoryPosition === 'left') {
     const counts = new Map<ID, number>()
@@ -50,7 +58,7 @@ export default function MenuPanel({ menu, cartCounts, onAdd, footer }: Props) {
         <CategorySidebar categories={categories} activeId={categoryId} counts={counts} onSelect={setSelectedId} />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1 overflow-y-auto p-4">{grid}</div>
-          {footer}
+          {bottom}
         </div>
       </div>
     )
@@ -64,7 +72,7 @@ export default function MenuPanel({ menu, cartCounts, onAdd, footer }: Props) {
         ))}
       </nav>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">{grid}</div>
-      {footer}
+      {bottom}
     </div>
   )
 }

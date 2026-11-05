@@ -359,6 +359,10 @@ export const uz = {
     testOnline: 'Online',
     testKiosk: 'Kiosk',
     testSound: 'Ovozni sinash',
+    fullscreen: "To'liq ekran",
+    exitFullscreen: "To'liq ekrandan chiqish",
+    menuSmaller: 'Kartochkalarni kichraytirish',
+    menuLarger: 'Kartochkalarni kattalashtirish',
   },
   theme: {
     title: "Ko'rinish",

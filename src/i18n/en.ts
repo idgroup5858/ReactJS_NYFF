@@ -352,6 +352,10 @@ export const en: Dict = {
     testOnline: 'Online',
     testKiosk: 'Kiosk',
     testSound: 'Test sound',
+    fullscreen: 'Full screen',
+    exitFullscreen: 'Exit full screen',
+    menuSmaller: 'Smaller cards',
+    menuLarger: 'Larger cards',
   },
   theme: {
     title: 'Appearance',

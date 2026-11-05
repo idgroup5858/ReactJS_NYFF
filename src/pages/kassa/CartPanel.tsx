@@ -32,7 +32,11 @@ type Props = {
   onPay: () => void
 }
 
-/** O'ng panel: ochiq cheklar, buyurtma turi, taomlar (ixcham qatorlar), buyurtmaga izoh va jami summali "To'lash" — faol chek uchun. */
+/**
+ * O'ng panel: ochiq cheklar, buyurtma turi, taomlar (ixcham qatorlar), buyurtmaga izoh va jami summali "To'lash" — faol chek uchun.
+ * Eni ekranga qarab: 1024 dan tor yotiq ekranda — 320 (POS monitori; "To'lash"da ikonka doirasi yashirinadi, summa
+ * sig'sin), kattaroqda — 360 / 400 / 440. Yozuv va tugmalar o'lchami o'zgarmaydi (kassir barmog'i bilan bosadi).
+ */
 export default function CartPanel(props: Props) {
   const { tabs, lines, total, orderType, onOrderType, orderNote, onOrderNote, onChangeQty, onRemove, onClear, onPay } = props
   const t = useT()
@@ -46,7 +50,7 @@ export default function CartPanel(props: Props) {
   const blocked = lines.length === 0 || lines.some((line) => problemOf(line) !== null)
 
   return (
-    <aside className="surface m-3 flex max-h-[55vh] shrink-0 flex-col overflow-hidden rounded-card border border-line shadow-card lg:mb-3 lg:ml-0 lg:max-h-none lg:w-[360px] xl:w-[400px] 2xl:w-[440px]">
+    <aside className="surface m-3 flex max-h-[55vh] shrink-0 flex-col overflow-hidden rounded-card border border-line shadow-card md:mb-3 md:ml-0 md:max-h-none md:w-[320px] lg:w-[360px] xl:w-[400px] 2xl:w-[440px]">
       <div className="flex shrink-0 items-center gap-2 border-b border-neutral-200/70 px-3 py-2.5">
         {tabs}
         {lines.length > 0 && (
@@ -166,16 +170,16 @@ export default function CartPanel(props: Props) {
           type="button"
           onClick={onPay}
           disabled={blocked}
-          className="group flex w-full cursor-pointer items-center gap-3 rounded-card bg-taxi p-3 text-left text-coal shadow-card transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+          className="group flex w-full cursor-pointer items-center gap-3 rounded-card bg-taxi p-3 text-left text-coal shadow-card transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 md:max-lg:gap-2"
         >
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-coal text-taxi">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-coal text-taxi md:max-lg:hidden">
             <Wallet size={20} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-lg leading-tight font-extrabold">{t.kassa.pay}</span>
             <span className="block truncate text-xs text-coal/70">{t.kassa.itemsCount(count)}</span>
           </span>
-          <span className="shrink-0 text-xl font-extrabold whitespace-nowrap tabular-nums">{formatMoney(total, t)}</span>
+          <span className="shrink-0 text-xl font-extrabold whitespace-nowrap tabular-nums md:max-lg:text-lg">{formatMoney(total, t)}</span>
           <ChevronRight size={22} className="shrink-0 transition-transform group-enabled:group-hover:translate-x-1" />
         </button>
       </div>

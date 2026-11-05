@@ -22,6 +22,7 @@ import { onlineKassaUrl, releaseHandover, takeHandover } from '../kassa/handover
 import MenuPanel from '../kassa/MenuPanel'
 import PaymentModal from '../kassa/PaymentModal'
 import { PreparingButton } from '../kassa/QueueButtons'
+import ScreenControls from '../kassa/ScreenControls'
 import TicketTabs from '../kassa/TicketTabs'
 import { hasLines, newOrderId, useTickets, type Ticket, type TicketsState } from '../kassa/useTickets'
 import OfflineLogin, { OfflineShell } from './OfflineLogin'
@@ -220,6 +221,7 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <ScreenControls />
             <div className="hidden sm:block">
               <LanguageSwitcher tone="dark" />
             </div>
@@ -237,7 +239,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
       </header>
 
       <main className="min-h-0 flex-1">
-        <div className="flex h-full min-h-0 flex-col lg:flex-row">
+        {/* online kassadagidek: yotiq ekranda savat doim o'ngda */}
+        <div className="flex h-full min-h-0 flex-col md:flex-row">
           <div className="min-h-0 min-w-0 flex-1">
             <MenuPanel
               menu={data.menu ?? undefined}
