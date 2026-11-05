@@ -128,13 +128,13 @@ function QueueRow({ children }: { children: ReactNode }) {
 
 /**
  * Offline kassa: faqat "Tayyorlanmoqda" (online, kiosk va dostavka buyurtmalari offline'da yo'q) — online kassadagi
- * joyida (3-ustun) va ko'rinishida, kassir odatiga ko'ra bosadi.
+ * joyida (4-ustun) va ko'rinishida, kassir odatiga ko'ra bosadi.
  */
 export function PreparingButton({ count, onClick }: { count: number; onClick: () => void }) {
   const t = useT()
   return (
     <QueueRow>
-      <QueueButton icon={ClipboardList} title={t.orders.preparingTab} hint={t.kassa.preparingHint} count={count} alert={false} dark onClick={onClick} className="col-start-3" />
+      <QueueButton icon={ClipboardList} title={t.orders.preparingTab} hint={t.kassa.preparingHint} count={count} alert={false} dark onClick={onClick} className="col-start-4" />
     </QueueRow>
   )
 }
@@ -162,8 +162,8 @@ type Props = {
 
 /**
  * Kassirning eng ko'p bosiladigan tugmalari — menyu ostida, kiosk bosh ekranidagi tanlov tugmalari uslubida:
- * mobil ilovadan kelgan online buyurtmalar va kioskdan kelgan to'lanmaganlar (sariq — kassir kutilmoqda), oshxonadagilar
- * va kuryer ishidagi dostavkalar (qora; ostida — ishdagi kuryerlar soni). Kassir kutilayotgan bo'lsa (yangi buyurtma,
+ * mobil ilovadan kelgan online buyurtmalar va kioskdan kelgan to'lanmaganlar (sariq — kassir kutilmoqda), kuryer
+ * ishidagi dostavkalar (ostida — ishdagi kuryerlar soni) va oshxonadagilar (qora). Kassir kutilayotgan bo'lsa (yangi buyurtma,
  * kuryer qaytargani, dostavka bor-u ishda kuryer yo'q) — qizil miltillovchi nuqta. Soni — katta raqam. Kassir hali
  * ko'rmagan online / kiosk buyurtma bo'lsa — tugma qizil miltillaydi; kutayotgani bo'lsa — izoh o'rnida kutish taymeri.
  */
@@ -211,7 +211,6 @@ export default function QueueButtons({
       ringing: kioskRinging,
       waitingSince: kioskSince,
     },
-    { key: 'preparing', icon: ClipboardList, title: t.orders.preparingTab, hint: t.kassa.preparingHint, count: preparing, alert: false, onClick: onPreparing, dark: true },
     {
       key: 'delivery',
       icon: Bike,
@@ -222,6 +221,7 @@ export default function QueueButtons({
       onClick: onDelivery,
       dark: true,
     },
+    { key: 'preparing', icon: ClipboardList, title: t.orders.preparingTab, hint: t.kassa.preparingHint, count: preparing, alert: false, onClick: onPreparing, dark: true },
   ]
 
   return (
