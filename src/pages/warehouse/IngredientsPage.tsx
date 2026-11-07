@@ -285,7 +285,7 @@ export default function IngredientsPage() {
             <GroupHeading group={section.group} count={section.items.length} />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
               {section.items.map((ingredient) => (
-                <div key={ingredient.id} className={`flex flex-col gap-2 rounded-card bg-white p-3.5 shadow-card ${ingredient.active ? '' : 'opacity-50'}`}>
+                <div key={ingredient.id} className={`flex flex-col gap-2 rounded-card bg-surface p-3.5 shadow-card dark:ring-1 dark:ring-line ${ingredient.active ? '' : 'opacity-50'}`}>
                   <div>
                     <p className="leading-snug font-semibold text-neutral-950">{localize(ingredient.name)}</p>
                     <p className="text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</p>

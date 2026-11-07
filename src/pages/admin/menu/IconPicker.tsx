@@ -7,7 +7,7 @@ import { CATEGORY_ICONS } from '@/lib/categoryIcons'
 export default function IconPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const t = useT()
   const cell = (selected: boolean) =>
-    `flex aspect-square cursor-pointer items-center justify-center rounded border-2 bg-white p-1 transition-colors ${selected ? 'border-select' : 'border-transparent hover:border-neutral-300'}`
+    `flex aspect-square cursor-pointer items-center justify-center rounded border-2 bg-surface p-1 transition-colors ${selected ? 'border-select' : 'border-transparent hover:border-neutral-300'}`
 
   return (
     <div className="space-y-2">

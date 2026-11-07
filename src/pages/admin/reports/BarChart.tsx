@@ -72,7 +72,7 @@ export default function BarChart({ points, format, labelEvery = 1, caption }: Pr
                 >
                   <div className={`absolute inset-x-0 top-0 bottom-6 rounded-[4px] ${hover === index ? 'bg-neutral-900/[0.04]' : ''}`} />
                   <div
-                    className={`relative mx-auto w-full max-w-10 rounded-t-[4px] transition-colors ${hover === index ? 'bg-select' : 'bg-coal'}`}
+                    className={`relative mx-auto w-full max-w-10 rounded-t-[4px] transition-colors ${hover === index ? 'bg-select' : 'bg-coal dark:bg-neutral-500'}`}
                     style={{ height: `${Math.max(point.value > 0 ? 1.5 : 0, height)}%` }}
                   />
                   <span className="absolute inset-x-0 bottom-0 truncate text-center text-[11px] text-neutral-500 tabular-nums">
@@ -84,7 +84,7 @@ export default function BarChart({ points, format, labelEvery = 1, caption }: Pr
           </div>
           {active && hover !== null && (
             <div
-              className="pointer-events-none absolute top-0 z-10 w-48 -translate-x-1/2 rounded-card bg-coal px-3 py-2 text-xs text-white shadow-xl"
+              className="pointer-events-none absolute top-0 z-10 w-48 -translate-x-1/2 rounded-card bg-coal px-3 py-2 text-xs text-white shadow-xl dark:ring-1 dark:ring-neutral-200"
               style={{ left: `${Math.min(88, Math.max(12, ((hover + 0.5) / points.length) * 100))}%` }}
             >
               <p className="font-semibold text-white/70">{active.title}</p>

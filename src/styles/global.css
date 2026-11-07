@@ -34,6 +34,8 @@
 
   --color-page: #f1f1ed;
   --color-surface: #fff;
+  /* forma maydoni (input, select, textarea) foni */
+  --color-field: #fff;
   /* kartochka chegarasi ko'rinmas — kartochkani soya ajratadi */
   --color-line: transparent;
 
@@ -101,6 +103,81 @@
 }
 
 @custom-variant modern (&:where([data-theme="modern"], [data-theme="modern"] *));
+
+/*
+ * Qorong'i rejim — faqat admin / ombor paneli (`<html data-mode="dark">` ni StaffLayout qo'yadi). Ranglar VS Code
+ * "Dark Modern" mavzusidan: header va chap menyu #181818, sahifa #1f1f1f, kartochka #252526, maydon #313131, chiziq
+ * #2b2b2b, matn #cccccc, fokus — VS Code ko'ki. Neytral kulrang shkala teskari aylantiriladi (`bg-neutral-100` —
+ * to'q, `text-neutral-900` — och), shuning uchun komponentlar o'zgarmaydi; rangli fonlar (`bg-red-50`, `bg-brand-50`)
+ * shaffof tusga, to'q rangli matnlar (`text-red-700`) och tusga o'tadi. Mavzu (soft / gomeal / modern) bilan birga
+ * ishlaydi. Alohida farqlar — `dark:` varianti bilan.
+ */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+
+  --color-page: #1f1f1f;
+  --color-surface: #252526;
+  --color-field: #313131;
+  --color-line: #2b2b2b;
+  --color-coal: #181818;
+  --color-coal-soft: #252526;
+  --color-coal-line: #3c3c3c;
+  --color-vsc-focus: #0078d4;
+  --ui-card-shadow: none;
+
+  --color-neutral-50: #2a2d2e;
+  --color-neutral-100: #303031;
+  --color-neutral-200: #3c3c3c;
+  --color-neutral-300: #4a4a4a;
+  --color-neutral-400: #858585;
+  --color-neutral-500: #9d9d9d;
+  --color-neutral-600: #ababab;
+  --color-neutral-700: #bbbbbb;
+  --color-neutral-800: #c4c4c4;
+  --color-neutral-900: #cccccc;
+  --color-neutral-950: #e7e7e7;
+
+  --color-brand-50: rgb(255 194 14 / 0.08);
+  --color-brand-100: rgb(255 194 14 / 0.14);
+  --color-brand-200: rgb(255 194 14 / 0.24);
+  --color-brand-700: #ffd54a;
+  --color-brand-800: #ffe080;
+  --color-brand-900: #ffedb0;
+
+  --color-red-50: oklch(63.7% 0.237 25.331 / 0.12);
+  --color-red-100: oklch(63.7% 0.237 25.331 / 0.2);
+  --color-red-200: oklch(63.7% 0.237 25.331 / 0.35);
+  --color-red-700: oklch(80.8% 0.114 19.571);
+  --color-red-800: oklch(88.5% 0.062 18.334);
+  --color-red-900: oklch(88.5% 0.062 18.334);
+  --color-red-950: oklch(93.6% 0.032 17.717);
+
+  --color-emerald-50: oklch(69.6% 0.17 162.48 / 0.12);
+  --color-emerald-100: oklch(69.6% 0.17 162.48 / 0.2);
+  --color-emerald-200: oklch(69.6% 0.17 162.48 / 0.35);
+  --color-emerald-700: oklch(84.5% 0.143 164.978);
+  --color-emerald-800: oklch(90.5% 0.093 164.15);
+  --color-emerald-900: oklch(90.5% 0.093 164.15);
+  --color-emerald-950: oklch(95% 0.052 163.051);
+
+  --color-amber-50: oklch(76.9% 0.188 70.08 / 0.12);
+  --color-amber-100: oklch(76.9% 0.188 70.08 / 0.2);
+  --color-amber-200: oklch(76.9% 0.188 70.08 / 0.35);
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-800: oklch(92.4% 0.12 95.746);
+  --color-amber-900: oklch(92.4% 0.12 95.746);
+  --color-amber-950: oklch(96.2% 0.059 95.617);
+
+  --color-sky-50: oklch(68.5% 0.169 237.323 / 0.12);
+  --color-sky-100: oklch(68.5% 0.169 237.323 / 0.2);
+  --color-sky-200: oklch(68.5% 0.169 237.323 / 0.35);
+  --color-sky-700: oklch(82.8% 0.111 230.318);
+  --color-sky-800: oklch(90.1% 0.058 230.902);
+  --color-sky-900: oklch(90.1% 0.058 230.902);
+  --color-sky-950: oklch(95.1% 0.026 236.824);
+}
+
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 /* ───────────────────────── Shakl tokenlari ───────────────────────── */
 
@@ -175,6 +252,12 @@
   select:focus-visible {
     border-color: var(--color-neutral-900);
     box-shadow: none;
+  }
+  /* qorong'i rejimda fokus chegarasi — VS Code ko'ki */
+  :root[data-mode="dark"] input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]):focus-visible,
+  :root[data-mode="dark"] textarea:focus-visible,
+  :root[data-mode="dark"] select:focus-visible {
+    border-color: var(--color-vsc-focus);
   }
   input,
   textarea {
@@ -452,6 +535,25 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+}
+
+/*
+ * Qorong'i rejim: qora tugma kartochka foniga singib ketmasin — VS Code'ning ikkinchi darajali tugmasi kabi; fokus
+ * halqasi — ko'k. Unlayered: utility qatlamidagi asl qiymatlardan ustun.
+ */
+:root[data-mode="dark"] .btn-dark {
+  color: var(--color-neutral-900);
+  background-color: #313131;
+  border-color: #3c3c3c;
+}
+:root[data-mode="dark"] .btn-dark:hover:not(:disabled) {
+  color: var(--color-taxi);
+  background-color: #3c3c3c;
+  border-color: #4a4a4a;
+}
+:root[data-mode="dark"] :is(.btn-primary, .btn-dark, .btn-ghost, .btn-icon):focus-visible,
+:root[data-mode="dark"] .swal2-container .swal2-actions > button:focus-visible {
+  outline-color: var(--color-vsc-focus) !important;
 }
 
 /* ───────────────────────── SweetAlert2 ─────────────────────────

@@ -52,7 +52,7 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
         return (
           <div
             key={line.key}
-            className={`grid gap-2 rounded-card border border-neutral-200 bg-white p-2 sm:items-center ${
+            className={`grid gap-2 rounded-card border border-neutral-200 bg-surface p-2 sm:items-center ${
               mode === 'purchase'
                 ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_8rem_11rem_auto]'
                 : 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'

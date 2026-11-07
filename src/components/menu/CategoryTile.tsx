@@ -30,7 +30,7 @@ export default function CategoryTile({ category, active, onClick, size = 'md' }:
         type="button"
         onClick={onClick}
         aria-pressed={active}
-        className={`flex min-w-0 shrink-0 cursor-pointer items-center gap-2.5 rounded-card border-2 p-1.5 pr-3 text-left shadow-card transition-colors ${active ? state : `${state} bg-white hover:border-neutral-200`}`}
+        className={`flex min-w-0 shrink-0 cursor-pointer items-center gap-2.5 rounded-card border-2 p-1.5 pr-3 text-left shadow-card transition-colors ${active ? state : `${state} bg-surface hover:border-neutral-200`}`}
       >
         <span className={`flex shrink-0 items-center justify-center overflow-hidden rounded-media bg-page text-neutral-800 ${lg ? 'h-12 w-12' : 'h-10 w-10'}`}>
           <CategoryIcon category={category} box={lg ? 'h-10 w-10' : 'h-8 w-8'} />
@@ -45,7 +45,7 @@ export default function CategoryTile({ category, active, onClick, size = 'md' }:
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex shrink-0 cursor-pointer flex-col items-center gap-1.5 rounded-card border-2 bg-white p-1 pb-2 text-center shadow-card transition-colors ${lg ? 'w-36' : 'w-28'} ${active ? state : `${state} hover:border-neutral-200`}`}
+      className={`flex shrink-0 cursor-pointer flex-col items-center gap-1.5 rounded-card border-2 bg-surface p-1 pb-2 text-center shadow-card transition-colors ${lg ? 'w-36' : 'w-28'} ${active ? state : `${state} hover:border-neutral-200`}`}
     >
       {iconStyle === 'photo' ? (
         <FoodImage src={category.image} alt={name} className="aspect-square w-full rounded-media" />

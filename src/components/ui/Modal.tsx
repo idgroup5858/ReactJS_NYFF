@@ -42,7 +42,7 @@ export default function Modal({ title, onClose, children, footer, size = 'md', d
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`page-enter flex max-h-full w-full flex-col overflow-hidden rounded-card border border-line bg-white shadow-2xl ${WIDTHS[size]}`}
+        className={`page-enter flex max-h-full w-full flex-col overflow-hidden rounded-card border border-line bg-surface shadow-2xl ${WIDTHS[size]}`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 py-2 pr-3 pl-4">
           <h2 className="title-section text-neutral-900">{title}</h2>

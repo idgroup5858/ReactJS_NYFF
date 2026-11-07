@@ -169,7 +169,7 @@ export default function OrdersPage() {
       <Card className="overflow-hidden">
         <div className="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 lg:grid-cols-4">
           {summary.map((cell) => (
-            <div key={cell.label} className="bg-white px-4 py-2.5">
+            <div key={cell.label} className="bg-surface px-4 py-2.5">
               <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">{cell.label}</p>
               <p className="text-base font-extrabold whitespace-nowrap">
                 {cell.value}

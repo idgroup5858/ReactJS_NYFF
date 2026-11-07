@@ -6,6 +6,7 @@ import { hasZone } from '@/domain/rules'
 import type { Branch, ID, LatLng } from '@/domain/types'
 import { useT } from '@/i18n'
 import { showToast } from '@/lib/swal'
+import { useSettings } from '@/store/settingsStore'
 import type { DrawTool } from './draft'
 
 export interface MapEditing {
@@ -101,7 +102,7 @@ function LocateControl({ onLocated }: { onLocated: (location: MyLocation) => voi
         disabled={busy}
         title={t.admin.delivery.locate}
         aria-label={t.admin.delivery.locate}
-        className="m-2.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-sm bg-white text-neutral-600 shadow-[0_1px_4px_-1px_rgba(0,0,0,0.3)] transition-colors hover:text-neutral-950"
+        className="m-2.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-sm bg-surface text-neutral-600 shadow-[0_1px_4px_-1px_rgba(0,0,0,0.3)] transition-colors hover:text-neutral-950"
       >
         {busy ? <LoaderCircle size={20} className="animate-spin" /> : <LocateFixed size={20} />}
       </button>
@@ -117,7 +118,7 @@ function MapTypeControl({ value, onChange }: { value: MapType; onChange: (value:
   const labels: Record<MapType, string> = { roadmap: t.admin.delivery.mapRoadmap, hybrid: t.admin.delivery.mapSatellite }
   return (
     <MapControl position={ControlPosition.TOP_LEFT}>
-      <div className="m-2.5 flex overflow-hidden rounded-sm bg-white shadow-[0_1px_4px_-1px_rgba(0,0,0,0.3)]">
+      <div className="m-2.5 flex overflow-hidden rounded-sm bg-surface shadow-[0_1px_4px_-1px_rgba(0,0,0,0.3)]">
         {(Object.keys(labels) as MapType[]).map((type) => (
           <button
             key={type}
@@ -155,7 +156,7 @@ function MyLocationDot({ location }: { location: MyLocation }) {
 function BranchPin({ name, color, dimmed }: { name: string; color: string; dimmed: boolean }) {
   return (
     <div className={`flex flex-col items-center ${dimmed ? 'opacity-60' : ''}`}>
-      <span className="mb-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-extrabold whitespace-nowrap text-neutral-900 shadow ring-1 ring-black/10">{name}</span>
+      <span className="mb-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-extrabold whitespace-nowrap text-neutral-900 shadow ring-1 ring-black/10">{name}</span>
       <span className="flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-white text-white shadow-lg" style={{ background: color }}>
         <Store size={16} />
       </span>
@@ -212,6 +213,8 @@ export default function DeliveryMap({ branches, colorOf, editing, onZone, onLoca
   const [initialBounds] = useState(() => boundsOf(branches.flatMap(branchPoints)))
   const [me, setMe] = useState<MyLocation | null>(null)
   const [mapType, setMapType] = useState<MapType>('roadmap')
+  // admin qorong'i rejimida xarita ham qorong'i (almashtirilganda Google xaritani qayta yaratadi)
+  const { colorMode } = useSettings()
   const fitPoints = editing ? [...editing.zone, ...(editing.location ? [editing.location] : [])] : branches.flatMap(branchPoints)
 
   const place = (point: LatLng) => {
@@ -223,6 +226,7 @@ export default function DeliveryMap({ branches, colorOf, editing, onZone, onLoca
   return (
     <Map
       mapId="DEMO_MAP_ID"
+      colorScheme={colorMode === 'dark' ? 'DARK' : 'LIGHT'}
       defaultBounds={initialBounds ? { ...initialBounds, padding: 48 } : undefined}
       defaultCenter={initialBounds ? undefined : TASHKENT}
       defaultZoom={initialBounds ? undefined : 12}

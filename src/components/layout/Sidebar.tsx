@@ -32,7 +32,7 @@ export function SidebarPanel({ collapsed, onToggle, className = '', children }: 
   const t = useT()
   const toggleLabel = collapsed ? t.common.expandMenu : t.common.collapseMenu
   return (
-    <aside className={`flex shrink-0 flex-col bg-white shadow-card transition-[width] duration-200 ${collapsed ? 'w-[72px]' : 'w-60'} ${className}`}>
+    <aside className={`flex shrink-0 flex-col bg-surface shadow-card dark:bg-coal dark:shadow-[1px_0_0_var(--color-line)] transition-[width] duration-200 ${collapsed ? 'w-[72px]' : 'w-60'} ${className}`}>
       <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-3">{children}</nav>
       <button
         type="button"
@@ -60,7 +60,7 @@ export function SidebarBadge({ value, collapsed, tone = 'alert', active = false 
   const color = tone === 'alert' ? 'bg-red-600 text-white' : active ? 'bg-white text-coal' : 'bg-neutral-100 text-neutral-500'
   return (
     <span
-      className={`flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums ${color} ${collapsed ? 'absolute top-0.5 right-1 ring-2 ring-white' : ''}`}
+      className={`flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1 text-[11px] font-bold tabular-nums ${color} ${collapsed ? 'absolute top-0.5 right-1 ring-2 ring-surface dark:ring-coal' : ''}`}
     >
       {value}
     </span>

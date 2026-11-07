@@ -359,6 +359,8 @@ export const en: Dict = {
   },
   theme: {
     title: 'Appearance',
+    darkMode: 'Dark mode',
+    lightMode: 'Light mode',
     soft: 'Soft',
     gomeal: 'GoMeal',
     modern: 'Modern',

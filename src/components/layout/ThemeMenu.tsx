@@ -53,7 +53,7 @@ export default function ThemeMenu({ tone = 'dark' }: { tone?: 'light' | 'dark' }
         <Palette size={tone === 'light' ? 18 : 16} />
       </button>
       {open && (
-        <div role="menu" className="absolute top-full right-0 z-40 mt-2 w-56 rounded-card bg-white p-1.5 text-neutral-900 shadow-float">
+        <div role="menu" className="absolute top-full right-0 z-40 mt-2 w-56 rounded-card bg-surface p-1.5 text-neutral-900 shadow-float">
           <p className="px-2.5 pt-1.5 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{t.theme.title}</p>
           {THEMES.map((value) => (
             <button

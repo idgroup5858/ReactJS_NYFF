@@ -33,7 +33,7 @@ export default function BarList({ rows, total }: { rows: BarListRow[]; total: nu
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
-              <div className="h-full rounded-full bg-coal" style={{ width: `${share}%` }} />
+              <div className="h-full rounded-full bg-coal dark:bg-neutral-500" style={{ width: `${share}%` }} />
             </div>
             {sub && <p className="text-xs text-neutral-500">{sub}</p>}
           </li>

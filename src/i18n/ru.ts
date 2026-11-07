@@ -359,6 +359,8 @@ export const ru: Dict = {
   },
   theme: {
     title: 'Оформление',
+    darkMode: 'Тёмная тема',
+    lightMode: 'Светлая тема',
     soft: 'Мягкая',
     gomeal: 'GoMeal',
     modern: 'Современная',

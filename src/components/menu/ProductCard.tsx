@@ -38,7 +38,7 @@ export default function ProductCard({ product, price, onClick, selected = false,
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`relative flex w-full flex-col rounded-card border-2 bg-white p-1 text-left shadow-card transition-colors enabled:cursor-pointer gomeal:p-2 modern:p-2.5 ${border}`}
+      className={`relative flex w-full flex-col rounded-card border-2 bg-surface p-1 text-left shadow-card transition-colors enabled:cursor-pointer gomeal:p-2 modern:p-2.5 ${border}`}
     >
       {unavailable && (
         <span className="absolute top-2.5 left-2.5 z-10 rounded-chip bg-coal px-2 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase modern:top-4 modern:left-4">

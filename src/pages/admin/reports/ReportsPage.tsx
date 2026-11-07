@@ -159,19 +159,19 @@ export default function ReportsPage() {
           <div className="space-y-2 p-4">
             {/* kirim endi tasdiq kutmaydi — faqat eski kutayotganlari qolgan bo'lsa */}
             {pending > 0 && (
-              <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+              <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-surface px-3 py-2.5 transition-colors hover:border-select">
                 <ClipboardCheck size={18} className="text-amber-600" />
                 <span className="flex-1 text-sm font-semibold">{t.admin.reports.pendingPurchases}</span>
                 <span className="rounded-full bg-amber-100 px-2 text-sm font-bold text-amber-800 tabular-nums">{pending}</span>
               </Link>
             )}
-            <Link to="/ombor" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+            <Link to="/ombor" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-surface px-3 py-2.5 transition-colors hover:border-select">
               <TriangleAlert size={18} className={low ? 'text-red-600' : 'text-neutral-300'} />
               <span className="flex-1 text-sm font-semibold">{t.admin.reports.lowStock}</span>
               <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${low ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-500'}`}>{low}</span>
             </Link>
             {liveOrders.map(({ branch: item, count }) => (
-              <Link key={item.id} to={`/tv/${item.id}`} className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+              <Link key={item.id} to={`/tv/${item.id}`} className="flex items-center gap-3 rounded-card border border-neutral-200 bg-surface px-3 py-2.5 transition-colors hover:border-select">
                 <Monitor size={18} className="text-neutral-400" />
                 <span className="flex-1 text-sm font-semibold">{t.admin.reports.liveOrders(item.name)}</span>
                 <span className="rounded-full bg-coal px-2 text-sm font-bold text-taxi tabular-nums">{count}</span>

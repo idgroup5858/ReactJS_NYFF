@@ -13,6 +13,12 @@ export type CategoryPosition = 'left' | 'top'
 export const THEMES = ['soft', 'gomeal', 'modern'] as const
 export type Theme = (typeof THEMES)[number]
 
+/**
+ * Admin / ombor panelining rang rejimi: `light` — yorug' (standart), `dark` — qorong'i (VS Code "Dark Modern" ranglari).
+ * Faqat back-office'ga qo'llanadi — kassa, kiosk, oshxona, TV doim yorug'.
+ */
+export type ColorMode = 'light' | 'dark'
+
 /** Kategoriya ikonkalari (mavzudan alohida): rangli 3D (standart) yoki rasm. */
 export const ICON_STYLES = ['3d', 'photo'] as const
 export type IconStyle = (typeof ICON_STYLES)[number]
@@ -53,6 +59,8 @@ export interface DeviceSettings {
    */
   lastLogin: LastLogin | null
   theme: Theme
+  /** admin / ombor: yorug' yoki qorong'i */
+  colorMode: ColorMode
   iconStyle: IconStyle
   imageFit: ImageFit
   /** admin / ombor chap menyusi faqat ikonkalar holatida */
@@ -100,6 +108,7 @@ function sanitize(raw: unknown): DeviceSettings {
     lastBranchId: typeof value.lastBranchId === 'string' ? value.lastBranchId : null,
     lastLogin: sanitizeLastLogin(value.lastLogin),
     theme: THEMES.find((theme) => theme === value.theme) ?? 'gomeal',
+    colorMode: value.colorMode === 'dark' ? 'dark' : 'light',
     iconStyle: ICON_STYLES.find((style) => style === value.iconStyle) ?? '3d',
     imageFit: IMAGE_FITS.find((fit) => fit === value.imageFit) ?? 'contain',
     sidebarCollapsed: value.sidebarCollapsed === true,
@@ -131,6 +140,7 @@ export const setCategoryPosition = (categoryPosition: CategoryPosition) => save(
 export const setLastBranch = (lastBranchId: ID) => save({ lastBranchId })
 export const setLastLogin = (lastLogin: LastLogin) => save({ lastLogin })
 export const setTheme = (theme: Theme) => save({ theme })
+export const setColorMode = (colorMode: ColorMode) => save({ colorMode })
 export const setIconStyle = (iconStyle: IconStyle) => save({ iconStyle })
 export const setImageFit = (imageFit: ImageFit) => save({ imageFit })
 export const setSidebarCollapsed = (sidebarCollapsed: boolean) => save({ sidebarCollapsed })

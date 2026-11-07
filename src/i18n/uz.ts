@@ -366,6 +366,8 @@ export const uz = {
   },
   theme: {
     title: "Ko'rinish",
+    darkMode: "Qorong'i rejim",
+    lightMode: "Yorug' rejim",
     soft: 'Yumshoq',
     gomeal: 'GoMeal',
     modern: 'Zamonaviy',

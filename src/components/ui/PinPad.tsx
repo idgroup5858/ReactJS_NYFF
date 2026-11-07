@@ -105,7 +105,7 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
 
   const slots = Math.max(MIN, pin.length)
   const keyClass =
-    'flex h-16 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-white text-2xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
+    'flex h-16 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-surface text-2xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
 
   return (
     <div className="space-y-4">
@@ -113,7 +113,7 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
         {Array.from({ length: slots }, (_, index) => (
           <span
             key={index}
-            className={`h-4 w-4 rounded-full border-2 transition-colors ${index < pin.length ? 'border-coal bg-coal' : 'border-neutral-300 bg-white'}`}
+            className={`h-4 w-4 rounded-full border-2 transition-colors ${index < pin.length ? 'border-coal bg-coal' : 'border-neutral-300 bg-surface'}`}
           />
         ))}
       </div>

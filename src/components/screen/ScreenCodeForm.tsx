@@ -28,7 +28,7 @@ const TONES = {
     icon: 'bg-taxi text-coal',
     title: 'text-neutral-950',
     hint: 'text-neutral-500',
-    input: 'border-neutral-300 bg-white text-neutral-950 placeholder:text-neutral-300 focus:border-select',
+    input: 'border-neutral-300 bg-field text-neutral-950 placeholder:text-neutral-300 focus:border-select',
     error: 'bg-red-50 text-red-700',
   },
 } as const

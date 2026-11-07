@@ -130,7 +130,7 @@ function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
   const value = rowValue(row)
 
   return (
-    <div className={`flex flex-col gap-3 rounded-card border-2 p-3.5 shadow-card ${row.low ? 'border-red-200 bg-red-50' : 'border-transparent bg-white'}`}>
+    <div className={`flex flex-col gap-3 rounded-card border-2 p-3.5 shadow-card ${row.low ? 'border-red-200 bg-red-50' : 'border-transparent bg-surface dark:border-line'}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="min-w-0 leading-snug font-semibold text-neutral-950">{localize(row.ingredient.name)}</p>
         <LowBadge row={row} />

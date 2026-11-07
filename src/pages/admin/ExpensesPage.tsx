@@ -149,7 +149,7 @@ export default function ExpensesPage() {
             <>
               <div className="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 sm:grid-cols-3 2xl:grid-cols-6">
                 {EXPENSE_KINDS.map((value) => (
-                  <div key={value} className="bg-white px-3 py-2">
+                  <div key={value} className="bg-surface px-3 py-2">
                     <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">{t.admin.expenses.kinds[value]}</p>
                     <p className="text-sm font-bold tabular-nums">{formatMoney(list.filter((e) => e.kind === value).reduce((sum, e) => sum + e.amount, 0), t)}</p>
                   </div>

@@ -6,10 +6,12 @@ import { logout, useCurrentUser } from '@/api/session'
 import { fullName, initials } from '@/domain/rules'
 import { useT } from '@/i18n'
 import Brand from './Brand'
+import ColorModeToggle from './ColorModeToggle'
 import { HEADER_BUTTON } from './headerButton'
 import LanguageSwitcher from './LanguageSwitcher'
 import Sidebar, { type NavGroup } from './Sidebar'
 import ThemeMenu from './ThemeMenu'
+import { useColorModeRoot } from './useColorModeRoot'
 
 type Props = {
   title: string
@@ -67,6 +69,9 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
   const user = useCurrentUser()
   const navigate = useNavigate()
   const branch = user?.branchId ? branches?.find((b) => b.id === user.branchId) : undefined
+  // qorong'i rejim — faqat back-office'da (chap menyusi bor sahifalar: admin, ombor)
+  const backOffice = nav !== undefined
+  useColorModeRoot(backOffice)
 
   const defaultLogout = () => {
     // admin umumiy kirish ekranida yo'q — o'zining kirish oynasiga (`/admin`)
@@ -77,7 +82,7 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
 
   return (
     <div className={`flex flex-col ${variant === 'fill' ? 'h-screen' : 'min-h-screen'}`}>
-      <header className="sticky top-0 z-30 shrink-0 bg-coal text-white">
+      <header className="sticky top-0 z-30 shrink-0 bg-coal text-white dark:shadow-[0_1px_0_var(--color-line)]">
         <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="shrink-0" aria-label={t.common.home}>
             <Brand onHold={onBrandHold} />
@@ -94,6 +99,7 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {actions}
+            {backOffice && <ColorModeToggle />}
             <ThemeMenu />
             <div className="hidden sm:block">
               <LanguageSwitcher tone="dark" />

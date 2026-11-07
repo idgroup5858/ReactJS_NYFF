@@ -206,7 +206,7 @@ export default function AiChatPage() {
                   type="button"
                   disabled={!configured}
                   onClick={() => void ask(suggestion)}
-                  className="cursor-pointer rounded-card border border-neutral-200 bg-white px-4 py-3 text-left text-sm font-medium text-neutral-800 transition-colors hover:border-taxi hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="cursor-pointer rounded-card border border-neutral-200 bg-surface px-4 py-3 text-left text-sm font-medium text-neutral-800 transition-colors hover:border-taxi hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {suggestion}
                 </button>
