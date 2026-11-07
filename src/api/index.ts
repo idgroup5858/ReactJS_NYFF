@@ -154,6 +154,11 @@ export interface DocumentLine {
   qty: number
 }
 
+export interface PurchaseLine extends DocumentLine {
+  /** 1 birlik (qadoqli — 1 dona) narxi, so'm — mahsulotning "oxirgi narxi" shunga yangilanadi */
+  price: number
+}
+
 export interface NewExpenseInput {
   branchId: ID
   kind: ExpenseKind
@@ -205,8 +210,10 @@ export const api = {
     status: (id: ID) => http.get<FaceIdRequest>(`/auth/faceid-request/${id}`, undefined, { token: null }),
   },
   purchases: {
-    create: (input: { warehouseId: ID; items: DocumentLine[]; note?: string }) =>
-      then(http.post<Purchase>('/purchases', input), 'purchases', 'reports'),
+    /** darhol omborga qo'shiladi (tasdiqlash yo'q), oxirgi narxlar yangilanadi */
+    create: (input: { warehouseId: ID; items: PurchaseLine[]; note?: string }) =>
+      then(http.post<Purchase>('/purchases', input), 'purchases', 'ingredients', 'stock', 'movements', 'reports'),
+    /** faqat eski (tasdiq kutayotgan) kirim */
     approve: (purchaseId: ID, prices: Record<ID, number>) =>
       then(http.post<Purchase>(`/purchases/${purchaseId}/approve`, { prices }), 'purchases', 'ingredients', 'stock', 'movements', 'reports'),
     reject: (purchaseId: ID) => then(http.post<Purchase>(`/purchases/${purchaseId}/reject`), 'purchases', 'reports'),

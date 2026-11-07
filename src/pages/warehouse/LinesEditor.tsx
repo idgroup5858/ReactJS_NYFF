@@ -4,22 +4,25 @@ import { inputClass, selectClass } from '@/components/ui/styles'
 import { INGREDIENT_GROUPS, type ID } from '@/domain/types'
 import { toBase } from '@/domain/units'
 import { useLocalize, useT } from '@/i18n'
-import { countUnit, formatMoney, formatStock, formatUnit } from '@/lib/format'
+import { countUnit, formatMoney, formatNumber, formatStock, formatUnit } from '@/lib/format'
 import { parseQty } from '@/lib/warehouses'
-import { newDraftLine, type DraftLine } from './draftLines'
+import { linePrice, newDraftLine, type DraftLine } from './draftLines'
 
 type Props = {
   lines: DraftLine[]
   onChange: (lines: DraftLine[]) => void
   /** shu ombordagi mavjud qoldiq ko'rsatiladi: kirimda — qayerga, ko'chirishda — qayerdan */
   availableIn: ID
-  /** kirim — yonida oxirgi narx ham, qoldiq chegaradan kam bo'lsa qizil; ko'chirish — miqdor qoldiqdan oshsa qizil */
+  /**
+   * kirim — 1 birlik narxi maydoni (oxirgi narx oldindan yozilgan), qator summasi, qoldiq chegaradan kam bo'lsa qizil;
+   * ko'chirish — miqdor qoldiqdan oshsa qizil
+   */
   mode: 'purchase' | 'transfer'
 }
 
 /**
  * Mahsulot qatorlari muharriri (kirim va ko'chirish): mahsulot (guruhlar bo'yicha ro'yxat), miqdor ombor birligida,
- * yonida ombordagi mavjud qoldiq (kirimda — oxirgi narx ham).
+ * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham.
  */
 export default function LinesEditor({ lines, onChange, availableIn, mode }: Props) {
   const t = useT()
@@ -43,18 +46,24 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
         const tooMuch = mode === 'transfer' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit, ingredient.packSize) > available
         // Qoldiqlar sahifasidagi "Kam" bilan bir xil: chegara qo'yilgan va qoldiq undan kam
         const low = mode === 'purchase' && !!item && item.minQty > 0 && item.qty < item.minQty
+        // kirim: yozilgan narx yoki oxirgi narx; miqdor bor-u narx yo'q — qizil (yuborib bo'lmaydi)
+        const price = mode === 'purchase' ? linePrice(line, ingredient) : null
+        const noPrice = mode === 'purchase' && !!ingredient && qty > 0 && price === null
         return (
           <div
             key={line.key}
-            className={`grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-card border border-neutral-200 bg-white p-2 sm:items-center ${
-              mode === 'purchase' ? 'sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,13rem)_auto]' : 'sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
+            className={`grid gap-2 rounded-card border border-neutral-200 bg-white p-2 sm:items-center ${
+              mode === 'purchase'
+                ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_8rem_11rem_auto]'
+                : 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
             }`}
           >
             <select
               value={line.ingredientId}
-              onChange={(event) => update(line.key, { ingredientId: event.target.value })}
+              // boshqa mahsulot — narx yana uning oxirgi narxidan
+              onChange={(event) => update(line.key, { ingredientId: event.target.value, price: null })}
               aria-label={t.purchase.chooseIngredient}
-              className={`${selectClass} col-span-2 sm:col-span-1`}
+              className={`${selectClass} ${mode === 'purchase' ? 'col-span-3' : 'col-span-2'} sm:col-span-1`}
             >
               <option value="">{t.purchase.chooseIngredient}</option>
               {INGREDIENT_GROUPS.map((group) => {
@@ -84,20 +93,50 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
                 {ingredient ? countUnit(ingredient, t) : ''}
               </span>
             </label>
-            <span className={`order-last col-span-2 text-xs sm:order-none sm:col-span-1 ${tooMuch ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
-              {ingredient && (
-                <>
-                  <span className={`block ${low ? 'font-semibold text-red-700' : ''}`}>
-                    {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
-                  </span>
-                  {mode === 'purchase' && (
-                    <span className="block">
+            {mode === 'purchase' && (
+              // miqdor maydoni bilan bir xil ko'rinish: o'ngda birlik ("so'm/kg")
+              <label className="relative">
+                <input
+                  value={price !== null ? formatNumber(price) : ''}
+                  onChange={(event) => update(line.key, { price: event.target.value.replace(/\D/g, '').slice(0, 10) })}
+                  inputMode="numeric"
+                  placeholder={t.purchase.price}
+                  aria-label={t.purchase.price}
+                  className={`${inputClass} pr-20 text-right font-bold tabular-nums ${noPrice ? 'border-red-400' : ''}`}
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">
+                  {t.purchase.perUnit(ingredient ? countUnit(ingredient, t) : '…')}
+                </span>
+              </label>
+            )}
+            {mode === 'purchase' ? (
+              <span className="order-last col-span-full flex flex-wrap gap-x-4 gap-y-0.5 px-1 text-xs text-neutral-500">
+                {ingredient && (
+                  <>
+                    <span className={low ? 'font-semibold text-red-700' : ''}>
+                      {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
+                    </span>
+                    <span>
                       {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${formatUnit(ingredient, t)}` : '—'}
                     </span>
-                  )}
-                </>
-              )}
-            </span>
+                    {noPrice && <span className="font-semibold text-red-700">{t.purchase.priceMissing}</span>}
+                    {qty > 0 && price !== null && (
+                      <span className="ml-auto font-bold text-neutral-950 tabular-nums">
+                        {t.purchase.sum}: {formatMoney(Math.round(qty * price), t)}
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+            ) : (
+              <span className={`order-last col-span-2 text-xs sm:order-none sm:col-span-1 ${tooMuch ? 'font-semibold text-red-700' : 'text-neutral-500'}`}>
+                {ingredient && (
+                  <span className="block">
+                    {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
+                  </span>
+                )}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => onChange(lines.filter((item) => item.key !== line.key))}

@@ -1,4 +1,4 @@
-import { Check, CircleCheck, ClipboardList, X } from 'lucide-react'
+import { Check, ClipboardList, X } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '@/api'
 import { usePurchases } from '@/api/queries'
@@ -6,7 +6,6 @@ import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
 import Pagination from '@/components/ui/Pagination'
-import SegmentedControl from '@/components/ui/SegmentedControl'
 import type { ID, Purchase } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { confirmDialog, showToast } from '@/lib/swal'
@@ -14,13 +13,10 @@ import PurchaseDetails from '@/pages/warehouse/PurchaseDetails'
 import { PurchaseRow } from '@/pages/warehouse/PurchasesPage'
 import { usePageState, useServerPage } from '@/pages/warehouse/serverPagination'
 
-/** Ko'rib chiqilganlar tarixi — holat bo'yicha alohida (server bitta holat bilan sahifalaydi). */
-type Decided = 'approved' | 'rejected'
-
-/** Kutilayotganlar hammasi bitta ro'yxatda ko'rinadi (ish) — amalda bundan ko'p bo'lmaydi. */
+/** Eski kutayotganlar hammasi bitta ro'yxatda — amalda bundan ko'p bo'lmaydi (yangilari tasdiq kutmaydi). */
 const PENDING_LIMIT = 200
 
-/** Kutilayotgan kirim: narxlar (oldingi kirimdan yozilgan) tekshiriladi / o'zgartiriladi → tasdiqlash yoki rad etish. */
+/** Eski (tasdiqlash bekor qilinishidan oldin yuborilgan) kirim: narxlar tekshiriladi → tasdiqlash yoki rad etish. */
 function PendingPurchase({ purchase }: { purchase: Purchase }) {
   const t = useT()
   const [prices, setPrices] = useState<Record<ID, string>>(() =>
@@ -66,75 +62,51 @@ function PendingPurchase({ purchase }: { purchase: Purchase }) {
 }
 
 /**
- * Kirimlarni tasdiqlash: yuqorida kutilayotganlar (narx maydonlari bilan, hammasi), pastda ko'rib chiqilganlar tarixi —
- * "Tasdiqlangan / Rad etilgan" tanlovi bilan, 10 tadan (server sahifalaydi). Ikkala ro'yxat ham yangisi birinchi.
+ * Kirimlar (admin): ta'minotchi kiritganlar darhol omborga qo'shiladi — tasdiqlash shart emas, admin nima, qancha va
+ * qanchadan kelganini shu yerda ko'rib boradi (har yangisi Telegram botga ham boradi). Yangisi birinchi, 10 tadan
+ * (server sahifalaydi). Tepada — tasdiqlash bekor qilinishidan oldin yuborilib, hali kutayotganlar (bo'lsa).
  */
-export default function PurchaseApprovalPage() {
+export default function AdminPurchasesPage() {
   const t = useT()
   const pendingQuery = usePurchases({ status: 'pending', limit: PENDING_LIMIT })
-  const pending = pendingQuery.data?.items
-  const [decided, setDecided] = useState<Decided>('approved')
-  const paging = usePageState(decided)
-  const historyQuery = usePurchases({ status: decided, page: paging.page, limit: paging.limit })
-  const history = useServerPage(historyQuery.data, paging)
+  const pending = pendingQuery.data?.items ?? []
+  const paging = usePageState()
+  const listQuery = usePurchases({ page: paging.page, limit: paging.limit })
+  const { list, pagination } = useServerPage(listQuery.data, paging)
 
   return (
     <div className="space-y-5">
       <PageHeader title={t.admin.purchases.title} description={t.admin.purchases.hint} />
-      <Card>
-        {/* soni — kelgach (yuklanayotganda "0" ko'rinib qolmasin) */}
-        <CardHeader title={pendingQuery.data ? `${t.purchase.statuses.pending} · ${pendingQuery.data.total}` : t.purchase.statuses.pending} />
-        {!pending ? (
-          pendingQuery.error ? (
-            <div className="p-4">
-              <EmptyState icon={CircleCheck} title={errorMessage(pendingQuery.error)} />
-            </div>
-          ) : null
-        ) : pending.length === 0 ? (
-          <div className="p-4">
-            <EmptyState icon={CircleCheck} title={t.admin.purchases.nonePending} />
-          </div>
-        ) : (
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader title={`${t.admin.purchases.legacyPending} · ${pendingQuery.data?.total ?? pending.length}`} hint={t.admin.purchases.legacyHint} />
           <ul className="divide-y divide-neutral-100">
             {pending.map((purchase) => (
               <PendingPurchase key={purchase.id} purchase={purchase} />
             ))}
           </ul>
-        )}
-      </Card>
+        </Card>
+      )}
       <Card>
-        <CardHeader
-          title={t.admin.purchases.history}
-          actions={
-            <SegmentedControl<Decided>
-              label={t.admin.purchases.history}
-              value={decided}
-              onChange={setDecided}
-              options={[
-                { value: 'approved', label: t.purchase.statuses.approved },
-                { value: 'rejected', label: t.purchase.statuses.rejected },
-              ]}
-            />
-          }
-        />
-        {!history.list ? (
-          historyQuery.error ? (
+        <CardHeader title={t.admin.purchases.history} />
+        {!list ? (
+          listQuery.error ? (
             <div className="p-4">
-              <EmptyState icon={ClipboardList} title={errorMessage(historyQuery.error)} />
+              <EmptyState icon={ClipboardList} title={errorMessage(listQuery.error)} />
             </div>
           ) : null
-        ) : history.list.total === 0 ? (
+        ) : list.total === 0 ? (
           <div className="p-4">
             <EmptyState icon={ClipboardList} title={t.purchase.empty} />
           </div>
         ) : (
           <>
             <ul className="divide-y divide-neutral-100">
-              {history.list.items.map((purchase) => (
+              {list.items.map((purchase) => (
                 <PurchaseRow key={purchase.id} purchase={purchase} />
               ))}
             </ul>
-            <Pagination {...history.pagination} />
+            <Pagination {...pagination} />
           </>
         )}
       </Card>

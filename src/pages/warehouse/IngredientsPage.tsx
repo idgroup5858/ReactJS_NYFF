@@ -39,8 +39,8 @@ const packOf = (draft: Draft): number | null => (Number(draft.packSize) > 0 ? Nu
 
 /**
  * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (faqat yangi mahsulotda), qadoq hajmi
- * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (faqat admin; ta'minotchi ko'radi —
- * narxni kirim tasdiqlashda ham admin kiritadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
+ * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (bu yerda faqat admin; ta'minotchi
+ * ko'radi — u narxni kirimda yozadi, oxirgi narx shunga yangilanadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
  * 16 800 / dona) — kiritilgan narxdan, oraliq qiymatlardan emas (yozilayotgan "6" → "60" → "600" yaxlitlashni yig'masin).
  */
 function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null; onClose: () => void }) {

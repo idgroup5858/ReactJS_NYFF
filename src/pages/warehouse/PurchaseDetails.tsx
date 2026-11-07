@@ -17,7 +17,7 @@ export function PurchaseStatusBadge({ status }: { status: PurchaseStatus }) {
 
 type Props = {
   purchase: Purchase
-  /** admin tasdiqlashda: mahsulot id → kiritilayotgan narx (matn) */
+  /** eski (tasdiq kutayotgan) kirimni admin tasdiqlashda: mahsulot id → kiritilayotgan narx (matn) */
   prices?: Record<ID, string>
   onPrice?: (ingredientId: ID, value: string) => void
 }

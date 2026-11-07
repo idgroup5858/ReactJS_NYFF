@@ -73,7 +73,7 @@ export const router = createBrowserRouter([
                 { path: ':shiftId/:orderId', lazy: async () => ({ Component: (await import('@/pages/admin/shifts/ShiftOrderPage')).default }) },
               ],
             },
-            { path: 'kirimlar', lazy: async () => ({ Component: (await import('@/pages/admin/PurchaseApprovalPage')).default }) },
+            { path: 'kirimlar', lazy: async () => ({ Component: (await import('@/pages/admin/AdminPurchasesPage')).default }) },
             { path: 'menyu', lazy: async () => ({ Component: (await import('@/pages/admin/menu/MenuAdminPage')).default }) },
             {
               // filiallar → yetkazib berish xaritasi (ichma-ich, orqaga tugmasi bilan)

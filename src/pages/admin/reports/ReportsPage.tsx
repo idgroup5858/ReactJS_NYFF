@@ -157,11 +157,14 @@ export default function ReportsPage() {
         <Card>
           <CardHeader title={t.admin.reports.attention} />
           <div className="space-y-2 p-4">
-            <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
-              <ClipboardCheck size={18} className={pending ? 'text-amber-600' : 'text-neutral-300'} />
-              <span className="flex-1 text-sm font-semibold">{t.admin.reports.pendingPurchases}</span>
-              <span className={`rounded-full px-2 text-sm font-bold tabular-nums ${pending ? 'bg-amber-100 text-amber-800' : 'bg-neutral-100 text-neutral-500'}`}>{pending}</span>
-            </Link>
+            {/* kirim endi tasdiq kutmaydi — faqat eski kutayotganlari qolgan bo'lsa */}
+            {pending > 0 && (
+              <Link to="/admin/kirimlar" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
+                <ClipboardCheck size={18} className="text-amber-600" />
+                <span className="flex-1 text-sm font-semibold">{t.admin.reports.pendingPurchases}</span>
+                <span className="rounded-full bg-amber-100 px-2 text-sm font-bold text-amber-800 tabular-nums">{pending}</span>
+              </Link>
+            )}
             <Link to="/ombor" className="flex items-center gap-3 rounded-card border border-neutral-200 bg-white px-3 py-2.5 transition-colors hover:border-select">
               <TriangleAlert size={18} className={low ? 'text-red-600' : 'text-neutral-300'} />
               <span className="flex-1 text-sm font-semibold">{t.admin.reports.lowStock}</span>
