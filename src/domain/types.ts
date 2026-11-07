@@ -198,41 +198,10 @@ export type BaseUnit = 'g' | 'ml' | 'pcs'
  * Ombor mahsulotlari guruhi — omborda saralash va guruh ikonkasi uchun (qoldiq, retsept, sotuvga ta'sir qilmaydi).
  * Ro'yxat tartibi — sahifalardagi tartib; mos guruh topilmasa — `other`.
  */
-export type IngredientGroup =
-  | 'bread'
-  | 'meat'
-  | 'seafood'
-  | 'dairy'
-  | 'vegetables'
-  | 'fruits'
-  | 'frozen'
-  | 'sauces'
-  | 'grocery'
-  | 'sweets'
-  | 'drinks'
-  | 'coffee'
-  | 'packaging'
-  | 'cleaning'
-  | 'other'
-export const INGREDIENT_GROUPS: IngredientGroup[] = [
-  'bread',
-  'meat',
-  'seafood',
-  'dairy',
-  'vegetables',
-  'fruits',
-  'frozen',
-  'sauces',
-  'grocery',
-  'sweets',
-  'drinks',
-  'coffee',
-  'packaging',
-  'cleaning',
-  'other',
-]
+export type IngredientGroup = 'bread' | 'meat' | 'vegetables' | 'sauces' | 'drinks' | 'coffee' | 'cleaning' | 'other'
+export const INGREDIENT_GROUPS: IngredientGroup[] = ['bread', 'meat', 'vegetables', 'sauces', 'drinks', 'coffee', 'cleaning', 'other']
 /** Taom tarkibida (kioskda) ko'rsatilmaydigan guruhlar — mijozga "tarkibi: quti, yog', ziravor" deb chiqmasin. */
-export const NON_COMPOSITION_GROUPS: IngredientGroup[] = ['grocery', 'packaging', 'cleaning', 'other']
+export const NON_COMPOSITION_GROUPS: IngredientGroup[] = ['cleaning', 'other']
 
 export interface Ingredient {
   id: ID
