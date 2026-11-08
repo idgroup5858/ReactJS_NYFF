@@ -115,6 +115,7 @@ export const uz = {
     branch_closed: 'Filial hozir buyurtma qabul qilmayapti',
     location_required: 'Yetkazib berish joyini belgilang (GPS yoki xarita)',
     shift_open_elsewhere: "Boshqa filialda ochiq smenangiz bor — avval o'sha yerda topshiring yoki adminga ayting",
+    pending_purchase: "Bu mahsulot tasdiq kutayotgan eski kirimda bor — avval «Kirimlar» da tasdiqlang yoki rad eting",
     off_duty: "Kuryer «Ishdaman» ni yoqmagan",
     already_taken: 'Bu buyurtmani boshqa kuryer oldi',
     other_branch: "Kuryer qo'lida boshqa filial buyurtmalari bor",
@@ -497,7 +498,27 @@ export const uz = {
     edit: 'Mahsulotni tahrirlash',
     group: 'Guruh',
     unit: 'Birlik',
-    unitLocked: "Birlik keyin o'zgartirilmaydi — qoldiq va retseptlar shu birlikda",
+    unitHint: "O'zgartirilsa, saqlashda qayta tekshiriladigan joylar ko'rsatiladi",
+    unitAdminOnly: "Birlikni faqat admin o'zgartiradi",
+    /** ishlatilgan mahsulotning birligi kg / l ↔ dona o'zgarganda — saqlashdan oldingi ogohlantirish */
+    unitChange: {
+      title: "Birlik o'zgartirilsinmi?",
+      intro: (name: string, from: string, to: string) =>
+        `«${name}»: ${from} → ${to}. Qoldiq, retsept va hujjatlardagi sonlar o'zgarmaydi — endi yangi birlikda o'qiladi. Quyidagilarni qayta tekshiring:`,
+      recipes: (count: number) => `Retseptlar — ${count} ta taom`,
+      recipesHint: 'Menyu → taom → retseptda tuzating: sotuvda shu son ayiriladi',
+      stock: 'Qoldiq va chegara',
+      stockHint: "Qoldiq keyingi kirim / sotuvgacha shunday turadi; chegara — «Qoldiqlar» sahifasida",
+      qty: 'qoldiq',
+      min: 'chegara',
+      price: (unit: string) => `Narx bo'sh qoladi — 1 ${unit} narxini shu oynada yozing yoki keyingi kirimda kiritiladi`,
+      pack: (count: string, size: string) => `Qadoq: 1 ${count} = ${size} — to'g'riligini tekshiring`,
+      history: (purchases: number, transfers: number) =>
+        `${[purchases > 0 && `${purchases} ta kirim`, transfers > 0 && `${transfers} ta ko'chirish`].filter(Boolean).join(', ')} va qoldiq harakatlari tarixi yangi birlikda ko'rinadi`,
+      pending: (count: number) =>
+        `Tasdiq kutayotgan ${count} ta eski kirimda bor — avval «Kirimlar» da tasdiqlang yoki rad eting. Hozircha o'zgartirib bo'lmaydi`,
+      confirm: "Birlikni o'zgartirish",
+    },
     recipes: 'Retseptlarda',
     usedIn: (count: number) => (count > 0 ? `${count} ta taomda` : '—'),
     price: (unit: string) => `Narx — 1 ${unit}`,

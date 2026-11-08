@@ -12,13 +12,23 @@ import PageHeader from '@/components/ui/PageHeader'
 import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import ViewToggle from '@/components/ui/ViewToggle'
-import { INGREDIENT_GROUPS, STOCK_UNITS, type ID, type Ingredient, type IngredientGroup, type LocalizedText, type StockUnit } from '@/domain/types'
+import {
+  INGREDIENT_GROUPS,
+  STOCK_UNITS,
+  type ID,
+  type Ingredient,
+  type IngredientGroup,
+  type IngredientUsage,
+  type LocalizedText,
+  type StockUnit,
+} from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { baseUnitOf, convertPrice, unitSize } from '@/domain/units'
+import { baseUnitOf, convertPrice, sameScale, unitSize } from '@/domain/units'
 import { countUnit, formatMoney, formatNumber, formatUnit } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import GroupHeading from './GroupHeading'
+import UnitChangeWarning from './UnitChangeWarning'
 
 /**
  * `packSize` — qadoq hajmi asosiy birlikda (faqat raqamlar; bo'sh — qadoqsiz). `price` — kiritilgan narx (faqat
@@ -37,16 +47,27 @@ type Draft = {
 /** Maydondagi qadoq hajmi: bo'sh yoki 0 — qadoqsiz. */
 const packOf = (draft: Draft): number | null => (Number(draft.packSize) > 0 ? Number(draft.packSize) : null)
 
+/** Mahsulot biror joyda sonlari bilan turibdimi — hech qayerda bo'lmasa birlik ogohlantirishsiz o'zgaradi. */
+const isUsed = (usage: IngredientUsage): boolean =>
+  usage.products.length > 0 || usage.stock.length > 0 || usage.purchases + usage.transfers + usage.pendingPurchases > 0
+
 /**
- * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (faqat yangi mahsulotda), qadoq hajmi
+ * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (tahrirda — faqat admin), qadoq hajmi
  * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (bu yerda faqat admin; ta'minotchi
  * ko'radi — u narxni kirimda yozadi, oxirgi narx shunga yangilanadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
  * 16 800 / dona) — kiritilgan narxdan, oraliq qiymatlardan emas (yozilayotgan "6" → "60" → "600" yaxlitlashni yig'masin).
+ *
+ * Birlik tahrirda kg / l ↔ dona o'zgarsa — narx bo'shaydi (28 000 / kg dan "28 / dona" ma'nosiz), saqlashda mahsulot
+ * ishlatilgan bo'lsa avval ogohlantirish oynasi (`UnitChangeWarning`): sonlar o'zgarmaydi, qayerlarni qayta tekshirish
+ * kerakligi ko'rsatiladi, "Birlikni o'zgartirish" bosilgach saqlanadi. kg ↔ l — sonlar to'g'ri, ogohlantirishsiz.
  */
 function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null; onClose: () => void }) {
   const t = useT()
   const localize = useLocalize()
   const isAdmin = useCurrentUser()?.role === 'admin'
+  const [saving, setSaving] = useState(false)
+  /** ishlatilgan mahsulot birligi o'zgarayotganda — ogohlantirish (bu paytda forma yashirinadi, kiritilgani saqlanadi) */
+  const [warning, setWarning] = useState<IngredientUsage | null>(null)
   const [draft, setDraft] = useState<Draft>(
     ingredient
       ? {
@@ -66,8 +87,8 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
   const price = draft.price === '' ? '' : String(convertPrice(Number(draft.price), draft.priceSize, size))
   const count = countUnit({ unit: draft.unit, packSize: packOf(draft) }, t)
 
-  const save = async (event: FormEvent) => {
-    event.preventDefault()
+  const submit = async () => {
+    setSaving(true)
     try {
       const { name, group, unit, active } = draft
       // ta'minotchi narxni o'zgartirmaydi — yuborilmaydi (qadoq hajmi o'zgarsa server o'zi qayta hisoblaydi)
@@ -79,7 +100,41 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
       onClose()
     } catch (error) {
       showToast(errorMessage(error), 'error')
+      setSaving(false)
     }
+  }
+
+  const save = async (event: FormEvent) => {
+    event.preventDefault()
+    if (ingredient && !sameScale(ingredient.unit, draft.unit)) {
+      setSaving(true)
+      try {
+        // har safar serverdan — retsept / qoldiq hozirgisi bo'lsin
+        const usage = await api.ingredients.usage(ingredient.id)
+        if (isUsed(usage)) {
+          setWarning(usage)
+          setSaving(false)
+          return
+        }
+      } catch (error) {
+        showToast(errorMessage(error), 'error')
+        setSaving(false)
+        return
+      }
+    }
+    await submit()
+  }
+
+  /**
+   * Birlik: yangi mahsulotda — kiritilgan narx o'zgarmaydi (birlikni tuzatish). Tahrirda kg / l ↔ dona — narx bo'shaydi
+   * (eski birlikdagi narx yangisiga o'tmaydi), asl birlikka (yoki kg ↔ l) qaytilsa — asl narx; kg ↔ l — narx qoladi.
+   */
+  const changeUnit = (unit: StockUnit) => {
+    if (!ingredient || sameScale(unit, draft.unit)) setDraft({ ...draft, unit, price, priceSize: unitSize(unit, packOf(draft)) })
+    else if (sameScale(unit, ingredient.unit)) {
+      const original = ingredient.lastPrice !== null ? String(ingredient.lastPrice) : ''
+      setDraft({ ...draft, unit, price: original, priceSize: unitSize(ingredient.unit, ingredient.packSize) })
+    } else setDraft({ ...draft, unit, price: '', priceSize: unitSize(unit, packOf(draft)) })
   }
 
   /** faqat hech qayerda ishlatilmagan mahsulot (aks holda server `in_use` — faolsizlantirish kerak) */
@@ -93,12 +148,26 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
     }
   }
 
+  if (ingredient && warning) {
+    return (
+      <UnitChangeWarning
+        ingredient={ingredient}
+        next={{ unit: draft.unit, packSize: packOf(draft) }}
+        priceEmpty={price === ''}
+        usage={warning}
+        saving={saving}
+        onConfirm={() => void submit()}
+        onCancel={() => setWarning(null)}
+      />
+    )
+  }
+
   return (
     <Modal
       title={ingredient ? t.ingredients.edit : t.ingredients.add}
       onClose={onClose}
       size="lg"
-      footer={<FormFooter formId="ingredient-form" saving={false} onDelete={ingredient ? () => void remove(ingredient) : undefined} />}
+      footer={<FormFooter formId="ingredient-form" saving={saving} onDelete={ingredient ? () => void remove(ingredient) : undefined} />}
     >
       {/* eniga keng, past (POS monitori): 3 tildagi nom bir qatorda; guruh · birlik · qadoq · narx */}
       <form id="ingredient-form" onSubmit={(event) => void save(event)} className="space-y-3">
@@ -123,16 +192,16 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
               ))}
             </select>
           </Field>
-          <Field label={t.ingredients.unit} htmlFor="ing-unit" hint={ingredient ? t.ingredients.unitLocked : undefined}>
+          <Field
+            label={t.ingredients.unit}
+            htmlFor="ing-unit"
+            hint={ingredient ? (isAdmin ? t.ingredients.unitHint : t.ingredients.unitAdminOnly) : undefined}
+          >
             <select
               id="ing-unit"
               value={draft.unit}
-              disabled={!!ingredient}
-              onChange={(event) => {
-                // birlikni tuzatish (yangi mahsulotda) — kiritilgan narx o'zgarmaydi
-                const unit = event.target.value as StockUnit
-                setDraft({ ...draft, unit, price, priceSize: unitSize(unit, packOf(draft)) })
-              }}
+              disabled={!!ingredient && !isAdmin}
+              onChange={(event) => changeUnit(event.target.value as StockUnit)}
               className={selectClass}
             >
               {STOCK_UNITS.map((unit) => (

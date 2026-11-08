@@ -14,6 +14,7 @@ import type {
   ImageFolder,
   Ingredient,
   IngredientGroup,
+  IngredientUsage,
   LatLng,
   LocalizedText,
   Order,
@@ -73,7 +74,10 @@ export interface IngredientInput {
   id?: ID
   name: LocalizedText
   group: IngredientGroup
-  /** faqat yangi mahsulotda — keyin o'zgarmaydi */
+  /**
+   * tahrirda boshqa birlik — faqat admin (`forbidden`); qoldiq, retsept va hujjatlardagi sonlar o'zgarmaydi. kg / l ↔
+   * dona: narx yuborilmasa bo'shaydi, tasdiq kutayotgan eski kirimda bo'lsa — `pending_purchase`
+   */
   unit: StockUnit
   /**
    * 1 birlik (qadoq bo'lsa — 1 dona) narxi (faqat admin); berilmasa — o'zgarmaydi (qadoq hajmi o'zgarsa server yangi
@@ -231,6 +235,8 @@ export const api = {
       ),
     /** retseptda, kirimda, ko'chirishda, harakatda yo'q mahsulot — qoldiq yozuvlari bilan (aks holda `in_use`) */
     remove: (id: ID) => then(http.delete<void>(`/ingredients/${id}`), 'ingredients', 'stock', 'reports'),
+    /** admin, birlikni o'zgartirishdan oldin: retseptlari bor taomlar, qoldiq / chegara, hujjatlar soni (har safar yangi) */
+    usage: (id: ID) => http.get<IngredientUsage>(`/ingredients/${id}/usage`),
     /** ogohlantirish chegarasi — asosiy birlikda (g / ml / dona) */
     setMinQty: (warehouseId: ID, ingredientId: ID, minQty: number) =>
       then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/min-qty`, { minQty }), 'stock', 'reports'),

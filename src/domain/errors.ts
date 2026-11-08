@@ -39,6 +39,8 @@ export type ErrorCode =
   | 'location_required'
   /** kassirning boshqa filialda ochiq smenasi bor (`detail` — o'sha filial nomi; matni — `errors.shiftOpenAt`) */
   | 'shift_open_elsewhere'
+  /** ombor mahsuloti birligini kg / l ↔ dona o'zgartirish: mahsulot tasdiq kutayotgan eski kirimda bor */
+  | 'pending_purchase'
   // ── kuryer (asosan Android ilovasida; vebda — xodim kuryer ishiga aralashganda) ──
   | 'off_duty'
   | 'already_taken'
