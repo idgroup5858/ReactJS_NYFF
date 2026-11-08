@@ -230,7 +230,7 @@ export const ru: Dict = {
     kitchenEmpty: 'В этом заказе нет блюд для кухни (только готовые напитки)',
     kitchenFailed: 'Чек для кухни не напечатан — проверьте принтер кухни',
     kitchenNotSet: 'Принтер кухни не выбран — «NYFF Offline» → Настройки → Принтеры',
-    printNoService: '«NYFF Offline» не работает — чек для кухни не напечатан',
+    printNoService: 'Не удалось связаться с «NYFF Offline» — чек для кухни не напечатан',
     onlineTab: 'Онлайн',
     onlineNew: 'Новый заказ из мобильного приложения',
     emptyOnline: 'Новых онлайн-заказов нет',

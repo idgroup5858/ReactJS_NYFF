@@ -236,7 +236,7 @@ export const uz = {
     kitchenEmpty: "Bu buyurtmada oshxonaga taom yo'q (faqat tayyor ichimlik)",
     kitchenFailed: 'Oshxona cheki chiqmadi — oshxona printerini tekshiring',
     kitchenNotSet: "Oshxona printeri tanlanmagan — «NYFF Offline» → Sozlamalar → Printerlar",
-    printNoService: "«NYFF Offline» ishlamayapti — oshxona cheki chiqmadi",
+    printNoService: "«NYFF Offline» dasturiga ulanib bo'lmadi — oshxona cheki chiqmadi",
     onlineTab: 'Online',
     onlineNew: 'Mobil ilovadan yangi buyurtma',
     emptyOnline: "Yangi online buyurtma yo'q",

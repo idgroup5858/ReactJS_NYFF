@@ -20,6 +20,7 @@ type PrintResults = Partial<Record<PrintTarget, 'ok' | 'not_set' | 'error'>>
 
 /** "NYFF Offline" chop etish xizmati (`ElectronJS_NYFF/printer.js`) — kassa kompyuterining o'zida. */
 const PRINT_SERVICE = 'http://127.0.0.1:3101/print'
+const PRINT_STATUS = 'http://127.0.0.1:3101/status'
 /** Online kassada Chrome birinchi marta ruxsat so'raydi — kassir javob berguncha kutiladi, keyin brauzer orqali. */
 const PRINT_TIMEOUT_MS = 15_000
 
@@ -28,7 +29,8 @@ const PRINT_TIMEOUT_MS = 15_000
  * qalin: Courier New'ning qalini termoprinterda ingichka chiqadi, shuning uchun Arial Black + kontur. Mijoz cheki —
  * tepasida logo (chek ichida, data URI: Electron chekni `data:` sahifa qilib ochadi, tashqi fayl yuklanmaydi, offline'da
  * ham chiqadi). Zal / olib ketish — ikkalasida qora fonda. Oshxona cheki — logosiz, faqat oshxonaga tegishli qatorlar, summasiz
- * (narx, "Jami", to'lov yo'q); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Bo'shliqlar ixcham — qog'oz
+ * (narx, "Jami", to'lov yo'q); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Mijoz chekida ham taom
+ * qatorlari qalin Arial (kichikroq — summa ustuni sig'sin). Bo'shliqlar ixcham — qog'oz
  * tejaladi; "Manzil: <filial>" chapda, sana o'ngda — bitta qatorda.
  */
 function receiptHtml(order: ReceiptOrder, branchName: string, lines: OrderItem[], kitchen: boolean): string {
@@ -56,7 +58,8 @@ body { width: 72mm; margin: 0; padding: 2mm 1mm; font: 12px/1.25 'Courier New', 
 .meta span:last-child { white-space: nowrap }
 hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
 .items { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 3mm }
-.items > div { padding: .7mm 0; overflow-wrap: anywhere }
+/* taom qatorlari — qalin Arial (Courier New qalini termoprinterda ingichka, xira chiqadi) */
+.items > div { padding: .7mm 0; overflow-wrap: anywhere; font: 700 14px/1.25 Arial, sans-serif }
 .items > .sep { grid-column: 1 / -1; padding: 0; border-top: 1px dashed #000 }
 .qty, .sum { white-space: nowrap; text-align: right }
 .qty { font-weight: 700; font-size: 14px }
@@ -107,13 +110,28 @@ function browserPrint(html: string): void {
   document.body.appendChild(frame)
 }
 
+// kassa sahifasi ochiq — `attachPrintService`
+let kassaPage = false
+
 /**
- * Bu kompyuterda "NYFF Offline" bor: kassa sozlamasida offline kassa yoqilgan yoki sahifaning o'zi shu kompyuterdan
- * ochilgan (offline kassa — `localhost:3100/offline`). Aks holda (admin, kiosk) xizmatga so'rov ketmaydi — Chrome
- * ruxsat so'ramasin.
+ * Kassa sahifasi ochilganda chaqiriladi (`useEffect`): kassa kompyuterida "NYFF Offline" turadi — cheklar unga
+ * yuboriladi. Offline rejim sozlamasiga bog'liq emas. Xizmat darhol bir marta tekshiriladi: Chrome ruxsatni (https
+ * sayt → shu kompyuterdagi dastur) birinchi buyurtmada emas, kassa ochilganda so'rasin. Qaytaradi — tozalash.
+ */
+export function attachPrintService(): () => void {
+  kassaPage = true
+  fetch(PRINT_STATUS, { signal: AbortSignal.timeout(PRINT_TIMEOUT_MS) }).catch(() => {})
+  return () => {
+    kassaPage = false
+  }
+}
+
+/**
+ * Bu kompyuterda "NYFF Offline" bor: kassa sahifasi yoki sahifaning o'zi shu kompyuterdan ochilgan (offline kassa —
+ * `localhost:3100/offline`). Aks holda (admin, kiosk) xizmatga so'rov ketmaydi — Chrome ruxsat so'ramasin.
  */
 function hasPrintService(): boolean {
-  return settingsStore.get().offlineEnabled || ['localhost', '127.0.0.1'].includes(window.location.hostname)
+  return kassaPage || ['localhost', '127.0.0.1'].includes(window.location.hostname)
 }
 
 /** Xizmatga yuboradi; `null` — xizmat javob bermadi (dastur ishlamayapti, ruxsat berilmadi). */

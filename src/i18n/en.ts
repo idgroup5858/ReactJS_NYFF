@@ -230,7 +230,7 @@ export const en: Dict = {
     kitchenEmpty: 'This order has nothing for the kitchen (ready drinks only)',
     kitchenFailed: 'Kitchen ticket was not printed — check the kitchen printer',
     kitchenNotSet: 'Kitchen printer is not selected — «NYFF Offline» → Settings → Printers',
-    printNoService: '«NYFF Offline» is not running — kitchen ticket was not printed',
+    printNoService: 'Could not reach «NYFF Offline» — kitchen ticket was not printed',
     onlineTab: 'Online',
     onlineNew: 'New order from the mobile app',
     emptyOnline: 'No new online orders',

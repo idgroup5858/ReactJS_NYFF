@@ -15,7 +15,7 @@ import { errorMessage, useT } from '@/i18n'
 import { addProduct, cartQty, changeQty, removeLine } from '@/lib/cart'
 import { choiceDialog, confirmDialog, showToast } from '@/lib/swal'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
-import { printOrder } from '@/lib/printReceipt'
+import { attachPrintService, printOrder } from '@/lib/printReceipt'
 import { removeKey } from '@/store/storage'
 import { ticketsStorageKey } from '@/store/storageKeys'
 import { useSettings } from '@/store/settingsStore'
@@ -95,6 +95,8 @@ export default function KassaPage() {
   const { tickets, active, updateActive, setOrderId, select, add, close, clear } = ticketsState
   const { lines, orderType, orderNote } = active
   useEffect(releaseTickets, [])
+  // cheklar — shu kompyuterdagi "NYFF Offline" orqali (kassa va oshxona printeri, oynasiz)
+  useEffect(attachPrintService, [])
   const [panel, setPanel] = useState<Panel>(null)
   // buyurtmalar oynasida kassir almashtirgan bo'lim; `null` — ochilgandagi bo'limda turibdi
   const [drawerTab, setDrawerTab] = useState<OrdersTab | null>(null)
