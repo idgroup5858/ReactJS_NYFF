@@ -14,7 +14,7 @@ import { errorMessage, useLocalize, useT } from '@/i18n'
 import { countUnit, formatDateTime, formatMoney, formatNumber } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
-import { newDraftLine, readyPurchase, type DraftLine } from './draftLines'
+import { linesFromParams, newDraftLine, readyPurchase, type DraftLine } from './draftLines'
 import LinesEditor from './LinesEditor'
 import PurchaseDetails, { PurchaseStatusBadge } from './PurchaseDetails'
 import { usePageState, useServerPage } from './serverPagination'
@@ -82,7 +82,7 @@ export default function PurchasesPage() {
   // omborlar serverdan keladi: tanlanmaguncha (yoki yuklanguncha) — birinchisi (markaziy)
   const [chosenWarehouse, setWarehouseId] = useState<ID>('')
   const warehouseId = warehouses.find((w) => w.id === chosenWarehouse)?.id ?? warehouses[0]?.id ?? ''
-  const [lines, setLines] = useState<DraftLine[]>(() => [newDraftLine(params.get('item') ?? '', params.get('qty') ?? '')])
+  const [lines, setLines] = useState<DraftLine[]>(() => linesFromParams(params))
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 

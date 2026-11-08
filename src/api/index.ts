@@ -240,6 +240,9 @@ export const api = {
     /** ogohlantirish chegarasi — asosiy birlikda (g / ml / dona) */
     setMinQty: (warehouseId: ID, ingredientId: ID, minQty: number) =>
       then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/min-qty`, { minQty }), 'stock', 'reports'),
+    /** norma — "To'ldirish" shu darajagacha, asosiy birlikda; 0 — yozilmagan (chegara × 2 / 10 birlik) */
+    setTargetQty: (warehouseId: ID, ingredientId: ID, targetQty: number) =>
+      then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/target-qty`, { targetQty }), 'stock'),
   },
   users: {
     changeOwnPin: (oldPin: string, newPin: string) => http.put<void>('/auth/pin', { oldPin, newPin }),

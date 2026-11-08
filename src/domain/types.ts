@@ -226,13 +226,18 @@ export interface StockItem {
   qty: number
   /** asosiy birlikda; qoldiq shundan kam bo'lsa — ogohlantirish. 0 — kuzatilmaydi */
   minQty: number
+  /**
+   * Norma, asosiy birlikda: "To'ldirish" qoldiqni shu darajagacha yetkazadi. 0 — yozilmagan: chegara × 2, chegara ham
+   * yo'q bo'lsa — 10 birlik (`refillTarget`)
+   */
+  targetQty: number
 }
 
 /** Ombor mahsuloti qayerlarda ishlatilgan (`GET /ingredients/:id/usage`, admin) — birlikni o'zgartirishdan oldin. */
 export interface IngredientUsage {
   /** retseptida shu mahsulot bor taomlar; `qty` — 1 porsiyaga, asosiy birlikda */
   products: { id: ID; name: LocalizedText; qty: number }[]
-  /** qoldig'i yoki chegarasi bor omborlar (asosiy birlikda) */
+  /** qoldig'i, chegarasi yoki normasi bor omborlar (asosiy birlikda) */
   stock: Omit<StockItem, 'ingredientId'>[]
   purchases: number
   /** tasdiq kutayotgan eski kirimlar — bo'lsa kg / l ↔ dona o'zgartirib bo'lmaydi (`pending_purchase`) */

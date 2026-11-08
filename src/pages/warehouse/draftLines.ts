@@ -20,6 +20,19 @@ export function newDraftLine(ingredientId: ID = '', qty = ''): DraftLine {
   return { key: `draft_${seq}`, ingredientId, qty, price: null }
 }
 
+/**
+ * Formaning boshlang'ich qatorlari havoladan ("To'ldirish"): `?item=<id>&qty=<son>` — bitta qator, `?items=<id>:<son>,…`
+ * — bir nechta ("Hammasini to'ldirish"). Hech biri yo'q — bitta bo'sh qator.
+ */
+export function linesFromParams(params: URLSearchParams): DraftLine[] {
+  const many = (params.get('items') ?? '')
+    .split(',')
+    .map((pair) => pair.split(':'))
+    .filter(([id]) => !!id)
+    .map(([id, qty]) => newDraftLine(id, qty ?? ''))
+  return many.length > 0 ? many : [newDraftLine(params.get('item') ?? '', params.get('qty') ?? '')]
+}
+
 /** To'liq to'ldirilgan qatorlar (mahsulot tanlangan, miqdor > 0) — api ga yuboriladigan ko'rinishda. */
 export function readyLines(lines: DraftLine[]): { ingredientId: ID; qty: number }[] {
   return lines.flatMap((line) => {

@@ -13,7 +13,7 @@ import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatNumber, formatUnit } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
-import { newDraftLine, readyLines, type DraftLine } from './draftLines'
+import { linesFromParams, newDraftLine, readyLines, type DraftLine } from './draftLines'
 import LinesEditor from './LinesEditor'
 import { usePageState, useServerPage } from './serverPagination'
 
@@ -36,7 +36,7 @@ export default function TransfersPage() {
   const [toChoice, setTo] = useState(params.get('to') ?? '')
   const from = valid(fromChoice) ?? warehouses[0]?.id ?? ''
   const to = valid(toChoice) ?? warehouses.find((w) => w.id !== from)?.id ?? ''
-  const [lines, setLines] = useState<DraftLine[]>(() => [newDraftLine(params.get('item') ?? '', params.get('qty') ?? '')])
+  const [lines, setLines] = useState<DraftLine[]>(() => linesFromParams(params))
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 

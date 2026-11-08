@@ -403,7 +403,7 @@ export const uz = {
   stock: {
     title: 'Ombor qoldiqlari',
     nav: 'Qoldiqlar',
-    hint: 'Ombor tanlang — qoldiq, ogohlantirish chegarasi va qiymati',
+    hint: "Ombor tanlang — qoldiq, ogohlantirish chegarasi, to'ldirish normasi va qiymati",
     warehouse: 'Ombor',
     central: 'Markaziy ombor',
     branchWarehouse: (name: string) => `${name} ombori`,
@@ -429,7 +429,15 @@ export const uz = {
     out: 'Tugagan',
     editMin: "Ogohlantirish chegarasini o'zgartirish",
     minSaved: 'Chegara saqlandi',
+    target: 'Norma',
+    editTarget: "To'ldirish normasini o'zgartirish (0 — avtomatik)",
+    targetSaved: 'Norma saqlandi',
+    /** norma yozilmagan — "To'ldirish" qaysi darajagacha yetkazishi (kulrang son ustida) */
+    targetAuto: (rule: string) => `Norma yozilmagan — ${rule}`,
+    targetAutoMin: 'chegara × 2',
+    targetAutoDefault: '10 birlik',
     refill: "To'ldirish",
+    refillAll: (count: number) => `Hammasini to'ldirish (${count})`,
     history: 'Harakatlar tarixi',
     historyTitle: (name: string) => `${name} — harakatlar`,
     noMovements: "Hali harakat yo'q",
@@ -511,6 +519,7 @@ export const uz = {
       stockHint: "Qoldiq keyingi kirim / sotuvgacha shunday turadi; chegara — «Qoldiqlar» sahifasida",
       qty: 'qoldiq',
       min: 'chegara',
+      target: 'norma',
       price: (unit: string) => `Narx bo'sh qoladi — 1 ${unit} narxini shu oynada yozing yoki keyingi kirimda kiritiladi`,
       pack: (count: string, size: string) => `Qadoq: 1 ${count} = ${size} — to'g'riligini tekshiring`,
       history: (purchases: number, transfers: number) =>

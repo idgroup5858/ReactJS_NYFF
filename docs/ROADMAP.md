@@ -198,8 +198,44 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
   masalliq solinib o'raladi; fri qovurilib sousga botiriladi; stakanga sariq sharbat quyiladi; yetkazib berish —
   ilovada buyurtma, yetkazish mashinasi yo'lga chiqib eshikkacha olib boradi; menyu kartalari; uz/ru/en tillari; bitta fayl, serverda `/var/www/newyork24`). Qolgani: manzil/telefon/ish vaqti, haqiqiy menyu va narxlar, ilova havolasi. Xodimlar tizimi allaqachon
   **`newyork24.uz/shorva`** da (bajarildi, `NestJS_NYFF/PLAN.md` — "Manzillar"); subdomen va "ish joyi kodi" — kerak emas.
+- **Inventarizatsiya (sanoq, 2026-11-08 taklif).** Hozir qoldiqni faqat kirim / ko'chirish **qo'shadi** (`qty + delta`),
+  sanalgan songa tenglash yo'q — qoldiq 0 da savdo boshlansa (minusga tushadi), keyin sanab kiritishda minus qismini
+  qo'lda qo'shish kerak (sanalgan 17 + minus 3 = 20). Taklif: admin sanalgan sonni yozadi, server qoldiqni shunga
+  tenglaydi, farq — yangi harakat turi (kamomad / ortiqcha); narx so'ralmaydi, "Yangi kirim" xabari ketmaydi.
 
 Bajarilganlar (2026-11-02): ishlatilmagan ombor mahsuloti (va filial, kategoriya, taom, xodim) o'chiriladi; kassadagi
 ochiq cheklar sahifa yangilanganda saqlanadi; **offline kassa** — internet yo'q paytda kassa kompyuteridagi "NYFF
 Offline" (Electron ilova, `C:\BACKEND APPS\ElectronJS_NYFF`) da savdo, internet qaytgach markazga o'zi yuboriladi; kalit —
 admin "Filiallar" → "Offline kalit" (`NestJS_NYFF/API.md` 14).
+
+## 5. Ombor: chegara, norma va markazdan to'ldirish (kelishilgan va bajarildi 2026-11-08)
+
+**Bajarildi:** `stock.targetQty` (migratsiya `StockTargetQty`), `PUT /stock/:w/:i/target-qty`, "Qoldiqlar" sahifasida
+"Norma" ustuni (yozilmagani — kulrang avtomatik son), "To'ldirish" / "Hammasini to'ldirish (N)" (ko'chirish yoki kirim
+formasi `?items=id:son,…` bilan), Telegram "kam qoldi" va smena hisobotida "markazda: …" (`NestJS_NYFF/API.md` 7.6, 13).
+Tavsifdan farqi: chegarasiz mahsulot faqat **minusda** "Tugagan" bo'ladi, 0 da emas — boshida hamma qoldiq 0, aks holda
+butun ro'yxat qizil bo'lib, "Hammasini to'ldirish" ishlatilmaydigan mahsulotlarni ham 10 birlikdan taklif qilardi.
+Avtomatik ko'chirish yo'q — tovarni odam olib boradi, ko'chirish tasdiqlanganda yoziladi (Telegram'dagi "Jo'natildi"
+tugmasi — kelishilmagan).
+
+Qizg'in savdoda filialda mahsulot tugab qolmasin. Filial minusga tushsa ham hisob buzilmaydi: keyin **olib kelingan
+miqdor** oddiy ko'chirish qilinsa, ikkala ombor ham to'g'ri (filial −2 + 5 = 3, markaz −5). Yetishmagani — tezlik.
+
+- **Norma** — har ombor + mahsulot uchun chegaradan tashqari ikkinchi son (`stock.targetQty`, asosiy birlikda): "To'ldirish"
+  shu darajagacha yetkazadi. Maqsad 3 pog'onali: **norma** → norma yo'q bo'lsa **chegara × 2** (aynan chegaragacha
+  emas — keyingi birinchi sotuvdayoq yana "kam qoldi" xabari kelardi) → chegara ham 0 bo'lsa **10 birlik**
+  (mahsulotning o'z birligida: 10 kg / 10 l / 10 dona; qadoqlida — 10 qadoq).
+- **"Markazdan to'ldirish"** — admin panelda kam qolgan / tugagan mahsulot yonida: miqdor oldindan to'ldiriladi
+  (maqsad − joriy qoldiq, minus ham yopiladi: −3 kg, chegara va norma yo'q → 13 kg), o'zgartirsa bo'ladi, tasdiqlansa —
+  oddiy ko'chirish.
+- **Ro'yxatda tugaganlar ham** — qoldig'i minus bo'lsa, chegara qo'yilmagan bo'lsa ham (chegarasi 0 mahsulot
+  "kam qolganlar"ga hech qachon tushmaydi). `GET /stock/low` va admin bosh sahifasidagi son ham shunday.
+- **"Hammasini to'ldirish"** — filialning barcha kam qolganlari bitta ko'chirish hujjatida.
+- **Markazda yetmasa** — markazda bori taklif qilinadi (ko'chirish markazni minusga tushirmaydi — `insufficient_stock`).
+- **Telegram "kam qoldi" xabarida** — markazda shu mahsulotdan qancha borligi ham.
+- Chegara va norma har omborniki alohida (har filialniki, markazniki ham).
+
+**Rad etilgan: "zaxira ombor" switch'i** (filial qoldig'i tugasa, sotuv markazdan ayrilsin). Tovar sotuv bilan emas,
+partiya bilan ko'chadi (5 kg olib kelinadi, 2 kg sotiladi): ko'chirish qilinmasa markaz tizimda ortiqcha ko'rinadi,
+olib kelingan 5 kg ko'chirilsa — sotilgan 2 kg ikki marta ayriladi; xodim har safar "qanchasi ayrilib bo'ldi" deb
+hisoblashi kerak bo'lardi. Qoldiqlar 0 da yoqilsa — filialning hamma sotuvi darrov markazdan ketardi.

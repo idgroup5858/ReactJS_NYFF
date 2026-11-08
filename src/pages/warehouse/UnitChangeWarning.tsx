@@ -105,6 +105,7 @@ export default function UnitChangeWarning({
                     <p className="text-neutral-600 tabular-nums">
                       {w.qty}: {change(row.qty)}
                       {row.minQty > 0 && ` · ${w.min}: ${change(row.minQty)}`}
+                      {row.targetQty > 0 && ` · ${w.target}: ${change(row.targetQty)}`}
                     </p>
                   </li>
                 ))}
