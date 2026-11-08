@@ -359,10 +359,11 @@ export default function IngredientsPage() {
                     <p className="leading-snug font-semibold text-neutral-950">{localize(ingredient.name)}</p>
                     <p className="text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</p>
                   </div>
-                  {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg", qadoqli — "16 800 so'm / dona (600 g)" */}
-                  <p className="mt-auto text-lg font-extrabold whitespace-nowrap text-neutral-950 tabular-nums" title={t.purchase.lastPrice}>
-                    {ingredient.lastPrice !== null ? formatMoney(ingredient.lastPrice, t) : '—'}
-                    <span className="text-xs font-semibold text-neutral-500"> / {formatUnit(ingredient, t)}</span>
+                  {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg", qadoqli — "16 800 so'm / dona (600 g)";
+                      sig'masa birlik keyingi qatorga tushadi (narx ham, birlik ham o'zi bo'linmaydi) */}
+                  <p className="mt-auto text-lg font-extrabold text-neutral-950 tabular-nums" title={t.purchase.lastPrice}>
+                    <span className="whitespace-nowrap">{ingredient.lastPrice !== null ? formatMoney(ingredient.lastPrice, t) : '—'}</span>{' '}
+                    <span className="text-xs font-semibold whitespace-nowrap text-neutral-500">/ {formatUnit(ingredient, t)}</span>
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     {/* ta'minotchida bo'sh — tahrirlash tugmasi o'ngda qoladi */}
