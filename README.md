@@ -68,7 +68,7 @@
 
                     npm install react-to-print
 
-UPDATE SITE
+UPDATE SITE axaxaxaxa
 
                     //update site
                     git pull

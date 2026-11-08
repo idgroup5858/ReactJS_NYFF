@@ -1,12 +1,13 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useIngredients, useStock } from '@/api/queries'
-import { inputClass, selectClass } from '@/components/ui/styles'
-import { INGREDIENT_GROUPS, type ID } from '@/domain/types'
+import { inputClass } from '@/components/ui/styles'
+import type { ID } from '@/domain/types'
 import { toBase } from '@/domain/units'
-import { useLocalize, useT } from '@/i18n'
+import { useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock, formatUnit } from '@/lib/format'
 import { parseQty } from '@/lib/warehouses'
 import { linePrice, newDraftLine, type DraftLine } from './draftLines'
+import IngredientPicker from './IngredientPicker'
 
 type Props = {
   lines: DraftLine[]
@@ -21,12 +22,11 @@ type Props = {
 }
 
 /**
- * Mahsulot qatorlari muharriri (kirim va ko'chirish): mahsulot (guruhlar bo'yicha ro'yxat), miqdor ombor birligida,
+ * Mahsulot qatorlari muharriri (kirim va ko'chirish): mahsulot (qidiruvli, guruhlar va alifbo bo'yicha ro'yxat), miqdor ombor birligida,
  * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham.
  */
 export default function LinesEditor({ lines, onChange, availableIn, mode }: Props) {
   const t = useT()
-  const localize = useLocalize()
   const allIngredients = useIngredients().data ?? []
   const ingredients = allIngredients.filter((i) => i.active)
   // tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0, chegara yo'q).
@@ -58,28 +58,14 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
                 : 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
             }`}
           >
-            <select
+            <IngredientPicker
               value={line.ingredientId}
               // boshqa mahsulot — narx yana uning oxirgi narxidan
-              onChange={(event) => update(line.key, { ingredientId: event.target.value, price: null })}
-              aria-label={t.purchase.chooseIngredient}
-              className={`${selectClass} ${mode === 'purchase' ? 'col-span-3' : 'col-span-2'} sm:col-span-1`}
-            >
-              <option value="">{t.purchase.chooseIngredient}</option>
-              {INGREDIENT_GROUPS.map((group) => {
-                const items = ingredients.filter((i) => i.group === group)
-                if (items.length === 0) return null
-                return (
-                  <optgroup key={group} label={t.stock.groups[group]}>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {localize(item.name)}
-                      </option>
-                    ))}
-                  </optgroup>
-                )
-              })}
-            </select>
+              onChange={(id) => update(line.key, { ingredientId: id, price: null })}
+              ingredients={ingredients}
+              selected={ingredient}
+              className={`${mode === 'purchase' ? 'col-span-3' : 'col-span-2'} sm:col-span-1`}
+            />
             <label className="relative">
               <input
                 value={line.qty}

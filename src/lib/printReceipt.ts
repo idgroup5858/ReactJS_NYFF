@@ -45,7 +45,8 @@ function receiptHtml(order: ReceiptOrder, branchName: string, lines: OrderItem[]
   return `<!doctype html><html><head><meta charset="utf-8"><title>${formatOrderNumber(order.number)}</title><style>
 @page { size: 80mm auto; margin: 0 }
 * { box-sizing: border-box }
-body { width: 80mm; margin: 0; padding: 2mm 4mm; font: 12px/1.25 'Courier New', monospace; color: #000 }
+/* 80 mm qog'ozda printer faqat ~72 mm ga chop etadi (203 dpi × 576 nuqta), chap chekka bo'shlig'ini printerning o'zi qo'yadi */
+body { width: 72mm; margin: 0; padding: 2mm 1mm; font: 12px/1.25 'Courier New', monospace; color: #000 }
 .center { text-align: center }
 .number { font: 900 72px/.95 'Arial Black', Arial, sans-serif; -webkit-text-stroke: 1.5px #000; margin: 1mm 0 }
 /* brauzer orqali chop etilganda ham qora fon chiqsin (aks holda oq yozuv oq qog'ozda yo'qoladi) */
