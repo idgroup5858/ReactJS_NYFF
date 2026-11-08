@@ -1,5 +1,5 @@
 import { ChefHat, MapPin, PartyPopper } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { api } from '@/api'
 import { ApiError } from '@/api/http'
@@ -11,12 +11,13 @@ import { ORDER_TYPE_ICONS } from '@/components/order/orderIcons'
 import ScreenCodeForm from '@/components/screen/ScreenCodeForm'
 import { useScreenStaff } from '@/components/screen/useScreenStaff'
 import { READY_SHOWN_MS } from '@/domain/rules'
-import type { TvOrder } from '@/domain/types'
+import type { ID, TvOrder } from '@/domain/types'
 import { useT } from '@/i18n'
 import { formatOrderNumber, formatTime } from '@/lib/format'
 import { enterFullscreen } from '@/lib/fullscreen'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { minutesSince, useNow } from '@/lib/useNow'
+import { playReadySound, preloadReadySounds } from '@/lib/readySound'
 import { forgetScreenCode, readScreenCode, rememberScreenCode } from '@/store/screenCodes'
 
 /** Shuncha soniya ichida tayyor bo'lgan raqam miltillab turadi. */
@@ -47,6 +48,20 @@ function useCapacity(grid: HTMLDivElement | null): number {
     return () => observer.disconnect()
   }, [grid])
   return capacity
+}
+
+/**
+ * "Tayyor" ga yangi buyurtma tushdi — har biriga bitta ovoz (`playReadySound`, navbatdagisi). Birinchi yuklanishdagi
+ * ro'yxat (TV endi ochildi) yangi hisoblanmaydi. [ready] — serverdagi ro'yxat; `undefined` — hali yuklanmagan.
+ */
+function useReadySounds(ready: TvOrder[] | undefined): void {
+  const seen = useRef<Set<ID> | null>(null)
+  useEffect(preloadReadySounds, [])
+  useEffect(() => {
+    if (!ready) return
+    if (seen.current) for (const order of ready) if (!seen.current.has(order.id)) playReadySound()
+    seen.current = new Set(ready.map((order) => order.id))
+  }, [ready])
 }
 
 /** Sig'magan bo'lsa — oxirgi joyda "yana N ta" plitkasi. */
@@ -136,6 +151,7 @@ function TvScreen({ branchName, queue, onBrandHold }: { branchName: string; queu
   const preparingCapacity = useCapacity(preparingGrid)
   const readyCapacity = useCapacity(readyGrid)
   useDocumentTitle(t.modes.tv.title)
+  useReadySounds(queue?.ready)
 
   const preparing = queue?.preparing ?? []
   const ready = (queue?.ready ?? []).filter((o) => o.readyAt && now.getTime() - new Date(o.readyAt).getTime() < READY_SHOWN_MS)
