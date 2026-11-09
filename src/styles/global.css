@@ -309,6 +309,17 @@
     animation: queue-wiggle 1.6s ease-in-out infinite;
   }
   /*
+   * Smena yopilgandagi rahmat yozuvi: qator navbat bilan "yonadi" (qizil fon, oq matn) va "o'chadi" (fonsiz, qizil
+   * matn); ikkinchi qator yarim davr kechikadi — ikkalasi navbatma-navbat yonadi.
+   */
+  .goodbye-blink {
+    color: rgb(220 38 38);
+    animation: goodbye-blink 1.2s steps(1, end) infinite;
+  }
+  .goodbye-blink-alt {
+    animation-delay: -0.6s;
+  }
+  /*
    * tugmadan ekranga tarqaluvchi qizil to'lqin: qalin halqa (radiusning yarmi), oldingi cheti yorqin — kattalashgan
    * sari yoyilib, so'nadi
    */
@@ -383,6 +394,17 @@
   }
 }
 
+@keyframes goodbye-blink {
+  0% {
+    background-color: rgb(220 38 38);
+    color: #fff;
+  }
+  50% {
+    background-color: transparent;
+    color: rgb(220 38 38);
+  }
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -412,7 +434,8 @@
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .shake,
-  .queue-wiggle {
+  .queue-wiggle,
+  .goodbye-blink {
     animation: none;
   }
   .ripple-wave {

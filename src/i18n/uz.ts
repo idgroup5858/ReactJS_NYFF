@@ -384,8 +384,9 @@ export const uz = {
     no: "Yo'q, faqat chiqish",
   },
   report: {
-    title: 'Smena hisoboti',
-    cashier: 'Kassir',
+    title: 'Smena yopildi',
+    thanks: 'Rahmaaat!',
+    goodbye: "Bugun ko'p ishladingiz, tez uyingizga borib uxlang",
     opened: 'Ochildi',
     closed: 'Yopildi',
     orders: 'Buyurtmalar',

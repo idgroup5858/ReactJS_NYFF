@@ -328,7 +328,7 @@ export default function KassaPage() {
           </div>
         </Modal>
       )}
-      {report && <ShiftReportModal shift={report} onDone={finish} />}
+      {report && <ShiftReportModal onDone={finish} />}
       {locked && !report && <LockScreen user={user} />}
       {connectionLost && !report && <OfflineSwitch enabled={offlineEnabled} onSwitch={switchToOffline} />}
       {alerts.ringing && <AlertFrame kind={alerts.ringing} />}

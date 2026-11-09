@@ -377,8 +377,9 @@ export const en: Dict = {
     no: 'No, just log out',
   },
   report: {
-    title: 'Shift report',
-    cashier: 'Cashier',
+    title: 'Shift closed',
+    thanks: 'Thank youuu!',
+    goodbye: 'You worked hard today, hurry home and get some sleep',
     opened: 'Opened',
     closed: 'Closed',
     orders: 'Orders',
