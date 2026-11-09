@@ -15,9 +15,9 @@ export function PrintReceiptButton({ order, className = '' }: { order: Order; cl
   const t = useT()
   const branches = useBranches().data ?? []
   if (order.status !== 'preparing' && order.status !== 'ready') return null
-  const branchName = branches.find((b) => b.id === order.branchId)?.name ?? ''
+  const branchAddress = branches.find((b) => b.id === order.branchId)?.address ?? ''
   return (
-    <button type="button" onClick={() => printReceipt(order, branchName)} className={`btn-ghost flex h-10 items-center gap-2 rounded px-4 text-xs font-bold ${className}`}>
+    <button type="button" onClick={() => printReceipt(order, branchAddress)} className={`btn-ghost flex h-10 items-center gap-2 rounded px-4 text-xs font-bold ${className}`}>
       <Printer size={16} />
       {t.orders.print}
     </button>

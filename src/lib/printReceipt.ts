@@ -32,9 +32,9 @@ const PRINT_TIMEOUT_MS = 15_000
  * qator narxlarisiz; pastida buyurtmaning umumiy summasi ("Jami", ichimliklar bilan; to'lov turi yo'q) va izoh — yirik,
  * ramkada (2026-11-09); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Mijoz chekida ham taom
  * qatorlari qalin Arial (kichikroq — summa ustuni sig'sin). Bo'shliqlar ixcham — qog'oz
- * tejaladi; "Manzil: <filial>" chapda, sana o'ngda — bitta qatorda.
+ * tejaladi; "Manzil" chapda, filial manzili o'ngda (filial nomi chiqmaydi), keyingi qatorda — sana (2026-11-10).
  */
-function receiptHtml(order: ReceiptOrder, branchName: string, lines: OrderItem[], kitchen: boolean): string {
+function receiptHtml(order: ReceiptOrder, branchAddress: string, lines: OrderItem[], kitchen: boolean): string {
   const t = currentDict()
   const lang = settingsStore.get().lang
   // jadval emas, grid: jadvalda uzuq chiziq har katakda alohida chiziladi va ustunlar chegarasida naqshi uziladi
@@ -56,7 +56,10 @@ body { width: 72mm; margin: 0; padding: 2mm 1mm; font: 12px/1.25 'Courier New', 
 .type { display: inline-block; background: #000; color: #fff; padding: .5mm 4mm; font: 900 16px/1.2 Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact }
 .source { margin-left: 2mm; vertical-align: middle }
 .meta { display: flex; justify-content: space-between; gap: 2mm; margin-top: 1.5mm; text-align: left }
-.meta span:last-child { white-space: nowrap }
+.meta + .meta { margin-top: .5mm }
+.meta span:first-child { white-space: nowrap }
+/* uzun manzil o'ng tomonda bir necha qatorga bo'linadi */
+.meta span:last-child { text-align: right; overflow-wrap: anywhere }
 hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
 .items { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 3mm }
 /* taom qatorlari — qalin Arial (Courier New qalini termoprinterda ingichka, xira chiqadi) */
@@ -72,13 +75,14 @@ hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
 .kitchen-note { margin-top: 1.5mm; padding: 1mm 1.5mm; border: 2px solid #000; overflow-wrap: anywhere; font: 700 16px/1.25 Arial, sans-serif }
 .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900 }
 .muted { font-size: 11px }
-.logo { display: block; width: 27.6mm; margin: 0 auto }
+.logo { display: block; width: 35.9mm; margin: 0 auto }
 .credit { margin-top: 2mm; text-align: center; font-size: 8px }
 </style></head><body>
 <div class="center">${kitchen ? '' : `<img class="logo" src="${receiptLogo}" alt="">`}
 <div class="number">${formatOrderNumber(order.number)}</div>
 <div class="type">${escape(t.orderType[order.type])}</div>${order.source !== 'cashier' ? `<span class="muted source">${escape(order.source === 'kiosk' ? t.orders.kiosk : t.orders.online)}</span>` : ''}
-<div class="meta muted"><span>${branchName ? `${escape(t.orders.receiptAddress)}: ${escape(branchName)}` : ''}</span><span>${formatDateTime(order.createdAt)}</span></div></div>
+${branchAddress ? `<div class="meta muted"><span>${escape(t.orders.receiptAddress)}</span><span>${escape(branchAddress)}</span></div>` : ''}
+<div class="meta muted"><span>${escape(t.common.date)}</span><span>${formatDateTime(order.createdAt)}</span></div></div>
 <hr><div class="items${kitchen ? ' kitchen-items' : ''}">${items}</div>
 ${order.online ? `<hr><div>${escape([order.online.name, order.online.phone].filter(Boolean).join(' · '))}</div>${order.online.address ? `<div class="order-note">${escape(order.online.address)}</div>` : ''}` : ''}
 ${order.note ? (kitchen ? `<div class="kitchen-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>` : `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>`) : ''}
@@ -155,13 +159,13 @@ async function sendToService(jobs: PrintJob[]): Promise<PrintResults | null> {
  * (standart printer). Oshxona cheki chiqmasa — kassirga xabar; printer tanlanmagan bo'lsa — faqat qo'lda bosilganda
  * (oshxona printeri yo'q kassada har buyurtmada xabar chiqmasin).
  */
-async function print(order: ReceiptOrder, branchName: string, targets: PrintTarget[], menu: Menu | null | undefined, manual: boolean): Promise<void> {
+async function print(order: ReceiptOrder, branchAddress: string, targets: PrintTarget[], menu: Menu | null | undefined, manual: boolean): Promise<void> {
   const t = currentDict()
   const jobs: PrintJob[] = []
-  if (targets.includes('receipt')) jobs.push({ to: 'receipt', html: receiptHtml(order, branchName, order.items, false) })
+  if (targets.includes('receipt')) jobs.push({ to: 'receipt', html: receiptHtml(order, branchAddress, order.items, false) })
   if (targets.includes('kitchen')) {
     const lines = kitchenLines(order.items, menu)
-    if (lines.length > 0) jobs.push({ to: 'kitchen', html: receiptHtml(order, branchName, lines, true) })
+    if (lines.length > 0) jobs.push({ to: 'kitchen', html: receiptHtml(order, branchAddress, lines, true) })
     else if (manual) showToast(t.orders.kitchenEmpty, 'info')
   }
   if (jobs.length === 0) return
@@ -183,16 +187,16 @@ async function print(order: ReceiptOrder, branchName: string, targets: PrintTarg
 }
 
 /** Buyurtma ochildi (to'lov, kiosk / mobil buyurtmani qabul qilish): mijoz cheki + oshxona cheki. */
-export function printOrder(order: ReceiptOrder, branchName: string, menu: Menu | null | undefined): void {
-  void print(order, branchName, ['receipt', 'kitchen'], menu, false)
+export function printOrder(order: ReceiptOrder, branchAddress: string, menu: Menu | null | undefined): void {
+  void print(order, branchAddress, ['receipt', 'kitchen'], menu, false)
 }
 
 /** Faqat mijoz cheki (qayta chiqarish, kiosk, admin). */
-export function printReceipt(order: ReceiptOrder, branchName: string): void {
-  void print(order, branchName, ['receipt'], null, true)
+export function printReceipt(order: ReceiptOrder, branchAddress: string): void {
+  void print(order, branchAddress, ['receipt'], null, true)
 }
 
 /** Faqat oshxona cheki — qayta chiqarish (qog'oz tiqildi, chek yo'qoldi). */
-export function printKitchen(order: ReceiptOrder, branchName: string, menu: Menu | null | undefined): void {
-  void print(order, branchName, ['kitchen'], menu, true)
+export function printKitchen(order: ReceiptOrder, branchAddress: string, menu: Menu | null | undefined): void {
+  void print(order, branchAddress, ['kitchen'], menu, true)
 }

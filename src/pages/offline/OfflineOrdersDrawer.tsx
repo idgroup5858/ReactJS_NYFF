@@ -13,7 +13,7 @@ import { handleOfflineAuth } from './useOffline'
 
 type Props = {
   orders: Order[] | undefined
-  branchName: string
+  branchAddress: string
   /** oshxona chekida ichimliklarni ajratish uchun (taom → kategoriya) */
   menu: Menu | null
   /** amal bajarilgach ro'yxatni qayta olish */
@@ -27,7 +27,7 @@ const ICON_BUTTON = 'btn-ghost flex h-9 w-9 items-center justify-center rounded'
  * Offline buyurtmalar (markazga hali yetib bormaganlari): oshxona ekrani ishlamaydi — "Tayyor"ni kassir bosadi; chek
  * va bekor qilish. Markazga yuborilgani ro'yxatdan chiqadi (u endi online kassada).
  */
-export default function OfflineOrdersDrawer({ orders, branchName, menu, onChanged, onClose }: Props) {
+export default function OfflineOrdersDrawer({ orders, branchAddress, menu, onChanged, onClose }: Props) {
   const t = useT()
   const now = useNow(1000)
 
@@ -108,12 +108,12 @@ export default function OfflineOrdersDrawer({ orders, branchName, menu, onChange
                     {/* qayta chiqarish (qog'oz tiqildi, chek yo'qoldi) — har biri alohida */}
                     {order.status !== 'cancelled' && (
                       <>
-                        <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.printReceipt} title={t.orders.printReceipt} className={ICON_BUTTON}>
+                        <button type="button" onClick={() => printReceipt(order, branchAddress)} aria-label={t.orders.printReceipt} title={t.orders.printReceipt} className={ICON_BUTTON}>
                           <Printer size={16} />
                         </button>
                         <button
                           type="button"
-                          onClick={() => printKitchen(order, branchName, menu)}
+                          onClick={() => printKitchen(order, branchAddress, menu)}
                           aria-label={t.orders.printKitchen}
                           title={t.orders.printKitchen}
                           className={ICON_BUTTON}

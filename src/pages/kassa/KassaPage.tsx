@@ -128,7 +128,10 @@ export default function KassaPage() {
     return counts
   }, [lines])
 
-  const branchName = branches?.find((b) => b.id === branchId)?.name ?? ''
+  const branch = branches?.find((b) => b.id === branchId)
+  const branchName = branch?.name ?? ''
+  // chekda filial nomi emas, manzili chiqadi
+  const branchAddress = branch?.address ?? ''
   const orders = activeOrders ?? []
   const kioskPending = orders.filter((o) => o.status === 'pending' && o.source !== 'mobile')
   const onlinePending = orders.filter((o) => o.status === 'pending' && o.source === 'mobile')
@@ -165,6 +168,7 @@ export default function KassaPage() {
       v: 1,
       branchId,
       branchName,
+      branchAddress,
       cashier: { id: user.id, name: user.name, surname: user.surname },
       locked,
       returnUrl: window.location.origin + import.meta.env.BASE_URL,
@@ -207,7 +211,7 @@ export default function KassaPage() {
       close(ticketId)
       if (branchId) rememberOrderNumbers(branchId, [order])
       // mijoz cheki va oshxona cheki (ichimliklarsiz) — bir vaqtda
-      printOrder(order, branchName, menu.data)
+      printOrder(order, branchAddress, menu.data)
       return order
     } catch (error) {
       // taom shu orada sotuvdan olingan — menyu yangilansin (qator "Sotilmaydi" bo'lib qoladi)
@@ -296,7 +300,7 @@ export default function KassaPage() {
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
       {isOrdersTab(panel) && (
         <OrdersDrawer
-          branchName={branchName}
+          branchAddress={branchAddress}
           menu={menu.data}
           shiftId={session.shiftId}
           initialTab={panel}

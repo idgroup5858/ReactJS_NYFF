@@ -249,7 +249,7 @@ function KioskBranch({ branchId }: { branchId: string }) {
         },
         code,
       )
-      if (created.payment) printReceipt({ ...created, source: 'kiosk' }, branch?.name ?? '')
+      if (created.payment) printReceipt({ ...created, source: 'kiosk' }, branch?.address ?? '')
       setOrder(created)
       setLines([])
       setStep('done')

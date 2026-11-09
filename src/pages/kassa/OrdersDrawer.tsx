@@ -20,7 +20,7 @@ import PaymentModal from './PaymentModal'
 export type OrdersTab = 'online' | 'kiosk' | 'preparing' | 'delivery' | 'shift'
 
 type Props = {
-  branchName: string
+  branchAddress: string
   /** kassa menyusi — oshxona chekida ichimliklarni ajratish uchun (taom → kategoriya) */
   menu: Menu | undefined
   shiftId: ID | null
@@ -32,7 +32,7 @@ type Props = {
 
 type RowProps = {
   order: Order
-  branchName: string
+  branchAddress: string
   menu: Menu | undefined
   now: Date
   onAccept: (order: Order) => void
@@ -44,7 +44,7 @@ const ICON_BUTTON = 'btn-ghost flex h-9 w-9 items-center justify-center rounded'
  * Kassir tugmalari: pulini olish / qabul qilish, chek, kuryerdan olish (dostavka), bekor qilish. "Tayyor" va "Qaytarish" —
  * oshpaz yordamchisida.
  */
-function CashierRow({ order, branchName, menu, now, onAccept }: RowProps) {
+function CashierRow({ order, branchAddress, menu, now, onAccept }: RowProps) {
   const t = useT()
   const number = formatOrderNumber(order.number)
 
@@ -73,7 +73,7 @@ function CashierRow({ order, branchName, menu, now, onAccept }: RowProps) {
     if (!order.online) return
     await act(async () => {
       const accepted = await api.orders.confirm(order.id)
-      printOrder(accepted, branchName, menu)
+      printOrder(accepted, branchAddress, menu)
     }, t.orders.acceptedToast(number))
   }
 
@@ -96,10 +96,10 @@ function CashierRow({ order, branchName, menu, now, onAccept }: RowProps) {
         {/* qayta chiqarish (qog'oz tiqildi, chek yo'qoldi) — har biri alohida */}
         {order.status !== 'pending' && order.status !== 'cancelled' && (
           <>
-            <button type="button" onClick={() => printReceipt(order, branchName)} aria-label={t.orders.printReceipt} title={t.orders.printReceipt} className={ICON_BUTTON}>
+            <button type="button" onClick={() => printReceipt(order, branchAddress)} aria-label={t.orders.printReceipt} title={t.orders.printReceipt} className={ICON_BUTTON}>
               <Printer size={16} />
             </button>
-            <button type="button" onClick={() => printKitchen(order, branchName, menu)} aria-label={t.orders.printKitchen} title={t.orders.printKitchen} className={ICON_BUTTON}>
+            <button type="button" onClick={() => printKitchen(order, branchAddress, menu)} aria-label={t.orders.printKitchen} title={t.orders.printKitchen} className={ICON_BUTTON}>
               <ChefHat size={16} />
             </button>
           </>
@@ -158,7 +158,7 @@ function OrderList({ orders, empty, ...row }: Omit<RowProps, 'order'> & { orders
  * yo'ldagi, "Yetkazib bo'lmadi" bilan qaytgan): kassir kuryerdan oladi yoki bekor qiladi. Smenam — kassirning shu
  * smenadagi savdosi.
  */
-export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, onTabChange, onClose }: Props) {
+export default function OrdersDrawer({ branchAddress, menu, shiftId, initialTab, onTabChange, onClose }: Props) {
   const t = useT()
   const now = useNow(1000)
   const { data: active } = useActiveOrders()
@@ -189,13 +189,13 @@ export default function OrdersDrawer({ branchName, menu, shiftId, initialTab, on
   // smenaning buyurtmalari va tushumi — serverdan (yangisi birinchi)
   const shiftOrders = shift ? [...shift.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
   const summary = shift?.summary ?? null
-  const row = { branchName, menu, now, onAccept: setAccepting }
+  const row = { branchAddress, menu, now, onAccept: setAccepting }
 
   const accept = async (payment: PaymentMethod, split?: PaymentSplit): Promise<Order | null> => {
     if (!accepting) return null
     try {
       const order = await api.orders.confirm(accepting.id, payment, split)
-      printOrder(order, branchName, menu)
+      printOrder(order, branchAddress, menu)
       return order
     } catch (error) {
       showToast(errorMessage(error), 'error')

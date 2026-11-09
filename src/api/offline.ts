@@ -18,7 +18,8 @@ export interface OfflineCashier {
 }
 
 export interface OfflineData {
-  branch: { id: ID; name: string }
+  /** `address` — chekda chiqadi (eski offline serverda yo'q) */
+  branch: { id: ID; name: string; address?: string }
   /** PIN bilan kira oladiganlar (markazdan olingan nusxa) */
   cashiers: OfflineCashier[]
   menu: Menu | null
@@ -81,6 +82,7 @@ export const offlineApi = {
   handover: async (input: {
     branchId: ID
     branchName: string
+    branchAddress: string
     cashier: OfflineCashier
     lastNumber: number
     returnUrl?: string

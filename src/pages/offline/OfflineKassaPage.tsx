@@ -146,6 +146,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
   const { orders, reload } = useOfflineOrders()
   const [panel, setPanel] = useState<'pay' | 'orders' | null>(null)
   const branchName = data.branch.name
+  // chekda filial nomi emas, manzili chiqadi
+  const branchAddress = data.branch.address ?? ''
 
   const menuProducts = useMemo(() => new Map((data.menu?.products ?? []).map((product) => [product.id, product])), [data.menu])
   const priced: PricedLine[] = lines.flatMap((line) => {
@@ -182,7 +184,7 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
       })
       close(ticketId)
       // mijoz cheki va oshxona cheki (ichimliklarsiz) — bir vaqtda
-      printOrder(order, branchName, data.menu)
+      printOrder(order, branchAddress, data.menu)
       reload()
       return order
     } catch (error) {
@@ -268,7 +270,7 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
       </main>
 
       {panel === 'pay' && <PaymentModal total={total} orderType={orderType} onConfirm={submitOrder} onClose={() => setPanel(null)} />}
-      {panel === 'orders' && <OfflineOrdersDrawer orders={orders} branchName={branchName} menu={data.menu} onChanged={() => reload()} onClose={() => setPanel(null)} />}
+      {panel === 'orders' && <OfflineOrdersDrawer orders={orders} branchAddress={branchAddress} menu={data.menu} onChanged={() => reload()} onClose={() => setPanel(null)} />}
       {!state.number.confirmed && <NumberPrompt last={state.number.last} onDone={onRefresh} />}
     </div>
   )
@@ -295,9 +297,9 @@ export default function OfflineKassaPage() {
     if (!handover) return
     releaseHandover()
     let cancelled = false
-    const { branchId, branchName, cashier, lastNumber, returnUrl, menu } = handover
+    const { branchId, branchName, branchAddress, cashier, lastNumber, returnUrl, menu } = handover
     offlineApi
-      .handover({ branchId, branchName, cashier, lastNumber, returnUrl: returnUrl || undefined, menu })
+      .handover({ branchId, branchName, branchAddress, cashier, lastNumber, returnUrl: returnUrl || undefined, menu })
       .then(() => {
         if (handover.locked) offlineLogout()
       })

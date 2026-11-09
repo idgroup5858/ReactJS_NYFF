@@ -13,6 +13,8 @@ export interface Handover {
   v: 1
   branchId: ID
   branchName: string
+  /** chekda chiqadi */
+  branchAddress: string
   cashier: { id: ID; name: string; surname: string }
   /** kassa bloklangan edi — offline'da kassir PIN bilan kiradi */
   locked: boolean
@@ -76,6 +78,7 @@ const handoverFromHash = once<Handover>(() => {
   return {
     ...value,
     branchName: typeof value.branchName === 'string' ? value.branchName : '',
+    branchAddress: typeof value.branchAddress === 'string' ? value.branchAddress : '',
     locked: value.locked !== false,
     returnUrl: typeof value.returnUrl === 'string' && /^https?:\/\//.test(value.returnUrl) ? value.returnUrl : '',
     lastNumber: Number.isInteger(value.lastNumber) && value.lastNumber >= 0 ? value.lastNumber : 0,
