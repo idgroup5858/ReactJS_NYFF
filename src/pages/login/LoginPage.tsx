@@ -199,9 +199,9 @@ export default function LoginPage() {
       subtitle,
       back: branchParam ? { mode, branch: branchParam } : { mode },
       content: user ? (
-        <div className="space-y-5">
+        <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <UserAvatar name={fullName(user)} size="lg" />
+            <UserAvatar name={fullName(user)} />
             <div>
               <p className="text-lg font-bold text-neutral-950">{fullName(user)}</p>
               <p className="text-xs text-neutral-500">{t.roles[user.role]}</p>
@@ -226,14 +226,15 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-coal">
-      <header className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
+      <header className="flex items-center justify-between gap-4 px-4 py-3 sm:px-8">
         <Brand size="lg" />
         <LanguageSwitcher tone="dark" />
       </header>
 
-      <main className="flex flex-1 items-start justify-center px-4 pt-4 pb-10 sm:items-center">
-        <div key={stepKey} className={`page-enter w-full overflow-hidden rounded-card bg-white shadow-2xl ${shell.wide ? 'max-w-3xl' : 'max-w-md'}`}>
-          <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
+      {/* ixcham — POS monitorda (768 px) PIN pad va "Kirish" tugmasi bitta ekranga sig'sin */}
+      <main className="flex flex-1 items-start justify-center px-4 pt-2 pb-4 sm:items-center">
+        <div key={stepKey} className={`page-enter w-full overflow-hidden rounded-card bg-white shadow-2xl ${shell.wide ? 'max-w-3xl' : 'max-w-sm'}`}>
+          <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
             {shell.back && (
               <button
                 type="button"
@@ -250,11 +251,11 @@ export default function LoginPage() {
               {shell.subtitle && <p className="mt-0.5 pl-3 text-xs text-neutral-500 gomeal:pl-0 modern:pl-0">{shell.subtitle}</p>}
             </div>
           </div>
-          <div className="p-5">{shell.content}</div>
+          <div className="p-4">{shell.content}</div>
         </div>
       </main>
 
-      <footer className="pb-4 text-center text-[11px] tracking-[0.2em] text-white/25 uppercase">{t.appName}</footer>
+      <footer className="pb-3 text-center text-[11px] tracking-[0.2em] text-white/25 uppercase">{t.appName}</footer>
     </div>
   )
 }

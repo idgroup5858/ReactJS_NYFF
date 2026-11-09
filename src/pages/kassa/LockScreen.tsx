@@ -43,13 +43,14 @@ export default function LockScreen({ user }: { user: AuthUser }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col overflow-y-auto bg-coal">
-      <header className="flex shrink-0 items-center justify-between gap-4 px-4 py-4 sm:px-8">
+      <header className="flex shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-8">
         <Brand size="lg" />
         <LanguageSwitcher tone="dark" />
       </header>
-      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 pb-10">
-        <div className="page-enter w-full max-w-md overflow-hidden rounded-card bg-white shadow-2xl">
-          <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
+      {/* ixcham — POS monitorda (768 px) PIN pad va "Ochish" tugmasi bitta ekranga sig'sin */}
+      <main className="flex flex-1 flex-col items-center justify-center gap-3 px-4 pb-4">
+        <div className="page-enter w-full max-w-sm overflow-hidden rounded-card bg-white shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
             <span className="flex h-10 w-10 items-center justify-center rounded bg-coal text-taxi">
               <Lock size={18} />
             </span>
@@ -58,9 +59,9 @@ export default function LockScreen({ user }: { user: AuthUser }) {
               <p className="text-xs text-neutral-500">{t.lock.hint}</p>
             </div>
           </div>
-          <div className="space-y-5 p-5">
+          <div className="space-y-4 p-4">
             <div className="flex items-center gap-3">
-              <UserAvatar name={fullName(user)} size="lg" />
+              <UserAvatar name={fullName(user)} />
               <div>
                 <p className="text-lg font-bold text-neutral-950">{fullName(user)}</p>
                 <p className="text-xs text-neutral-500">{t.roles[user.role]}</p>

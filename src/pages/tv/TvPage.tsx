@@ -22,8 +22,11 @@ import { forgetScreenCode, readScreenCode, rememberScreenCode } from '@/store/sc
 
 /** Shuncha soniya ichida tayyor bo'lgan raqam miltillab turadi. */
 const FRESH_SECONDS = 20
-/** Plitka balandligi (`h-28`) — ekranga nechta raqam sig'ishini hisoblash uchun. */
-const TILE_HEIGHT = 112
+/**
+ * Plitka balandligi (`h-20`) — ekranga nechta raqam sig'ishini hisoblash uchun. Android TV brauzeri Full HD ni 960×540
+ * deb ko'rsatadi (2× piksel) — plitkalar shunga moslab ixcham (2026-11-09: 112 px da chapda 4, o'ngda 2 tagina sig'ardi).
+ */
+const TILE_HEIGHT = 80
 /** Filial tanlash — kirish ekranining TV qadami. */
 const CHOOSE_BRANCH_PATH = '/?mode=tv'
 
@@ -77,11 +80,11 @@ function Tile({ order, tone, fresh = false }: { order: TvOrder; tone: 'preparing
   const ready = tone === 'ready'
   return (
     <div
-      className={`flex h-28 items-center justify-between gap-3 rounded-card px-5 ${ready ? 'bg-taxi text-coal' : 'bg-coal-soft text-white ring-1 ring-coal-line'} ${fresh ? 'animate-pulse ring-4 ring-white' : ''}`}
+      className={`flex h-20 items-center justify-between gap-2 rounded-card px-3 ${ready ? 'bg-taxi text-coal' : 'bg-coal-soft text-white ring-1 ring-coal-line'} ${fresh ? 'animate-pulse ring-4 ring-white' : ''}`}
     >
-      <span className="text-4xl font-black whitespace-nowrap tabular-nums lg:text-5xl xl:text-6xl">{formatOrderNumber(order.number)}</span>
-      <span className={`flex flex-col items-center gap-1 text-xs font-bold tracking-wide whitespace-nowrap uppercase ${ready ? 'text-coal/70' : 'text-white/50'}`}>
-        <Icon size={28} />
+      <span className="text-3xl font-black whitespace-nowrap tabular-nums lg:text-4xl xl:text-5xl">{formatOrderNumber(order.number)}</span>
+      <span className={`flex flex-col items-center gap-0.5 text-[10px] font-bold tracking-wide whitespace-nowrap uppercase ${ready ? 'text-coal/70' : 'text-white/50'}`}>
+        <Icon size={20} />
         <span className="hidden xl:block">{t.orderType[order.type]}</span>
       </span>
     </div>
@@ -112,19 +115,19 @@ function TvCodeScreen({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-coal text-white">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-6 py-3">
-        <div className="flex items-center gap-5">
-          <Brand size="lg" onHold={onBrandHold} />
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-4 py-2">
+        <div className="flex items-center gap-4">
+          <Brand onHold={onBrandHold} />
           {branchName && (
-            <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
-              <MapPin size={16} className="text-taxi" />
+            <span className="hidden items-center gap-1.5 text-xs font-semibold text-white/60 md:flex">
+              <MapPin size={14} className="text-taxi" />
               {branchName}
             </span>
           )}
         </div>
         <LanguageSwitcher tone="dark" />
       </header>
-      <main className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <main className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto p-4">
         <ScreenCodeForm
           tone="dark"
           title={t.tv.codeTitle}
@@ -160,58 +163,58 @@ function TvScreen({ branchName, queue, onBrandHold }: { branchName: string; queu
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-coal text-white">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-6 py-3">
-        <div className="flex items-center gap-5">
-          <Brand size="lg" onHold={onBrandHold} />
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-coal-line px-4 py-2">
+        <div className="flex items-center gap-4">
+          <Brand onHold={onBrandHold} />
           {branchName && (
-            <span className="hidden items-center gap-1.5 text-sm font-semibold text-white/60 md:flex">
-              <MapPin size={16} className="text-taxi" />
+            <span className="hidden items-center gap-1.5 text-xs font-semibold text-white/60 md:flex">
+              <MapPin size={14} className="text-taxi" />
               {branchName}
             </span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-3xl font-black text-taxi tabular-nums">{formatTime(now.toISOString())}</span>
+          <span className="text-2xl font-black text-taxi tabular-nums">{formatTime(now.toISOString())}</span>
           <LanguageSwitcher tone="dark" />
         </div>
       </header>
 
       {/* zaldan ko'rinsin: tayyorlanayotganlar — ekranning 60 % i, tayyorlar — 40 % */}
       <main className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[3fr_2fr]">
-        <section className="flex min-h-0 flex-col border-coal-line p-6 md:border-r">
-          <h2 className="mb-5 flex items-center gap-3 text-3xl font-extrabold tracking-[0.12em] text-white/85 uppercase">
-            <ChefHat size={34} className="text-taxi" />
+        <section className="flex min-h-0 flex-col border-coal-line p-4 md:border-r">
+          <h2 className="mb-3 flex items-center gap-2 text-2xl font-extrabold tracking-[0.12em] text-white/85 uppercase">
+            <ChefHat size={24} className="text-taxi" />
             {t.tv.preparing}
-            <span className="rounded-full bg-white/10 px-3.5 text-2xl tabular-nums">{preparing.length}</span>
+            <span className="rounded-full bg-white/10 px-3 text-xl tabular-nums">{preparing.length}</span>
           </h2>
-          {/* 3 ustun faqat keng ekranda (Full HD TV) — torroqda raqam plitkadan chiqib ketmasin */}
-          <div ref={setPreparingGrid} className="grid min-h-0 flex-1 grid-cols-2 content-start gap-4 overflow-hidden 2xl:grid-cols-3">
+          {/* TV (960 px) da 3 ustun — plitka ixcham, raqam sig'adi */}
+          <div ref={setPreparingGrid} className="grid min-h-0 flex-1 grid-cols-2 content-start gap-3 overflow-hidden md:grid-cols-3">
             {preparingFit.shown.map((order) => (
               <Tile key={order.id} order={order} tone="preparing" />
             ))}
             {preparingFit.hidden > 0 && (
-              <div className="flex h-28 items-center justify-center rounded-card border-2 border-dashed border-coal-line text-3xl font-black whitespace-nowrap text-white/60">
+              <div className="flex h-20 items-center justify-center rounded-card border-2 border-dashed border-coal-line text-2xl font-black whitespace-nowrap text-white/60">
                 {t.tv.more(preparingFit.hidden)}
               </div>
             )}
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-col bg-coal-soft/40 p-6">
-          <h2 className="mb-5 flex items-center gap-3 text-3xl font-extrabold tracking-[0.12em] text-taxi uppercase">
-            <PartyPopper size={34} />
+        <section className="flex min-h-0 flex-col bg-coal-soft/40 p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-2xl font-extrabold tracking-[0.12em] text-taxi uppercase">
+            <PartyPopper size={24} />
             {t.tv.ready}
-            <span className="rounded-full bg-taxi px-3.5 text-2xl text-coal tabular-nums">{ready.length}</span>
+            <span className="rounded-full bg-taxi px-3 text-xl text-coal tabular-nums">{ready.length}</span>
           </h2>
           {ready.length === 0 ? (
-            <p className="mt-10 text-center text-lg text-white/30">{t.tv.readyEmpty}</p>
+            <p className="mt-8 text-center text-base text-white/30">{t.tv.readyEmpty}</p>
           ) : (
-            <div ref={setReadyGrid} className="grid min-h-0 flex-1 grid-cols-1 content-start gap-4 overflow-hidden 2xl:grid-cols-2">
+            <div ref={setReadyGrid} className="grid min-h-0 flex-1 grid-cols-1 content-start gap-3 overflow-hidden md:grid-cols-2">
               {readyFit.shown.map((order) => (
                 <Tile key={order.id} order={order} tone="ready" fresh={!!order.readyAt && minutesSince(order.readyAt, now) * 60 < FRESH_SECONDS} />
               ))}
               {readyFit.hidden > 0 && (
-                <div className="flex h-28 items-center justify-center rounded-card border-2 border-dashed border-taxi/50 text-3xl font-black whitespace-nowrap text-taxi">
+                <div className="flex h-20 items-center justify-center rounded-card border-2 border-dashed border-taxi/50 text-2xl font-black whitespace-nowrap text-taxi">
                   {t.tv.more(readyFit.hidden)}
                 </div>
               )}
@@ -220,7 +223,7 @@ function TvScreen({ branchName, queue, onBrandHold }: { branchName: string; queu
         </section>
       </main>
 
-      <footer className="shrink-0 bg-taxi px-6 py-3 text-center text-lg font-bold text-coal">{t.tv.hint}</footer>
+      <footer className="shrink-0 bg-taxi px-4 py-2 text-center text-base font-bold text-coal">{t.tv.hint}</footer>
     </div>
   )
 }

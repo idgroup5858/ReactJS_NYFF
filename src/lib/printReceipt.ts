@@ -28,8 +28,9 @@ const PRINT_TIMEOUT_MS = 15_000
  * 80 mm termochek: oshxona shu qog'ozdan tayyorlaydi — raqam, zal / olib ketish va izohlar katta. Raqam — eng katta va
  * qalin: Courier New'ning qalini termoprinterda ingichka chiqadi, shuning uchun Arial Black + kontur. Mijoz cheki —
  * tepasida logo (chek ichida, data URI: Electron chekni `data:` sahifa qilib ochadi, tashqi fayl yuklanmaydi, offline'da
- * ham chiqadi). Zal / olib ketish — ikkalasida qora fonda. Oshxona cheki — logosiz, faqat oshxonaga tegishli qatorlar, summasiz
- * (narx, "Jami", to'lov yo'q); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Mijoz chekida ham taom
+ * ham chiqadi). Zal / olib ketish — ikkalasida qora fonda. Oshxona cheki — logosiz, faqat oshxonaga tegishli qatorlar,
+ * qator narxlarisiz; pastida buyurtmaning umumiy summasi ("Jami", ichimliklar bilan; to'lov turi yo'q) va izoh — yirik,
+ * ramkada (2026-11-09); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Mijoz chekida ham taom
  * qatorlari qalin Arial (kichikroq — summa ustuni sig'sin). Bo'shliqlar ixcham — qog'oz
  * tejaladi; "Manzil: <filial>" chapda, sana o'ngda — bitta qatorda.
  */
@@ -67,6 +68,8 @@ hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
 .kitchen-items > div { font: 700 18px/1.2 Arial, sans-serif; padding: 1mm 0 }
 .kitchen-items .qty { font-weight: 900 }
 .order-note { font-weight: 700 }
+/* oshxonada izoh ko'zdan qochmasin — taom nomlaridek yirik, ramkada */
+.kitchen-note { margin-top: 1.5mm; padding: 1mm 1.5mm; border: 2px solid #000; overflow-wrap: anywhere; font: 700 16px/1.25 Arial, sans-serif }
 .total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900 }
 .muted { font-size: 11px }
 .logo { display: block; width: 27.6mm; margin: 0 auto }
@@ -78,9 +81,9 @@ hr { border: 0; border-top: 1px dashed #000; margin: 1.5mm 0 }
 <div class="meta muted"><span>${branchName ? `${escape(t.orders.receiptAddress)}: ${escape(branchName)}` : ''}</span><span>${formatDateTime(order.createdAt)}</span></div></div>
 <hr><div class="items${kitchen ? ' kitchen-items' : ''}">${items}</div>
 ${order.online ? `<hr><div>${escape([order.online.name, order.online.phone].filter(Boolean).join(' · '))}</div>${order.online.address ? `<div class="order-note">${escape(order.online.address)}</div>` : ''}` : ''}
-${order.note ? `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>` : ''}
-${kitchen ? '' : `<hr><div class="total"><span>${escape(t.kassa.total)}</span><span>${formatMoney(order.total, t)}</span></div>
-<div class="muted">${escape(payment)}</div>`}
+${order.note ? (kitchen ? `<div class="kitchen-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>` : `<hr><div class="order-note">${escape(t.kassa.itemNote)}: ${escape(order.note)}</div>`) : ''}
+<hr><div class="total"><span>${escape(t.kassa.total)}</span><span>${formatMoney(order.total, t)}</span></div>
+${kitchen ? '' : `<div class="muted">${escape(payment)}</div>`}
 <div class="credit">by ID GROUP team</div>
 </body></html>`
 }

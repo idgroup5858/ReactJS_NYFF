@@ -26,6 +26,7 @@ function guarded(roles: Role[], children: RouteObject[], login?: ReactNode): Rou
  *   /kiosk/:branchId     kiosk — shu filialniki (PINsiz, filial kiosk kodi bilan); `/kiosk` — kirishdagi filial tanlashga
  *   /ombor/*             ta'minotchi (admin ham kiradi)
  *   /admin/*             admin panel (kirmagan bo'lsa — shu manzilda email va parol oynasi)
+ *   /nbu/test            Milliy Ecom (NBU) API sinovi — faqat admin, menyuda yo'q
  */
 export const router = createBrowserRouter([
   {
@@ -86,6 +87,8 @@ export const router = createBrowserRouter([
           ],
         },
       ], <AdminLoginPage />),
+      // Milliy Ecom (NBU) API sinovi — faqat admin, admin menyusida yo'q (alohida sahifa, asosiy tizimga tegmaydi)
+      guarded(['admin'], [{ path: 'nbu/test', lazy: async () => ({ Component: (await import('@/pages/nbu/NbuTestPage')).default }) }], <AdminLoginPage />),
       // kassa kompyuteridagi offline server beradi (internet yo'q paytda); kirish — o'z ekranida (online kassadan yoki PIN)
       { path: 'offline', lazy: async () => ({ Component: (await import('@/pages/offline/OfflineKassaPage')).default }) },
       { path: 'tv/:branchId', lazy: async () => ({ Component: (await import('@/pages/tv/TvPage')).default }) },

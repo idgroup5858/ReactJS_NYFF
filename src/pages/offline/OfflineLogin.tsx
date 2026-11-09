@@ -22,7 +22,7 @@ export function OfflineShell({ title, subtitle, onBack, wide = false, children }
   const t = useT()
   return (
     <div className="flex min-h-screen flex-col bg-coal">
-      <header className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
+      <header className="flex items-center justify-between gap-4 px-4 py-3 sm:px-8">
         <span className="flex items-center gap-3">
           <Brand size="lg" />
           <span className="flex items-center gap-1.5 rounded-chip bg-red-600 px-2.5 py-1 text-xs font-bold tracking-wider text-white uppercase">
@@ -32,9 +32,10 @@ export function OfflineShell({ title, subtitle, onBack, wide = false, children }
         </span>
         <LanguageSwitcher tone="dark" />
       </header>
-      <main className="flex flex-1 items-start justify-center px-4 pt-4 pb-10 sm:items-center">
-        <div className={`page-enter w-full overflow-hidden rounded-card bg-white shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
-          <div className="flex items-center gap-3 border-b border-neutral-200 px-5 py-4">
+      {/* ixcham — POS monitorda (768 px) PIN pad va "Kirish" tugmasi bitta ekranga sig'sin */}
+      <main className="flex flex-1 items-start justify-center px-4 pt-2 pb-4 sm:items-center">
+        <div className={`page-enter w-full overflow-hidden rounded-card bg-white shadow-2xl ${wide ? 'max-w-3xl' : 'max-w-sm'}`}>
+          <div className="flex items-center gap-3 border-b border-neutral-200 px-4 py-3">
             {onBack && (
               <button type="button" onClick={onBack} aria-label={t.common.back} title={t.common.back} className="btn-icon flex h-9 w-9 shrink-0 items-center justify-center rounded">
                 <ChevronLeft size={18} />
@@ -45,10 +46,10 @@ export function OfflineShell({ title, subtitle, onBack, wide = false, children }
               {subtitle && <p className="mt-0.5 pl-3 text-xs text-neutral-500 gomeal:pl-0 modern:pl-0">{subtitle}</p>}
             </div>
           </div>
-          <div className="p-5">{children}</div>
+          <div className="p-4">{children}</div>
         </div>
       </main>
-      <footer className="pb-4 text-center text-[11px] tracking-[0.2em] text-white/25 uppercase">{t.appName}</footer>
+      <footer className="pb-3 text-center text-[11px] tracking-[0.2em] text-white/25 uppercase">{t.appName}</footer>
     </div>
   )
 }
@@ -88,9 +89,9 @@ export default function OfflineLogin({ branchName, cashiers }: { branchName: str
 
   return (
     <OfflineShell title={t.login.enterPin} subtitle={branchName} onBack={() => setSelected(null)}>
-      <div className="space-y-5">
+      <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <UserAvatar name={fullName(selected)} size="lg" />
+          <UserAvatar name={fullName(selected)} />
           <div>
             <p className="text-lg font-bold text-neutral-950">{fullName(selected)}</p>
             <p className="text-xs text-neutral-500">{t.roles.cashier}</p>

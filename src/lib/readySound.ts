@@ -1,36 +1,28 @@
-import ready1 from '@/assets/sounds/tv-ready-1.mp3'
-import ready2 from '@/assets/sounds/tv-ready-2.mp3'
-import ready3 from '@/assets/sounds/tv-ready-3.mp3'
-import ready4 from '@/assets/sounds/tv-ready-4.mp3'
-import ready5 from '@/assets/sounds/tv-ready-5.mp3'
+import readySound from '@/assets/sounds/tv-ready.wav'
 
 /**
- * TV: buyurtma "Tayyor" ga o'tganda — bitta ovoz, keyingi buyurtmada keyingisi (5 tasi aylanib). Bir vaqtda bir nechta
- * buyurtma tayyor bo'lsa — ovozlar ketma-ket (ustma-ust emas). Fayllar (`src/assets/sounds`) web bilan birga chiqadi.
+ * TV: buyurtma "Tayyor" ga o'tganda — bitta "ding-dong" ovozi (2026-11-09: 5 ta mp3 o'rniga bitta, sintez qilingan WAV).
+ * Bir vaqtda bir nechta buyurtma tayyor bo'lsa — ovoz ketma-ket (ustma-ust emas). Fayl (`src/assets/sounds`) web bilan
+ * birga chiqadi.
  */
-const SOUNDS = [ready1, ready2, ready3, ready4, ready5]
 /** Navbatda kutadigan ovozlar chegarasi: aloqa uzilib qaytganda birdaniga ko'p buyurtma kelsa, uzoq chalinmasin. */
 const MAX_WAITING = 3
 
-let players: HTMLAudioElement[] | null = null
-let next = 0
+let player: HTMLAudioElement | null = null
 let waiting = 0
 let playing = false
 
-/** Fayllar TV ochilganda oldindan yuklanadi — birinchi buyurtmada kechikmasin. */
+/** Fayl TV ochilganda oldindan yuklanadi — birinchi buyurtmada kechikmasin. */
 export function preloadReadySounds(): void {
-  players ??= SOUNDS.map((url) => {
-    const audio = new Audio(url)
-    audio.preload = 'auto'
-    return audio
-  })
+  if (player) return
+  player = new Audio(readySound)
+  player.preload = 'auto'
 }
 
 function playNext(): void {
   if (playing || waiting === 0) return
   preloadReadySounds()
-  const audio = players![next]
-  next = (next + 1) % SOUNDS.length
+  const audio = player!
   waiting -= 1
   playing = true
   const done = () => {
@@ -49,7 +41,7 @@ function playNext(): void {
   })
 }
 
-/** Bitta buyurtma tayyor bo'ldi — navbatdagi ovoz. */
+/** Bitta buyurtma tayyor bo'ldi — ovoz (oldingisi tugagach). */
 export function playReadySound(): void {
   waiting = Math.min(waiting + 1, MAX_WAITING)
   playNext()

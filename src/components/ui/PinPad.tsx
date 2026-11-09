@@ -104,12 +104,13 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
   })
 
   const slots = Math.max(MIN, pin.length)
+  // ixcham (2026-11-09): POS monitorda (768 px balandlik) "Kirish" tugmasi ekrandan tushib qolardi
   const keyClass =
-    'flex h-16 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-surface text-2xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
+    'flex h-12 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-surface text-xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
 
   return (
-    <div className="space-y-4">
-      <div key={shakeKey} className={`flex h-8 items-center justify-center gap-3 ${shakeKey > 0 ? 'shake' : ''}`} aria-live="polite">
+    <div className="space-y-3">
+      <div key={shakeKey} className={`flex h-6 items-center justify-center gap-3 ${shakeKey > 0 ? 'shake' : ''}`} aria-live="polite">
         {Array.from({ length: slots }, (_, index) => (
           <span
             key={index}
@@ -147,7 +148,7 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
           title={t.login.erase}
           className={`${keyClass} text-neutral-500`}
         >
-          <Delete size={24} />
+          <Delete size={20} />
         </button>
       </div>
 
@@ -155,7 +156,7 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
         type="button"
         onClick={() => void submit()}
         disabled={pin.length < MIN || busy || locked}
-        className="btn-primary flex h-14 w-full items-center justify-center gap-2 rounded text-sm font-bold tracking-[0.14em] uppercase"
+        className="btn-primary flex h-12 w-full items-center justify-center gap-2 rounded text-sm font-bold tracking-[0.14em] uppercase"
       >
         <LogIn size={18} />
         {submitLabel ?? t.login.enter}
