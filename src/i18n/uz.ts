@@ -157,7 +157,7 @@ export const uz = {
     reload: 'Qayta yuklash',
     signOut: 'Chiqish',
   },
-  orderType: { dine_in: 'Zalda', takeaway: 'Olib ketish', delivery: 'Dostavka' },
+  orderType: { dine_in: 'Zal', takeaway: 'Olib ketish', delivery: 'Dostavka' },
   orderStatus: { pending: "To'lanmagan", preparing: 'Tayyorlanmoqda', ready: 'Tayyor', cancelled: 'Bekor qilingan' },
   payment: { cash: 'Naqd', card: 'Karta', click: 'Click' },
   orderSource: { cashier: 'Kassa', kiosk: 'Kiosk', mobile: 'Mobil ilova' },

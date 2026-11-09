@@ -152,7 +152,7 @@ export const en: Dict = {
     reload: 'Reload',
     signOut: 'Sign out',
   },
-  orderType: { dine_in: 'Dine in', takeaway: 'Takeaway', delivery: 'Delivery' },
+  orderType: { dine_in: 'Hall', takeaway: 'Takeaway', delivery: 'Delivery' },
   orderStatus: { pending: 'Unpaid', preparing: 'Preparing', ready: 'Ready', cancelled: 'Cancelled' },
   payment: { cash: 'Cash', card: 'Card', click: 'Click' },
   orderSource: { cashier: 'Cashier', kiosk: 'Kiosk', mobile: 'Mobile app' },

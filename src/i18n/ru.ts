@@ -152,7 +152,7 @@ export const ru: Dict = {
     reload: 'Перезагрузить',
     signOut: 'Выйти',
   },
-  orderType: { dine_in: 'В зале', takeaway: 'С собой', delivery: 'Доставка' },
+  orderType: { dine_in: 'Зал', takeaway: 'С собой', delivery: 'Доставка' },
   orderStatus: { pending: 'Не оплачен', preparing: 'Готовится', ready: 'Готов', cancelled: 'Отменён' },
   payment: { cash: 'Наличные', card: 'Карта', click: 'Click' },
   orderSource: { cashier: 'Касса', kiosk: 'Киоск', mobile: 'Мобильное приложение' },
