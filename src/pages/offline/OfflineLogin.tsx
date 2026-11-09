@@ -8,7 +8,6 @@ import PinPad from '@/components/ui/PinPad'
 import UserAvatar from '@/components/ui/UserAvatar'
 import { fullName } from '@/domain/rules'
 import { pinFailure, useT, type PinFailure } from '@/i18n'
-import { enterFullscreen } from '@/lib/fullscreen'
 import UserStep from '../login/UserStep'
 
 /** Kirish ekrani qobig'i (oddiy kirishdagidek) — qizil "Offline" belgisi bilan. */
@@ -66,9 +65,8 @@ export default function OfflineLogin({ branchName, cashiers }: { branchName: str
   const submitPin = async (pin: string): Promise<PinFailure | null> => {
     if (!selected) return null
     try {
+      // to'liq ekranga o'zi o'tmaydi — kassir header'dagi tugma bilan o'tadi (online kassadagidek)
       await offlineApi.login(selected.id, pin)
-      // online kassadagidek — PIN bilan kirganda darhol to'liq ekran
-      enterFullscreen()
       return null
     } catch (error) {
       return pinFailure(error)

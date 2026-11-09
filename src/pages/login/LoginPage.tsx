@@ -136,8 +136,9 @@ export default function LoginPage() {
     try {
       // bir nechta filialda ishlaydigan xodim — sessiya shu tanlangan filialniki
       const session = await login(user.id, pin, branchId)
-      // kassa va oshxona — darhol to'liq ekranda (sahifa yuklanishini kutmay: brauzer ruxsati PIN bosilgandan bir necha soniya)
-      if (session.role === 'cashier' || session.role === 'kitchen') enterFullscreen()
+      // oshxona — darhol to'liq ekranda (sahifa yuklanishini kutmay: brauzer ruxsati PIN bosilgandan bir necha soniya).
+      // Kassa — yo'q: kassir o'zi header'dagi tugma bilan o'tadi
+      if (session.role === 'kitchen') enterFullscreen()
       if (mode) setLastLogin({ mode, branchId })
       void navigate(homePathFor(session.role), { replace: true })
       return null

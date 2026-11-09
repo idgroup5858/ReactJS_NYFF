@@ -9,9 +9,8 @@ const STEP_BUTTON =
 
 /**
  * Kassa header'i (online va offline): to'liq ekran va taom kartochkalari o'lchami "− 80% +" — POS monitori kichik
- * bo'lsa kichraytiriladi, 100% dan katta qilinmaydi. O'lcham shu kompyuterda saqlanadi. Kassir PIN bilan kirganda kassa
- * o'zi to'liq ekranda ochiladi (`enterFullscreen` — kirish oynalarida); F11 dagi to'liq ekranda tugma "to'liq ekran"
- * holatida qoladi.
+ * bo'lsa kichraytiriladi, 100% dan katta qilinmaydi. O'lcham shu kompyuterda saqlanadi. Kassa to'liq ekranga o'zi
+ * o'tmaydi — faqat shu tugma bilan; F11 dagi to'liq ekranda tugma "to'liq ekran" holatida qoladi.
  */
 export default function ScreenControls() {
   const t = useT()

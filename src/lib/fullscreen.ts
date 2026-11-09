@@ -18,8 +18,8 @@ export function useFullscreen(): boolean {
 }
 
 /**
- * To'liq ekranga: kassir / oshpaz yordamchisi PIN bilan kirganda, TV / kiosk filiali tanlanganda yoki kodi kiritilganda
- * (bosilgani — brauzer uchun ruxsat).
+ * To'liq ekranga: oshpaz yordamchisi PIN bilan kirganda, TV / kiosk filiali tanlanganda yoki kodi kiritilganda, kassada —
+ * faqat header'dagi tugma bilan (bosilgani — brauzer uchun ruxsat).
  */
 export function enterFullscreen(): void {
   if (!document.fullscreenEnabled || document.fullscreenElement) return
