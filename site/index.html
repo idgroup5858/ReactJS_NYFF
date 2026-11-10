@@ -256,36 +256,6 @@
         color: rgba(255, 255, 255, 0.68);
         font-size: clamp(0.95rem, 1.1vw, 1.05rem);
       }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        padding: 0.95rem 1.5rem;
-        border-radius: 999px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, color 0.2s;
-      }
-      .btn svg {
-        width: 1.05em;
-        height: 1.05em;
-      }
-      .btn.primary {
-        background: var(--taxi);
-        color: var(--coal);
-        box-shadow: 0 14px 30px -12px rgba(255, 194, 14, 0.7);
-      }
-      .btn.primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 18px 36px -12px rgba(255, 194, 14, 0.9);
-      }
-      .btn.ghost {
-        border: 1.5px solid rgba(255, 255, 255, 0.26);
-      }
-      .btn.ghost:hover {
-        border-color: var(--taxi);
-        color: var(--taxi);
-      }
 
       /* ---------- 1. Burger ---------- */
       .hero {
@@ -350,12 +320,6 @@
         font-weight: 800;
         line-height: 1.08;
         letter-spacing: -0.02em;
-      }
-      .ctas {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.8rem;
-        margin-top: 2rem;
       }
       .soon {
         margin-top: 2.4rem;
@@ -1255,13 +1219,6 @@
           margin-bottom: 0.7rem;
           font-size: 0.7rem;
         }
-        .ctas {
-          margin-top: 1.3rem;
-        }
-        .btn {
-          padding: 0.8rem 1.15rem;
-          font-size: 0.86rem;
-        }
         .hero-copy {
           display: flex;
           flex-direction: column;
@@ -1537,19 +1494,12 @@
                 Yumshoq bulochka, mol go'shtidan kotlet, eriydigan pishloq va yangi sabzavotlar. Har bir burger shu yerning
                 o'zida, siz uchun tayyorlanadi.
               </p>
-              <div class="ctas" style="--d: 3">
-                <a class="btn primary" href="#menu"
-                  ><span data-i18n="seeMenu">Menyuni ko'rish</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg
-                ></a>
-                <a class="btn ghost" href="#hotdog" data-go="hotdog" data-i18n="seeHotdog">Hot-dogni ko'rish</a>
-              </div>
-              <div class="chips" style="--d: 4">
+              <div class="chips" style="--d: 3">
                 <span class="chip hchip" style="--c: #9a5530"><i></i><span data-i18n="hc1">Mol go'shti</span></span>
                 <span class="chip hchip" style="--c: #f4b400"><i></i><span data-i18n="hc2">Eriydigan pishloq</span></span>
                 <span class="chip hchip" style="--c: #5cb83a"><i></i><span data-i18n="hc3">Yangi sabzavotlar</span></span>
               </div>
-              <div class="soon" style="--d: 5">
+              <div class="soon" style="--d: 4">
                 <p class="soon-t">
                   <span class="ic"
                     ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M11 18.5h2" /></svg
@@ -2592,7 +2542,7 @@
           uz: {
             title: 'New York Fast Food — burger va hot-dog',
             desc: "New York Fast Food — issiq burgerlar, Nyu-York uslubidagi hot-dog, fri va ichimliklar.",
-            nBurger: 'Burger', nHotdog: 'Hot-dog', nMenu: 'Menyu', seeMenu: "Menyuni ko'rish", seeHotdog: "Hot-dogni ko'rish",
+            nBurger: 'Burger', nHotdog: 'Hot-dog', nMenu: 'Menyu', seeMenu: "Menyuni ko'rish",
             heroEye: "Mazali va to'yimli",
             heroH: 'Issiq va shirali <span class="hl">burgerlar</span> — istalgan vaqtda',
             heroLead: "Yumshoq bulochka, mol go'shtidan kotlet, eriydigan pishloq va yangi sabzavotlar. Har bir burger shu yerning o'zida, siz uchun tayyorlanadi.",
@@ -2629,7 +2579,7 @@
           ru: {
             title: 'New York Fast Food — бургеры и хот-доги',
             desc: 'New York Fast Food — горячие бургеры, хот-доги в нью-йоркском стиле, фри и напитки.',
-            nBurger: 'Бургеры', nHotdog: 'Хот-доги', nMenu: 'Меню', seeMenu: 'Смотреть меню', seeHotdog: 'Хот-доги',
+            nBurger: 'Бургеры', nHotdog: 'Хот-доги', nMenu: 'Меню', seeMenu: 'Смотреть меню',
             heroEye: 'Вкусно и сытно',
             heroH: 'Горячие и сочные <span class="hl">бургеры</span> — в любое время',
             heroLead: 'Мягкая булочка, котлета из говядины, тающий сыр и свежие овощи. Каждый бургер готовим прямо здесь — специально для вас.',
@@ -2666,7 +2616,7 @@
           en: {
             title: 'New York Fast Food — burgers & hot dogs',
             desc: 'New York Fast Food — hot burgers, New York–style hot dogs, fries and drinks.',
-            nBurger: 'Burgers', nHotdog: 'Hot dogs', nMenu: 'Menu', seeMenu: 'View menu', seeHotdog: 'See hot dogs',
+            nBurger: 'Burgers', nHotdog: 'Hot dogs', nMenu: 'Menu', seeMenu: 'View menu',
             heroEye: 'Tasty and filling',
             heroH: 'Hot, juicy <span class="hl">burgers</span> — any time of day',
             heroLead: 'Soft buns, beef patties, melted cheese and fresh veggies. Every burger is made right here, just for you.',
