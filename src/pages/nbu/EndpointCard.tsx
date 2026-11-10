@@ -69,7 +69,7 @@ export default function EndpointCard({ item, back, result, busy, onSend }: Props
         ) : (
           <p className="rounded bg-neutral-50 px-3 py-2 text-xs text-neutral-600">So'rov tanasi va imzo serverda avtomatik tuziladi.</p>
         )}
-        {jsonError && <p className="text-xs font-semibold text-red-600">{jsonError}</p>}
+        {jsonError && <p className="text-xs font-semibold text-red-700">{jsonError}</p>}
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={submit} disabled={busy} className="btn-primary flex h-9 items-center gap-2 rounded px-4 text-xs font-bold">
             <Send size={14} />

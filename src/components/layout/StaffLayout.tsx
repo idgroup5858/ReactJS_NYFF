@@ -26,6 +26,8 @@ type Props = {
   variant?: 'page' | 'fill'
   /** yashirin tugma — logotip 10 soniya bosib turilsa (oshxona: to'liq ekran) */
   onBrandHold?: () => void
+  /** chap menyusiz, lekin back-office sahifa (NBU test) — qorong'i rejim tugmasi bilan; menyusi borlarda o'zi yoqiq */
+  colorMode?: boolean
 }
 
 type ActionProps = {
@@ -63,14 +65,14 @@ export function HeaderAction({ label, icon, onClick, badge, compact = true }: Ac
  * Xodim ekranlari qobig'i: tepada qora panel (brend · bo'lim · filial | amallar · til · xodim · chiqish), admin va omborda —
  * chapda yig'iladigan menyu ([Sidebar]).
  */
-export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page', onBrandHold }: Props) {
+export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page', onBrandHold, colorMode = false }: Props) {
   const t = useT()
   const branches = useBranches().data
   const user = useCurrentUser()
   const navigate = useNavigate()
   const branch = user?.branchId ? branches?.find((b) => b.id === user.branchId) : undefined
-  // qorong'i rejim — faqat back-office'da (chap menyusi bor sahifalar: admin, ombor)
-  const backOffice = nav !== undefined
+  // qorong'i rejim — faqat back-office'da (chap menyusi bor sahifalar: admin, ombor; menyusizlardan — NBU test)
+  const backOffice = nav !== undefined || colorMode
   useColorModeRoot(backOffice)
 
   const defaultLogout = () => {

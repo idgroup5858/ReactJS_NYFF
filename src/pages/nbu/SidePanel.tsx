@@ -26,7 +26,7 @@ function Row({ label, children, tag }: { label: string; children: ReactNode; tag
 }
 
 function Flag({ on }: { on: boolean }) {
-  return on ? <Check size={14} className="inline text-emerald-600" /> : <X size={14} className="inline text-red-600" />
+  return on ? <Check size={14} className="inline text-emerald-700" /> : <X size={14} className="inline text-red-700" />
 }
 
 function Segmented<T extends string>({ value, options, onChange }: { value: T; options: T[]; onChange: (value: T) => void }) {

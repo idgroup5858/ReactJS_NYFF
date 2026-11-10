@@ -71,7 +71,7 @@ export default function NbuTestPage() {
   const statusItem = NBU_ENDPOINTS.find((item) => item.key === 'status')!
 
   return (
-    <StaffLayout title={TITLE}>
+    <StaffLayout title={TITLE} colorMode>
       {!state ? (
         <EmptyState icon={Landmark} title={loadError ?? ' '} />
       ) : (
