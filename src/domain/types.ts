@@ -291,7 +291,8 @@ export interface Transfer {
   createdAt: Timestamp
 }
 
-export type MovementKind = 'purchase' | 'transfer_in' | 'transfer_out' | 'sale' | 'sale_cancel'
+/** `adjust` — qoldiqni 0 ga tushirish ("Tuzatish", faqat admin) */
+export type MovementKind = 'purchase' | 'transfer_in' | 'transfer_out' | 'sale' | 'sale_cancel' | 'adjust'
 
 /** Qoldiqning har bir o'zgarishi — tarix va hisobotlar uchun. */
 export interface StockMovement {
@@ -301,9 +302,24 @@ export interface StockMovement {
   /** asosiy birlikda: musbat — kirim, manfiy — chiqim */
   qty: number
   kind: MovementKind
-  /** sabab bo'lgan hujjat: buyurtma, kirim yoki ko'chirish id'si */
+  /** sabab bo'lgan hujjat: buyurtma, kirim, ko'chirish yoki tuzatish id'si */
   refId: ID
   createdAt: Timestamp
+}
+
+/** "Tuzatish №N" — qoldiqni 0 ga tushirish (bitta mahsulot yoki butun ombor); o'zgarishlar — harakatlarda (`adjust`). */
+export interface StockAdjustment {
+  id: ID
+  number: number
+  warehouseId: ID
+  createdBy: ID
+  createdAt: Timestamp
+}
+
+/** 0 ga tushirish natijasi: hammasi allaqachon 0 bo'lsa — hujjat `null`, `count` 0. */
+export interface StockReset {
+  adjustment: StockAdjustment | null
+  count: number
 }
 
 // ───────────────────────── Sotuv ─────────────────────────
@@ -610,7 +626,8 @@ export interface ShiftsSummary {
 }
 
 /** Harakat + sabab bo'lgan hujjat raqami; ko'chirishda — ikkinchi ombor (kirimda qayerdan, chiqimda qayerga). */
-export type MovementWithRef = StockMovement & { refNumber: number | null; refWarehouseId: ID | null }
+/** [refBy] — kirim / ko'chirish / tuzatishni yozgan xodim (buyurtmada — `null`) */
+export type MovementWithRef = StockMovement & { refNumber: number | null; refWarehouseId: ID | null; refBy: ID | null }
 
 // ───────────────────────── AI yordamchi va Telegram bot ─────────────────────────
 

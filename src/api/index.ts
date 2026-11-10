@@ -27,6 +27,7 @@ import type {
   Role,
   ShiftWithSummary,
   StockItem,
+  StockReset,
   StockUnit,
   TelegramStatus,
   Transfer,
@@ -243,6 +244,19 @@ export const api = {
     /** norma — "To'ldirish" shu darajagacha, asosiy birlikda; 0 — yozilmagan (chegara × 2 / 10 birlik) */
     setTargetQty: (warehouseId: ID, ingredientId: ID, targetQty: number) =>
       then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/target-qty`, { targetQty }), 'stock'),
+  },
+  stock: {
+    /**
+     * admin: qoldiqni 0 ga tushirish — [ingredientId] berilsa bitta mahsulot, aks holda butun ombor (minus ham, plus
+     * ham); tarixda "Tuzatish №N". Hammasi allaqachon 0 — `count` 0, hech narsa yozilmaydi.
+     */
+    reset: (warehouseId: ID, ingredientId?: ID) =>
+      then(
+        http.post<StockReset>(ingredientId ? `/stock/${warehouseId}/${ingredientId}/reset` : `/stock/${warehouseId}/reset`),
+        'stock',
+        'movements',
+        'reports',
+      ),
   },
   users: {
     changeOwnPin: (oldPin: string, newPin: string) => http.put<void>('/auth/pin', { oldPin, newPin }),

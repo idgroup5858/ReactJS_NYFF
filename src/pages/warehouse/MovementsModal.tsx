@@ -1,19 +1,24 @@
-import { useBranches, useIngredients, useMovements, useWarehouses } from '@/api/queries'
+import { useBranches, useIngredients, useMovements, useUsers, useWarehouses } from '@/api/queries'
 import Modal from '@/components/ui/Modal'
 import Pagination from '@/components/ui/Pagination'
 import { tdClass, thClass } from '@/components/ui/styles'
+import { fullName } from '@/domain/rules'
 import type { ID, MovementWithRef } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatOrderNumber, formatStock } from '@/lib/format'
 import { warehouseLabel } from '@/lib/warehouses'
 import { usePageState, useServerPage } from './serverPagination'
 
-/** Bitta mahsulotning bitta ombordagi harakatlari (10 tadan, eng yangisi birinchi): kirim, ko'chirish, sotuv, bekor qilish — hujjat raqami bilan. */
+/**
+ * Bitta mahsulotning bitta ombordagi harakatlari (10 tadan, eng yangisi birinchi): kirim, ko'chirish, sotuv, bekor
+ * qilish, tuzatish (0 ga) — hujjat raqami bilan; tuzatishda — kim qilgani ham.
+ */
 export default function MovementsModal({ warehouseId, ingredientId, onClose }: { warehouseId: ID; ingredientId: ID; onClose: () => void }) {
   const t = useT()
   const localize = useLocalize()
   const warehouses = useWarehouses().data ?? []
   const branches = useBranches().data ?? []
+  const users = useUsers().data ?? []
   const paging = usePageState()
   const movements = useMovements({ warehouseId, ingredientId, page: paging.page, limit: paging.limit })
   const { list, pagination } = useServerPage(movements.data, paging)
@@ -33,6 +38,10 @@ export default function MovementsModal({ warehouseId, ingredientId, onClose }: {
       case 'transfer_out': {
         const other = movement.refWarehouseId ? warehouseLabel(warehouses, branches, movement.refWarehouseId, t) : '—'
         return `${t.transfer.number(movement.refNumber)} · ${other}`
+      }
+      case 'adjust': {
+        const author = users.find((u) => u.id === movement.refBy)
+        return author ? `${t.stock.refAdjustment(movement.refNumber)} · ${fullName(author)}` : t.stock.refAdjustment(movement.refNumber)
       }
     }
   }

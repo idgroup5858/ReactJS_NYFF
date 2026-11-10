@@ -1,8 +1,9 @@
-import { Check, History, PackageSearch, Pencil, Search, Truck, X } from 'lucide-react'
+import { Check, Eraser, History, PackageSearch, Pencil, Search, Truck, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api } from '@/api'
 import { useBranches, useIngredients, useStock, useWarehouses } from '@/api/queries'
+import { useCurrentUser } from '@/api/session'
 import { Card } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import PageHeader from '@/components/ui/PageHeader'
@@ -14,7 +15,7 @@ import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup, type
 import { fromBase, toBase, unitSize } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock } from '@/lib/format'
-import { showToast } from '@/lib/swal'
+import { confirmDialog, showToast } from '@/lib/swal'
 import { activeWarehouses, parseQty, warehouseLabel } from '@/lib/warehouses'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import GroupHeading from './GroupHeading'
@@ -104,7 +105,8 @@ function LimitEditor({ row, limit, warehouseId, onDone }: { row: Row; limit: Lim
   )
 }
 
-type ItemProps = { row: Row; warehouseId: ID; refillTo: string; onHistory: () => void }
+/** [onReset] — faqat admin: qoldiqni 0 ga tushirish (tasdiqlab) */
+type ItemProps = { row: Row; warehouseId: ID; refillTo: string; onHistory: () => void; onReset?: () => void }
 
 /** Qoldiq qiymati oxirgi kirim narxida; narx hali noma'lum bo'lsa — `null`. */
 function rowValue(row: Row): number | null {
@@ -147,8 +149,11 @@ function LimitButton({ row, limit, onEdit }: { row: Row; limit: Limit; onEdit: (
   )
 }
 
-/** Amallar: kam bo'lsa — "To'ldirish" (kartochkada butun kenglikda), har doim — harakatlar tarixi. */
-function RowActions({ row, refillTo, onHistory, stretch = false }: Omit<ItemProps, 'warehouseId'> & { stretch?: boolean }) {
+/**
+ * Amallar: kam bo'lsa — "To'ldirish" (kartochkada butun kenglikda), har doim — harakatlar tarixi; admin uchun qoldiq
+ * 0 bo'lmasa — "0 ga tushirish".
+ */
+function RowActions({ row, refillTo, onHistory, onReset, stretch = false }: Omit<ItemProps, 'warehouseId'> & { stretch?: boolean }) {
   const t = useT()
   return (
     <div className="flex justify-end gap-1.5">
@@ -161,12 +166,17 @@ function RowActions({ row, refillTo, onHistory, stretch = false }: Omit<ItemProp
       <button type="button" onClick={onHistory} title={t.stock.history} aria-label={t.stock.history} className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded">
         <History size={14} />
       </button>
+      {onReset && row.qty !== 0 && (
+        <button type="button" onClick={onReset} title={t.stock.reset} aria-label={t.stock.reset} className="btn-icon-danger flex h-8 w-8 shrink-0 items-center justify-center rounded">
+          <Eraser size={14} />
+        </button>
+      )}
     </div>
   )
 }
 
 /** Mahsulot kartochkasi: nomi, holati (faqat kam / tugagan), katta qoldiq, chegara va norma (bosib tahrirlanadi), qiymati, amallar. */
-function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
+function StockCard({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps) {
   const t = useT()
   const localize = useLocalize()
   const [editing, setEditing] = useState<Limit | null>(null)
@@ -199,7 +209,7 @@ function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
         </dl>
       )}
       <div className="mt-auto">
-        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} stretch />
+        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} onReset={onReset} stretch />
       </div>
     </div>
   )
@@ -209,7 +219,7 @@ function StockCard({ row, warehouseId, refillTo, onHistory }: ItemProps) {
 const cellClass = `${tdClass} py-1.5!`
 
 /** Ixcham ko'rinishdagi qator: nomi + holati, qoldiq, chegara va norma (bosib tahrirlanadi), qiymati, amallar. */
-function StockRow({ row, warehouseId, refillTo, onHistory }: ItemProps) {
+function StockRow({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps) {
   const t = useT()
   const localize = useLocalize()
   const [editing, setEditing] = useState<Limit | null>(null)
@@ -234,7 +244,7 @@ function StockRow({ row, warehouseId, refillTo, onHistory }: ItemProps) {
       <td className={cellClass}>{limitCell('target')}</td>
       <td className={`${cellClass} text-right font-semibold text-neutral-700 tabular-nums`}>{value !== null ? formatMoney(value, t) : '—'}</td>
       <td className={cellClass}>
-        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} />
+        <RowActions row={row} refillTo={refillTo} onHistory={onHistory} onReset={onReset} />
       </td>
     </tr>
   )
@@ -267,6 +277,8 @@ export default function StockPage() {
   const [onlyLow, setOnlyLow] = useState(false)
   const [history, setHistory] = useState<ID | null>(null)
   const view = useSettings().warehouseView
+  // qoldiqni 0 ga tushirish — faqat admin (ta'minotchiga tugmalar ko'rinmaydi, server ham 403)
+  const isAdmin = useCurrentUser()?.role === 'admin'
 
   // boshqa ombor tanlanganda uning qoldig'i kelguncha oldingisi turadi (ro'yxat yo'qolib-qaytmasin)
   const stockItems = useLastData(stockQuery.data)
@@ -313,6 +325,27 @@ export default function StockPage() {
   // "Hammasini to'ldirish" — ko'rinib turganlardan (guruh / qidiruv filtri bilan) to'ldirish kerak bo'lganlari
   const visibleLow = visible.filter((row) => row.low)
 
+  // "Omborni 0 qilish" — filtrga qaramay butun ombor (server ham shunday: faolsiz mahsulotlar ham) — son shundan
+  const nonZeroCount = (stockItems ?? []).filter((item) => item.qty !== 0).length
+  /** [row] — bitta mahsulot; berilmasa — butun ombor. Tasdiqlangach server natijasi toast'da. */
+  const reset = async (row?: Row) => {
+    const confirmed = row
+      ? await confirmDialog(t.stock.resetTitle(localize(row.ingredient.name)), t.stock.resetText(formatStock(row.qty, row.ingredient, t)), t.stock.resetConfirm)
+      : await confirmDialog(
+          t.stock.resetWarehouseTitle(warehouseLabel(allWarehouses, branches, warehouseId, t)),
+          // filial omborida — offline kassa sotuvlari 0 dan keyin kelsa, yana minusga tushiradi
+          warehouse?.kind === 'central' ? t.stock.resetWarehouseText(nonZeroCount) : `${t.stock.resetWarehouseText(nonZeroCount)} ${t.stock.resetOfflineNote}`,
+          t.stock.resetConfirm,
+        )
+    if (!confirmed) return
+    try {
+      const { count } = await api.stock.reset(warehouseId, row?.ingredient.id)
+      showToast(count > 0 ? t.stock.resetDone(count) : t.stock.resetNothing, count > 0 ? 'success' : 'info')
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -358,6 +391,16 @@ export default function StockPage() {
           </select>
           <Toggle checked={onlyLow} onChange={setOnlyLow} label={t.stock.onlyLow} />
           <ViewToggle value={view} onChange={setWarehouseView} />
+          {isAdmin && loaded && nonZeroCount > 0 && (
+            <button
+              type="button"
+              onClick={() => void reset()}
+              className="btn-icon-danger flex h-10 items-center justify-center gap-2 rounded px-3 text-xs font-bold whitespace-nowrap"
+            >
+              <Eraser size={16} />
+              {t.stock.resetWarehouse}
+            </button>
+          )}
           {visibleLow.length > 0 && (
             <Link to={refillLink(visibleLow)} className="btn-primary flex h-10 items-center justify-center gap-2 rounded px-3 text-xs font-bold whitespace-nowrap">
               <Truck size={16} />
@@ -400,7 +443,14 @@ export default function StockPage() {
                     </td>
                   </tr>
                   {section.rows.map((row) => (
-                    <StockRow key={row.ingredient.id} row={row} warehouseId={warehouseId} refillTo={refillLink([row])} onHistory={() => setHistory(row.ingredient.id)} />
+                    <StockRow
+                      key={row.ingredient.id}
+                      row={row}
+                      warehouseId={warehouseId}
+                      refillTo={refillLink([row])}
+                      onHistory={() => setHistory(row.ingredient.id)}
+                      onReset={isAdmin ? () => void reset(row) : undefined}
+                    />
                   ))}
                 </tbody>
               ))}
@@ -419,6 +469,7 @@ export default function StockPage() {
                   warehouseId={warehouseId}
                   refillTo={refillLink([row])}
                   onHistory={() => setHistory(row.ingredient.id)}
+                  onReset={isAdmin ? () => void reset(row) : undefined}
                 />
               ))}
             </div>

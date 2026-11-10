@@ -451,8 +451,23 @@ export const uz = {
       transfer_out: "Ko'chirish — ketdi",
       sale: 'Sotuv',
       sale_cancel: 'Sotuv bekor qilindi',
+      adjust: 'Tuzatish (0 ga)',
     },
     refOrder: (number: string) => `Buyurtma ${number}`,
+    refAdjustment: (number: number) => `Tuzatish №${number}`,
+    /** qoldiqni 0 ga tushirish — faqat admin */
+    reset: '0 ga tushirish',
+    resetWarehouse: 'Omborni 0 qilish',
+    resetTitle: (name: string) => `${name}: qoldiqni 0 qilasizmi?`,
+    resetText: (qty: string) => `Hozirgi qoldiq: ${qty}. 0 ga tushiriladi, tarixda "Tuzatish" bo'lib yoziladi.`,
+    resetWarehouseTitle: (warehouse: string) => `${warehouse}: hammasini 0 qilasizmi?`,
+    resetWarehouseText: (count: number) =>
+      `${count} ta mahsulot qoldig'i (minus ham, plus ham) 0 ga tushiriladi. Chegara va normalar o'zgarmaydi. Qaytarib bo'lmaydi.`,
+    /** filial ombori — offline kassa sotuvlari keyin kelsa, 0 dan ayriladi */
+    resetOfflineNote: "Filialda offline kassa bo'lsa — avval uning hamma sotuvlari markazga yuborilganini tekshiring.",
+    resetConfirm: '0 qilish',
+    resetDone: (count: number) => `${count} ta mahsulot 0 ga tushirildi`,
+    resetNothing: 'Qoldiq allaqachon 0',
     itemsCount: 'Mahsulotlar',
     lowCount: 'Kam qolgan',
     totalValue: 'Ombor qiymati (oxirgi narxda)',
