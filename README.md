@@ -284,3 +284,6 @@ UPDATE SITE axaxaxaxa
                 npm install
                 npm run build
                 pm2 restart newyork24
+
+Android
+                scp "C:\BACKEND APPS\Kotlin_NYFF\app\release\NYFF v2.apk" root@2.31.205.252:/root/Android/newyork24.apk

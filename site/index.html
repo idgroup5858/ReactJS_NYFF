@@ -5,7 +5,9 @@
   Bitta o'zi tayyor fayl: tashqi kutubxona/CDN yo'q, rasmlar — inline SVG, Poppins shrifti base64 ichida.
   Bu yerda xodimlar tizimiga havola YO'Q — u maxfiy yo'lda (UI_BASE).
   Vite build'ga kirmaydi. Serverda Apache beradi: sudo cp site/index.html /var/www/newyork24/
-  "APK yuklab olish" tugmasi → /newyork24.apk: Android ilova faylini shu papkaga qo'ying (/var/www/newyork24/newyork24.apk).
+  "Ilovani yuklab olish" (Android) tugmasi → /app/newyork24.apk: ilova fayli serverda /var/www/newyork24/app/newyork24.apk
+  (Apache'da shu papkaga .apk turi va no-cache sozlangan). Yonidagi iOS — "Tez kunda", bosilmaydi.
+  Do'kon oldidagi QR kod shu sahifaga (https://newyork24.uz) olib keladi — fayllari docs/qr (o'rtada chekdagi logo).
   (Apache'siz — backend `SITE_DIR`, standart ../ReactJS_NYFF/site).
 -->
 <html lang="uz">
@@ -356,35 +358,78 @@
         margin-top: 2rem;
       }
       .soon {
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
         margin-top: 2.4rem;
         color: rgba(255, 255, 255, 0.62);
         font-size: 0.85rem;
       }
+      .soon-t {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin: 0;
+      }
+      /* Ilova tugmalari: Android — katta, nuri yonib-o'chib turadi; iOS — "Tez kunda", bosilmaydi */
+      .stores {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1.1rem;
+      }
       .apk {
         display: inline-flex;
         align-items: center;
-        gap: 0.45rem;
+        gap: 0.6rem;
         flex: none;
-        margin-left: 0.6rem;
-        padding: 0.62rem 1.15rem;
+        padding: 0.95rem 1.6rem;
         border-radius: 999px;
         background: var(--taxi);
         color: var(--coal);
-        font-size: 0.84rem;
-        font-weight: 600;
+        font-size: 1.02rem;
+        font-weight: 800;
         white-space: nowrap;
-        box-shadow: 0 10px 24px -12px rgba(255, 194, 14, 0.8);
-        transition: transform 0.2s;
+        box-shadow: 0 0 0 4px rgba(255, 194, 14, 0.14), 0 0 26px 6px rgba(255, 194, 14, 0.5);
+        animation: apkGlow 2s ease-in-out infinite;
       }
       .apk:hover {
-        transform: translateY(-2px);
+        filter: brightness(1.08);
       }
       .apk svg {
-        width: 1.05em;
-        height: 1.05em;
+        flex: none;
+        width: 1.35em;
+        height: 1.35em;
+      }
+      .ios {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: none;
+        padding: 0.95rem 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        background: #1c1c1c; /* to'q — orqadagi bezaklar ko'rinmasin */
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: default;
+        user-select: none;
+      }
+      .ios svg {
+        flex: none;
+        width: 1.2em;
+        height: 1.2em;
+      }
+      @keyframes apkGlow {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(255, 194, 14, 0), 0 0 12px 1px rgba(255, 194, 14, 0.3);
+        }
+        50% {
+          transform: scale(1.04);
+          box-shadow: 0 0 0 7px rgba(255, 194, 14, 0.16), 0 0 38px 12px rgba(255, 194, 14, 0.7);
+        }
       }
       .soon .ic {
         display: grid;
@@ -1228,12 +1273,23 @@
         .hero-copy .chips {
           order: 2;
         }
-        .soon .ic,
-        .soon > span {
+        .soon .ic {
           display: none;
         }
+        .soon-t {
+          font-size: 0.8rem;
+        }
+        .stores {
+          gap: 0.6rem;
+          margin-top: 0.7rem;
+        }
         .apk {
-          margin-left: 0;
+          padding: 0.85rem 1.2rem;
+          font-size: 0.95rem;
+        }
+        .ios {
+          padding: 0.85rem 1rem;
+          font-size: 0.8rem;
         }
         .art {
           align-items: flex-end;
@@ -1310,6 +1366,26 @@
         }
         .pill {
           display: none;
+        }
+      }
+      /* 360–400 px telefonlar: ikkala ilova tugmasi bir qatorga sig'sin (uchala tilda) */
+      @media (max-width: 400px) {
+        .stores {
+          gap: 0.5rem;
+        }
+        .apk {
+          gap: 0.45rem;
+          padding: 0.8rem 0.9rem;
+          font-size: 0.86rem;
+        }
+        .apk svg {
+          width: 1.25em;
+          height: 1.25em;
+        }
+        .ios {
+          gap: 0.35rem;
+          padding: 0.8rem 0.75rem;
+          font-size: 0.74rem;
         }
       }
 
@@ -1474,14 +1550,22 @@
                 <span class="chip hchip" style="--c: #5cb83a"><i></i><span data-i18n="hc3">Yangi sabzavotlar</span></span>
               </div>
               <div class="soon" style="--d: 5">
-                <span class="ic"
-                  ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M11 18.5h2" /></svg
-                ></span>
-                <span data-i18n="soon"><b>Onlayn buyurtma va mobil ilova</b>Android uchun — yuklab oling</span>
-                <a class="apk" href="/newyork24.apk" download
-                  ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg
-                  ><span data-i18n="apkBtn">APK yuklab olish</span></a
-                >
+                <p class="soon-t">
+                  <span class="ic"
+                    ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M11 18.5h2" /></svg
+                  ></span>
+                  <span data-i18n="soon"><b>Onlayn buyurtma va mobil ilova</b>Android uchun — yuklab oling</span>
+                </p>
+                <div class="stores">
+                  <a class="apk" href="/app/newyork24.apk" download="newyork24.apk"
+                    ><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24c-2.86-1.21-6.08-1.21-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48C3.3 11.25 1.28 14.44 1 18h22c-.28-3.56-2.3-6.75-5.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z" /></svg
+                    ><span data-i18n="apkBtn">Ilovani yuklab olish</span></a
+                  >
+                  <span class="ios"
+                    ><svg viewBox="0 0 24 24" fill="currentColor" role="img" aria-label="iOS"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" /></svg
+                    ><span data-i18n="iosBtn">Tez kunda</span></span
+                  >
+                </div>
               </div>
             </div>
 
@@ -2513,7 +2597,7 @@
             heroH: 'Issiq va shirali <span class="hl">burgerlar</span> — istalgan vaqtda',
             heroLead: "Yumshoq bulochka, mol go'shtidan kotlet, eriydigan pishloq va yangi sabzavotlar. Har bir burger shu yerning o'zida, siz uchun tayyorlanadi.",
             hc1: "Mol go'shti", hc2: 'Eriydigan pishloq', hc3: 'Yangi sabzavotlar',
-            soon: '<b>Onlayn buyurtma va mobil ilova</b>Android uchun — yuklab oling', apkBtn: 'APK yuklab olish', hint: 'Pastga suring',
+            soon: '<b>Onlayn buyurtma va mobil ilova</b>Android uchun — yuklab oling', apkBtn: 'Ilovani yuklab olish', iosBtn: 'Tez kunda', hint: 'Pastga suring',
             hdEye: 'Nyu-York klassikasi',
             hdH: 'Hot-dog — <span class="k">ketchup</span> va <span class="m">xantal</span> bilan',
             hdLead: "Issiq bulochka, shirali sosiska, bodring, pomidor va ikki xil sous — xuddi Nyu-York ko'chalaridagidek.",
@@ -2550,7 +2634,7 @@
             heroH: 'Горячие и сочные <span class="hl">бургеры</span> — в любое время',
             heroLead: 'Мягкая булочка, котлета из говядины, тающий сыр и свежие овощи. Каждый бургер готовим прямо здесь — специально для вас.',
             hc1: 'Говядина', hc2: 'Тающий сыр', hc3: 'Свежие овощи',
-            soon: '<b>Онлайн-заказ и мобильное приложение</b>Для Android — скачайте', apkBtn: 'Скачать APK', hint: 'Листайте вниз',
+            soon: '<b>Онлайн-заказ и мобильное приложение</b>Для Android — скачайте', apkBtn: 'Скачать приложение', iosBtn: 'Скоро', hint: 'Листайте вниз',
             hdEye: 'Нью-йоркская классика',
             hdH: 'Хот-дог — с <span class="k">кетчупом</span> и <span class="m">горчицей</span>',
             hdLead: 'Тёплая булочка, сочная сосиска, огурец, помидор и два соуса — как на улицах Нью-Йорка.',
@@ -2587,7 +2671,7 @@
             heroH: 'Hot, juicy <span class="hl">burgers</span> — any time of day',
             heroLead: 'Soft buns, beef patties, melted cheese and fresh veggies. Every burger is made right here, just for you.',
             hc1: 'Beef patty', hc2: 'Melted cheese', hc3: 'Fresh veggies',
-            soon: '<b>Online ordering &amp; mobile app</b>For Android — download now', apkBtn: 'Download APK', hint: 'Scroll down',
+            soon: '<b>Online ordering &amp; mobile app</b>For Android — download now', apkBtn: 'Download the app', iosBtn: 'Coming soon', hint: 'Scroll down',
             hdEye: 'A New York classic',
             hdH: 'Hot dog — with <span class="k">ketchup</span> &amp; <span class="m">mustard</span>',
             hdLead: 'A warm bun, a juicy sausage, pickles, tomato and two sauces — just like on the streets of New York.',
