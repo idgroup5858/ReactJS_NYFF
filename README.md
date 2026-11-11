@@ -64,7 +64,7 @@
                     npm run build
                     cp -r dist/* /var/www/myapp/
 
-
+`
 
                     npm install react-to-print
 

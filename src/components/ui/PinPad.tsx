@@ -106,7 +106,10 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
   const slots = Math.max(MIN, pin.length)
   // ixcham (2026-11-09): POS monitorda (768 px balandlik) "Kirish" tugmasi ekrandan tushib qolardi
   const keyClass =
-    'flex h-12 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-surface text-xl font-semibold text-neutral-950 transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
+    'flex h-12 cursor-pointer items-center justify-center rounded border border-neutral-200 bg-surface transition-colors select-none hover:border-neutral-400 active:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-neutral-200 disabled:active:bg-white'
+  // shrift va rang — alohida (2026-11-11): bitta class'da ikki xil `text-*` bo'lsa qaysi biri ustunligini class tartibi emas,
+  // CSS tartibi hal qiladi — "Очистить" raqamlardek yirik chiqib, tugmaga sig'mas edi
+  const digitClass = `${keyClass} text-xl font-semibold text-neutral-950`
 
   return (
     <div className="space-y-3">
@@ -125,7 +128,7 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
 
       <div className="grid grid-cols-3 gap-2">
         {DIGITS.map((digit) => (
-          <button key={digit} type="button" onClick={() => press(digit)} disabled={locked} className={keyClass}>
+          <button key={digit} type="button" onClick={() => press(digit)} disabled={locked} className={digitClass}>
             {digit}
           </button>
         ))}
@@ -133,11 +136,11 @@ export default function PinPad({ onSubmit, submitLabel, hint }: Props) {
           type="button"
           onClick={clear}
           disabled={locked}
-          className={`${keyClass} text-sm font-bold tracking-wider text-neutral-500 uppercase`}
+          className={`${keyClass} min-w-0 px-1 text-center text-xs leading-tight font-bold tracking-wide break-words text-neutral-500 uppercase`}
         >
           {t.login.clear}
         </button>
-        <button type="button" onClick={() => press('0')} disabled={locked} className={keyClass}>
+        <button type="button" onClick={() => press('0')} disabled={locked} className={digitClass}>
           0
         </button>
         <button

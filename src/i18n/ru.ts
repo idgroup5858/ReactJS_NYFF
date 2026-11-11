@@ -322,6 +322,7 @@ export const ru: Dict = {
     statusRejected: (count: number) => `Центр не принял ${count} заказ(ов)`,
     statusNoSync: 'Синхронизация с центром не настроена — введите ключ в настройках «NYFF Offline»',
     backOnline: 'Вернуться в онлайн-режим',
+    returnIn: (seconds: number) => `Интернет вернулся · переход в онлайн-режим через ${seconds} с`,
     backOnlineTitle: 'Интернет вернулся',
     backOnlineText: 'Все офлайн-заказы отправлены в центр. Открытые чеки перейдут в онлайн-кассу.',
     orders: 'Заказы',

@@ -1,5 +1,5 @@
 import { CloudOff, Cloud, LoaderCircle, LogOut, MapPin, TriangleAlert, Wifi } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { ApiError } from '@/api/http'
 import { offlineApi, offlineLogout, useOfflineSession, type OfflineData, type OfflineSession, type OfflineState } from '@/api/offline'
 import AppLoading from '@/components/layout/AppLoading'
@@ -29,8 +29,52 @@ import OfflineLogin, { OfflineShell } from './OfflineLogin'
 import OfflineOrdersDrawer from './OfflineOrdersDrawer'
 import { handleOfflineAuth, useOfflineOrders, useOfflineState } from './useOffline'
 
-/** Sinxronlash holati — header ostidagi rangli qator; internet qaytib hammasi yuborilgach — "Online rejimga qaytish". */
-function SyncBar({ state, canReturn, onReturn }: { state: OfflineState; canReturn: boolean; onReturn: () => void }) {
+/** Internet qaytib hammasi yuborilgach shuncha soniyadan keyin online kassaga o'zi o'tadi (2026-11-11). */
+const RETURN_AFTER_SECONDS = 5
+
+/** Internet bor, hamma offline buyurtma markazga yetib bordi, online kassa manzili ma'lum — online'ga qaytsa bo'ladi. */
+function canGoOnline(state: OfflineState, data: OfflineData): boolean {
+  return state.sync.online === true && state.sync.pending === 0 && !!data.kassaUrl
+}
+
+/**
+ * Online kassaga: offline server raqamni "unutadi" (keyingi offline'da yana aniqlanadi — kassir kirmagan bo'lsa ham,
+ * `leave` ochiq), ochiq cheklar (bo'lsa) manzilda o'tadi. O'sha tabda online kassa sessiyasi saqlangan.
+ */
+async function goOnline(kassaUrl: string, tickets: TicketsState | null): Promise<void> {
+  await offlineApi.leave().catch(() => undefined)
+  window.location.assign(onlineKassaUrl(kassaUrl, tickets))
+}
+
+/**
+ * Online'ga qaytishgacha orqaga sanash (matn); tugagach — [onReturn]. Faqat qaytsa bo'ladigan paytda chiziladi: yechilsa
+ * (internet yana uzildi, kassir to'lov oynasini ochdi) — keyingi safar sanash boshidan.
+ */
+function ReturnCountdown({ onReturn }: { onReturn: () => void }) {
+  const t = useT()
+  const [left, setLeft] = useState(RETURN_AFTER_SECONDS)
+  const returnRef = useRef(onReturn)
+  useLayoutEffect(() => {
+    returnRef.current = onReturn
+  })
+
+  useEffect(() => {
+    if (left <= 0) {
+      returnRef.current()
+      return
+    }
+    const timer = window.setTimeout(() => setLeft((value) => value - 1), 1000)
+    return () => window.clearTimeout(timer)
+  }, [left])
+
+  return <span className="tabular-nums">{t.offline.returnIn(Math.max(0, left))}</span>
+}
+
+/**
+ * Sinxronlash holati — header ostidagi rangli qator. Internet qaytib hammasi yuborilgach — "Online rejimga qaytish"
+ * tugmasi; [autoReturn] bo'lsa — 5 soniyalik sanash va online kassaga o'zi o'tadi.
+ */
+function SyncBar({ state, canReturn, autoReturn, onReturn }: { state: OfflineState; canReturn: boolean; autoReturn: boolean; onReturn: () => void }) {
   const t = useT()
   const { configured, online, pending, rejected, error } = state.sync
   let tone = 'bg-neutral-700'
@@ -57,7 +101,7 @@ function SyncBar({ state, canReturn, onReturn }: { state: OfflineState; canRetur
     <div className={`flex min-h-10 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1.5 text-sm font-semibold text-white sm:px-6 ${tone}`} role="status">
       <span className="flex items-center gap-2">
         {icon}
-        {text}
+        {canReturn && autoReturn ? <ReturnCountdown onReturn={onReturn} /> : text}
       </span>
       {rejected > 0 && (
         <span className="flex items-center gap-1.5 rounded-chip bg-black/25 px-2 py-0.5 text-xs">
@@ -161,7 +205,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
     return counts
   }, [lines])
   const preparing = (orders ?? []).filter((order) => order.status === 'preparing').length
-  const canReturn = state.sync.online === true && state.sync.pending === 0 && !!data.kassaUrl
+  const canReturn = canGoOnline(state, data)
+  const leavingRef = useRef(false)
 
   const closeTicket = async (ticket: Ticket) => {
     const count = cartQty(ticket.lines)
@@ -196,11 +241,13 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
     }
   }
 
-  /** Internet qaytdi, hammasi yuborildi: ochiq cheklar bilan online kassaga (o'sha tabda sessiya saqlangan). */
+  /** Internet qaytdi, hammasi yuborildi: ochiq cheklar bilan online kassaga (tugma yoki sanash tugadi — bir marta). */
   const backOnline = async () => {
-    await offlineApi.leave().catch(() => undefined)
+    if (leavingRef.current) return
+    leavingRef.current = true
+    const open = hasLines(ticketsState.state) ? ticketsState.state : null
     removeKey(ticketsKey)
-    window.location.assign(onlineKassaUrl(data.kassaUrl, hasLines(ticketsState.state) ? ticketsState.state : null))
+    await goOnline(data.kassaUrl, open)
   }
 
   return (
@@ -237,7 +284,8 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
             <HeaderAction label={t.common.logout} icon={<LogOut size={16} />} onClick={offlineLogout} compact={false} />
           </div>
         </div>
-        <SyncBar state={state} canReturn={canReturn} onReturn={() => void backOnline()} />
+        {/* to'lov oynasi yoki buyurtmalar ochiq — kassir ish ustida: sanash to'xtaydi, yopilgach boshidan */}
+        <SyncBar state={state} canReturn={canReturn} autoReturn={panel === null} onReturn={() => void backOnline()} />
       </header>
 
       <main className="min-h-0 flex-1">
@@ -279,7 +327,9 @@ function OfflineKassa({ data, state, session, initialTickets, onTicketsTaken, on
 /**
  * `/offline` — offline kassa (kassa kompyuteridagi offline serverdan ochiladi, internet yo'q paytda). Online kassadan
  * o'tilganda manzilda kassir, oxirgi raqam, ochiq cheklar va menyu keladi — kassir PIN'siz davom etadi; aks holda
- * (ish stolidagi yorliq, kassa bloklangan edi) — PIN bilan kirish. Buyurtmalar internet qaytgach markazga o'zi ketadi.
+ * (ish stolidagi yorliq, kassa bloklangan edi) — PIN bilan kirish. Buyurtmalar internet qaytgach markazga o'zi ketadi,
+ * hammasi yetib borgach 5 soniyadan keyin online kassaga o'zi qaytadi (2026-11-11; avval faqat tugma bilan edi — saytni
+ * yangilashda server qayta ishga tushsa kassa offline'da qolib ketardi).
  */
 export default function OfflineKassaPage() {
   const t = useT()
@@ -340,7 +390,19 @@ export default function OfflineKassaPage() {
       </OfflineShell>
     )
   }
-  if (!session) return <OfflineLogin branchName={data.branch.name} cashiers={data.cashiers} />
+  if (!session) {
+    return (
+      <>
+        <OfflineLogin branchName={data.branch.name} cashiers={data.cashiers} />
+        {/* kassir hali kirmagan (yorliq bilan ochilgan, kassir chiqqan) — internet qaytgan bo'lsa ham online kassaga */}
+        {canGoOnline(state, data) && (
+          <div className="fixed inset-x-0 bottom-0 z-50">
+            <SyncBar state={state} canReturn autoReturn onReturn={() => void goOnline(data.kassaUrl, null)} />
+          </div>
+        )}
+      </>
+    )
+  }
 
   const initialTickets = handover?.cashier.id === session.cashier.id ? handoverTickets : null
   return (

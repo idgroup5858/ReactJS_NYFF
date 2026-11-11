@@ -93,7 +93,7 @@ export const offlineApi = {
     saveSession(await request<OfflineSession>('POST', '/offline/login', { body: { cashierId, pin }, auth: open })) as OfflineSession,
   /** kassir oxirgi chekdagi raqamni kiritdi */
   setNumber: (last: number) => request<void>('POST', '/offline/number', { body: { last }, auth: authed() }),
-  /** "Online rejimga qaytish" — keyingi offline'da raqam yana aniqlanadi */
+  /** "Online rejimga qaytish" — keyingi offline'da raqam yana aniqlanadi (kassir kirmagan bo'lsa ham — ochiq) */
   leave: () => request<void>('POST', '/offline/leave', { auth: authed() }),
   orders: () => request<Order[]>('GET', '/offline/orders', { auth: authed() }),
   create: (input: NewOrderInput) => request<Order>('POST', '/offline/orders', { body: input, auth: authed() }),

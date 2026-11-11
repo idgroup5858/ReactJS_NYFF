@@ -329,6 +329,7 @@ export const uz = {
     statusRejected: (count: number) => `${count} ta buyurtmani markaz qabul qilmadi`,
     statusNoSync: 'Markaz bilan sinxronlash sozlanmagan — «NYFF Offline» sozlamalarida kalitni kiriting',
     backOnline: "Online rejimga qaytish",
+    returnIn: (seconds: number) => `Internet qaytdi · ${seconds} soniyadan keyin online rejimga o'tiladi`,
     backOnlineTitle: 'Internet qaytdi',
     backOnlineText: "Hamma offline buyurtmalar markazga yuborildi. Ochiq cheklar online kassaga o'tadi.",
     orders: 'Buyurtmalar',

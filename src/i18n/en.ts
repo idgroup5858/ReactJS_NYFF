@@ -322,6 +322,7 @@ export const en: Dict = {
     statusRejected: (count: number) => `${count} order(s) rejected by the central server`,
     statusNoSync: 'Sync with the central server is not configured — enter the key in the «NYFF Offline» settings',
     backOnline: 'Back to online mode',
+    returnIn: (seconds: number) => `The internet is back · switching to online mode in ${seconds}s`,
     backOnlineTitle: 'The internet is back',
     backOnlineText: 'All offline orders were sent to the central server. Open tickets move to the online register.',
     orders: 'Orders',

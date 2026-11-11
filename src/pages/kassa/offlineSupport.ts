@@ -4,8 +4,11 @@ import type { ID, Order } from '@/domain/types'
 import { readJson, writeJson } from '@/store/storage'
 import { lastNumberStorageKey } from '@/store/storageKeys'
 
-/** Server bilan aloqa shuncha vaqt yo'q bo'lsa — "Internet yo'q" oynasi (Wi-Fi bir lahza uzilishi hisobga olinmaydi). */
-const LOST_AFTER_MS = 5_000
+/**
+ * Server bilan aloqa shuncha vaqt yo'q bo'lsa — "Internet yo'q" oynasi (Wi-Fi bir lahza uzilishi hisobga olinmaydi).
+ * 2026-11-11: 5 s → 10 s — saytni yangilashda server qisqa qayta ishga tushganda kassa offline'ga o'tib ketmasin.
+ */
+const LOST_AFTER_MS = 10_000
 
 /**
  * Jonli ulanish (Socket.IO) bir marta ulanib, keyin [LOST_AFTER_MS] dan ko'p uzilib tursa — `true`. Qayta ulanishi
