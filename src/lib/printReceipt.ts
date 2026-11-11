@@ -13,10 +13,16 @@ const escape = (text: string) => text.replace(/[&<>"]/g, (char) => ({ '&': '&amp
  */
 export type ReceiptOrder = Pick<Order, 'number' | 'type' | 'source' | 'items' | 'note' | 'total' | 'payment' | 'online' | 'createdAt'>
 
-/** Mijoz cheki (kassa printeri) yoki oshxona cheki (ichimliklarsiz, oshxona printeri). */
-type PrintTarget = 'receipt' | 'kitchen'
+/**
+ * Mijoz cheki (kassa printeri), oshxona cheki (ichimliklarsiz, oshxona printeri) yoki truck cheki (faqat truck
+ * taomlari, truck printeri). Oshxona va truck cheki — bir xil ko'rinishda, har biri o'z qatorlari bilan.
+ */
+type Station = 'kitchen' | 'truck'
+type PrintTarget = 'receipt' | Station
 type PrintJob = { to: PrintTarget; html: string }
 type PrintResults = Partial<Record<PrintTarget, 'ok' | 'not_set' | 'error'>>
+
+const STATIONS: Station[] = ['kitchen', 'truck']
 
 /** "NYFF Offline" chop etish xizmati (`ElectronJS_NYFF/printer.js`) — kassa kompyuterining o'zida. */
 const PRINT_SERVICE = 'http://127.0.0.1:3101/print'
@@ -33,6 +39,7 @@ const PRINT_TIMEOUT_MS = 15_000
  * ramkada (2026-11-09); taom nomlari — yirik qalin Arial (oshpaz uzoqdan o'qisin). Mijoz chekida ham taom
  * qatorlari qalin Arial (kichikroq — summa ustuni sig'sin). Bo'shliqlar ixcham — qog'oz
  * tejaladi; "Manzil" chapda, filial manzili o'ngda (filial nomi chiqmaydi), keyingi qatorda — sana (2026-11-10).
+ * `kitchen` — oshxona ko'rinishi: oshxona cheki ham, truck cheki ham shu ko'rinishda (2026-11-12).
  */
 function receiptHtml(order: ReceiptOrder, branchAddress: string, lines: OrderItem[], kitchen: boolean): string {
   const t = currentDict()
@@ -93,14 +100,24 @@ ${kitchen ? '' : `<div class="muted">${escape(payment)}</div>`}
 }
 
 /**
- * Oshxonaga tegishli qatorlar: "Oshxona chekiga chiqadi" o'chiq taomlar (tayyor ichimlik: kola, suv) tushadi. Taom
- * menyuda topilmasa (o'chirilgan) yoki eski offline nusxada belgi yo'q bo'lsa — chiqadi (oshxona bilmay qolmasin).
+ * Oshxona / truck chekiga tegishli qatorlar (ikki belgi mustaqil — ikkalasi yoqiq taom ikkala chekda).
+ * Oshxona: "Oshxona chekiga chiqadi" o'chiq taomlar (tayyor ichimlik: kola, suv) tushadi; taom menyuda topilmasa
+ * (o'chirilgan) yoki eski offline nusxada belgi yo'q bo'lsa — chiqadi (oshxona bilmay qolmasin).
+ * Truck: faqat "Truck chekiga chiqadi" yoqiq taomlar; menyu yo'q, taom topilmasa yoki belgi yo'q — chiqmaydi.
  */
-function kitchenLines(items: OrderItem[], menu: Menu | null | undefined): OrderItem[] {
-  if (!menu) return items
-  const skip = new Set(menu.products.filter((product) => product.kitchen === false).map((product) => product.id))
-  return items.filter((item) => !skip.has(item.productId))
+function stationLines(station: Station, items: OrderItem[], menu: Menu | null | undefined): OrderItem[] {
+  if (station === 'kitchen') {
+    if (!menu) return items
+    const skip = new Set(menu.products.filter((product) => product.kitchen === false).map((product) => product.id))
+    return items.filter((item) => !skip.has(item.productId))
+  }
+  if (!menu) return []
+  const take = new Set(menu.products.filter((product) => product.truck === true).map((product) => product.id))
+  return items.filter((item) => take.has(item.productId))
 }
+
+/** Buyurtmada truck taomi bormi — "Truck cheki" qayta chiqarish tugmasi faqat shunda ko'rinadi. */
+export const hasTruckItems = (items: OrderItem[], menu: Menu | null | undefined): boolean => stationLines('truck', items, menu).length > 0
 
 /** Yashirin oynada brauzer orqali — standart printerga (Chrome `--kiosk-printing` bilan so'ramasdan). */
 function browserPrint(html: string): void {
@@ -141,54 +158,75 @@ function hasPrintService(): boolean {
   return kassaPage || ['localhost', '127.0.0.1'].includes(window.location.hostname)
 }
 
+const post = (jobs: PrintJob[]): Promise<Response> =>
+  // matn ko'rinishida — oddiy so'rov (CORS preflight'siz); xizmat Origin'ni o'zi tekshiradi
+  fetch(PRINT_SERVICE, { method: 'POST', body: JSON.stringify({ jobs }), signal: AbortSignal.timeout(PRINT_TIMEOUT_MS) })
+
 /** Xizmatga yuboradi; `null` — xizmat javob bermadi (dastur ishlamayapti, ruxsat berilmadi). */
 async function sendToService(jobs: PrintJob[]): Promise<PrintResults | null> {
   try {
-    // matn ko'rinishida — oddiy so'rov (CORS preflight'siz); xizmat Origin'ni o'zi tekshiradi
-    const response = await fetch(PRINT_SERVICE, { method: 'POST', body: JSON.stringify({ jobs }), signal: AbortSignal.timeout(PRINT_TIMEOUT_MS) })
+    let response = await post(jobs)
+    // eski "NYFF Offline" (0.3.x) truck chekini bilmaydi va butun so'rovni rad etadi (400) — oshxona cheki yo'qolmasin:
+    // truck'siz qayta yuboriladi, truck — "tanlanmagan"
+    const legacy = response.status === 400 && jobs.some((job) => job.to === 'truck')
+    if (legacy) {
+      const rest = jobs.filter((job) => job.to !== 'truck')
+      if (rest.length === 0) return { truck: 'not_set' }
+      response = await post(rest)
+    }
     if (!response.ok) return null
     const body = (await response.json()) as { results?: PrintResults }
-    return body.results ?? null
+    if (!body.results) return null
+    return legacy ? { ...body.results, truck: 'not_set' } : body.results
   } catch {
     return null
   }
 }
 
 /**
- * Chop etish: avval "NYFF Offline" orqali (ikkala chek parallel, oynasiz). Mijoz cheki chiqmasa — brauzer orqali
- * (standart printer). Oshxona cheki chiqmasa — kassirga xabar; printer tanlanmagan bo'lsa — faqat qo'lda bosilganda
- * (oshxona printeri yo'q kassada har buyurtmada xabar chiqmasin).
+ * Chop etish: avval "NYFF Offline" orqali (hamma chek parallel, oynasiz). Mijoz cheki chiqmasa — brauzer orqali
+ * (standart printer). Oshxona / truck cheki chiqmasa — kassirga bitta xabar (ikkalasi birga — toast bittadan
+ * ko'rinadi); printer tanlanmagan bo'lsa — faqat qo'lda bosilganda (oshxona / truck printeri yo'q kassada har
+ * buyurtmada xabar chiqmasin).
  */
 async function print(order: ReceiptOrder, branchAddress: string, targets: PrintTarget[], menu: Menu | null | undefined, manual: boolean): Promise<void> {
   const t = currentDict()
+  const ticketName: Record<Station, string> = { kitchen: t.orders.printKitchen, truck: t.orders.printTruck }
+  const names = (list: Station[]) => list.map((station) => ticketName[station]).join(', ')
   const jobs: PrintJob[] = []
   if (targets.includes('receipt')) jobs.push({ to: 'receipt', html: receiptHtml(order, branchAddress, order.items, false) })
-  if (targets.includes('kitchen')) {
-    const lines = kitchenLines(order.items, menu)
-    if (lines.length > 0) jobs.push({ to: 'kitchen', html: receiptHtml(order, branchAddress, lines, true) })
-    else if (manual) showToast(t.orders.kitchenEmpty, 'info')
+  for (const station of STATIONS) {
+    if (!targets.includes(station)) continue
+    const lines = stationLines(station, order.items, menu)
+    if (lines.length > 0) jobs.push({ to: station, html: receiptHtml(order, branchAddress, lines, true) })
+    else if (manual) showToast(station === 'kitchen' ? t.orders.kitchenEmpty : t.orders.truckEmpty, 'info')
   }
   if (jobs.length === 0) return
 
   const receipt = jobs.find((job) => job.to === 'receipt')
-  const kitchen = jobs.some((job) => job.to === 'kitchen')
+  const stations = jobs.flatMap((job) => (job.to === 'receipt' ? [] : [job.to]))
   if (!hasPrintService()) {
     if (receipt) browserPrint(receipt.html)
-    if (kitchen && manual) showToast(t.orders.printNoService, 'error')
+    if (stations.length > 0 && manual) showToast(t.orders.printNoService(names(stations)), 'error')
     return
   }
 
   const results = await sendToService(jobs)
   if (receipt && results?.receipt !== 'ok') browserPrint(receipt.html)
-  if (!kitchen || results?.kitchen === 'ok') return
-  if (!results) showToast(t.orders.printNoService, 'error')
-  else if (results.kitchen === 'error') showToast(t.orders.kitchenFailed, 'error')
-  else if (manual) showToast(t.orders.kitchenNotSet, 'error')
+  if (stations.length === 0) return
+  if (!results) {
+    showToast(t.orders.printNoService(names(stations)), 'error')
+    return
+  }
+  const failed = stations.filter((station) => results[station] === 'error')
+  const notSet = stations.filter((station) => results[station] === 'not_set')
+  if (failed.length > 0) showToast(t.orders.printFailed(names(failed)), 'error')
+  else if (manual && notSet.length > 0) showToast(t.orders.printNotSet(names(notSet)), 'error')
 }
 
-/** Buyurtma ochildi (to'lov, kiosk / mobil buyurtmani qabul qilish): mijoz cheki + oshxona cheki. */
+/** Buyurtma ochildi (to'lov, kiosk / mobil buyurtmani qabul qilish): mijoz cheki + oshxona cheki + truck cheki. */
 export function printOrder(order: ReceiptOrder, branchAddress: string, menu: Menu | null | undefined): void {
-  void print(order, branchAddress, ['receipt', 'kitchen'], menu, false)
+  void print(order, branchAddress, ['receipt', 'kitchen', 'truck'], menu, false)
 }
 
 /** Faqat mijoz cheki (qayta chiqarish, kiosk, admin). */
@@ -199,4 +237,9 @@ export function printReceipt(order: ReceiptOrder, branchAddress: string): void {
 /** Faqat oshxona cheki — qayta chiqarish (qog'oz tiqildi, chek yo'qoldi). */
 export function printKitchen(order: ReceiptOrder, branchAddress: string, menu: Menu | null | undefined): void {
   void print(order, branchAddress, ['kitchen'], menu, true)
+}
+
+/** Faqat truck cheki — qayta chiqarish. */
+export function printTruck(order: ReceiptOrder, branchAddress: string, menu: Menu | null | undefined): void {
+  void print(order, branchAddress, ['truck'], menu, true)
 }

@@ -1,4 +1,4 @@
-import { Banknote, Check, ChefHat, Printer, ReceiptText, Undo2, X } from 'lucide-react'
+import { Banknote, Check, ChefHat, Printer, ReceiptText, Truck, Undo2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '@/api'
 import { useActiveOrders, useDeliveryOrders, useShift } from '@/api/queries'
@@ -11,7 +11,7 @@ import { canReleaseCourier } from '@/domain/rules'
 import { PAYMENT_METHODS, type ID, type Menu, type Order, type PaymentMethod, type PaymentSplit } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatMoney, formatOrderNumber } from '@/lib/format'
-import { printKitchen, printOrder, printReceipt } from '@/lib/printReceipt'
+import { hasTruckItems, printKitchen, printOrder, printReceipt, printTruck } from '@/lib/printReceipt'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useNow } from '@/lib/useNow'
 import CouriersOnDuty from './CouriersOnDuty'
@@ -21,7 +21,7 @@ export type OrdersTab = 'online' | 'kiosk' | 'preparing' | 'delivery' | 'shift'
 
 type Props = {
   branchAddress: string
-  /** kassa menyusi — oshxona chekida ichimliklarni ajratish uchun (taom → kategoriya) */
+  /** kassa menyusi — oshxona chekida ichimliklarni, truck chekida truck taomlarini ajratish uchun */
   menu: Menu | undefined
   shiftId: ID | null
   initialTab: OrdersTab
@@ -102,6 +102,12 @@ function CashierRow({ order, branchAddress, menu, now, onAccept }: RowProps) {
             <button type="button" onClick={() => printKitchen(order, branchAddress, menu)} aria-label={t.orders.printKitchen} title={t.orders.printKitchen} className={ICON_BUTTON}>
               <ChefHat size={16} />
             </button>
+            {/* faqat truck taomi bor buyurtmada (truck yo'q filialda ortiqcha tugma turmasin) */}
+            {hasTruckItems(order.items, menu) && (
+              <button type="button" onClick={() => printTruck(order, branchAddress, menu)} aria-label={t.orders.printTruck} title={t.orders.printTruck} className={ICON_BUTTON}>
+                <Truck size={16} />
+              </button>
+            )}
           </>
         )}
         {canReleaseCourier(order) && (

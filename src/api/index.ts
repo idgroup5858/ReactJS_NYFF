@@ -149,6 +149,8 @@ export interface ProductInput {
   active: boolean
   /** `false` — oshxona chekiga chiqmaydi (tayyor ichimlik) */
   kitchen: boolean
+  /** `true` — truck chekiga chiqadi */
+  truck: boolean
   /** `true` — faqat zalda beriladi (choynakdagi choy) */
   dineInOnly: boolean
 }

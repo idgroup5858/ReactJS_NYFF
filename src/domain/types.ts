@@ -183,6 +183,8 @@ export interface Product {
   active: boolean
   /** `false` — oshxona chekiga chiqmaydi (tayyor ichimlik: kola, suv — kassir o'zi beradi; choy, qahva — chiqadi) */
   kitchen: boolean
+  /** `true` — truck chekiga chiqadi (`kitchen` dan mustaqil: ikkalasi yoqiq — ikkala chekda) */
+  truck: boolean
   /** `true` — faqat zalda beriladi (choynakdagi choy, idishdagi taom): olib ketish / dostavkaga yo'q */
   dineInOnly: boolean
 }
@@ -515,6 +517,8 @@ export interface MenuProduct {
   composition: LocalizedText[]
   /** `false` — oshxona chekiga chiqmaydi. Eski offline nusxada yo'q (`undefined`) — chiqadi. */
   kitchen?: boolean
+  /** `true` — truck chekiga chiqadi. Eski markaz / offline nusxada yo'q (`undefined`) — chiqmaydi. */
+  truck?: boolean
   /** `true` — faqat zalda beriladi: olib ketishda kioskda ko'rinmaydi, kassada to'lov to'xtaydi. Eski nusxada yo'q — cheklanmaydi. */
   dineInOnly?: boolean
 }

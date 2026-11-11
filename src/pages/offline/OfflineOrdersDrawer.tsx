@@ -1,4 +1,4 @@
-import { CheckCheck, ChefHat, Printer, ReceiptText, X } from 'lucide-react'
+import { CheckCheck, ChefHat, Printer, ReceiptText, Truck, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { offlineApi } from '@/api/offline'
 import OrderRow from '@/components/order/OrderRow'
@@ -6,7 +6,7 @@ import { SectionTitle } from '@/components/ui/Card'
 import type { Menu, Order } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatMoney, formatOrderNumber } from '@/lib/format'
-import { printKitchen, printReceipt } from '@/lib/printReceipt'
+import { hasTruckItems, printKitchen, printReceipt, printTruck } from '@/lib/printReceipt'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useNow } from '@/lib/useNow'
 import { handleOfflineAuth } from './useOffline'
@@ -14,7 +14,7 @@ import { handleOfflineAuth } from './useOffline'
 type Props = {
   orders: Order[] | undefined
   branchAddress: string
-  /** oshxona chekida ichimliklarni ajratish uchun (taom → kategoriya) */
+  /** oshxona chekida ichimliklarni, truck chekida truck taomlarini ajratish uchun */
   menu: Menu | null
   /** amal bajarilgach ro'yxatni qayta olish */
   onChanged: () => void
@@ -120,6 +120,17 @@ export default function OfflineOrdersDrawer({ orders, branchAddress, menu, onCha
                         >
                           <ChefHat size={16} />
                         </button>
+                        {hasTruckItems(order.items, menu) && (
+                          <button
+                            type="button"
+                            onClick={() => printTruck(order, branchAddress, menu)}
+                            aria-label={t.orders.printTruck}
+                            title={t.orders.printTruck}
+                            className={ICON_BUTTON}
+                          >
+                            <Truck size={16} />
+                          </button>
+                        )}
                       </>
                     )}
                     {order.status !== 'cancelled' && (
