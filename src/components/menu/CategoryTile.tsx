@@ -15,7 +15,8 @@ type Props = {
 /**
  * Tepadagi qatordagi kategoriya (kassa "tepada" sozlamasi, kiosk): rasm, ostida nom. Tanlangani — to'q sariq chegara
  * (qora emas) va sarg'ish fon. "Zamonaviy" mavzuda — gorizontal "chip": kulrang kvadratda 3D ikonka va nomi.
- * Uzun nom kesilmaydi — ikkinchi qatorga o'tadi. Kassadagi chap menyu — [CategorySidebar].
+ * Uzun nom kesilmaydi — ikkinchi qatorga o'tadi. Kassadagi chap menyu — [CategorySidebar] (yig'ilganda — shu kartochkalar
+ * ustma-ust).
  */
 export default function CategoryTile({ category, active, onClick, size = 'md' }: Props) {
   const localize = useLocalize()

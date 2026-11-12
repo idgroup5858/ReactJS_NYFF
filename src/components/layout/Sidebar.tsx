@@ -21,18 +21,23 @@ type PanelProps = {
   onToggle: () => void
   /** joylashuv: admin'da — sticky, kassada — ota blok balandligida */
   className?: string
+  /** yig'ilgandagi eni va foni; berilmasa — 72px oq panel (faqat ikonkalar) */
+  collapsedClass?: string
   children: ReactNode
 }
 
+const PANEL = 'bg-surface shadow-card dark:bg-coal dark:shadow-[1px_0_0_var(--color-line)]'
+
 /**
  * Chap menyu qobig'i — admin / ombor bo'limlari va kassa kategoriyalari uchun bir xil: oq panel, ichida bandlar, pastda
- * "Menyuni yig'ish". Yig'ilganda faqat ikonkalar qoladi (nomi — sichqoncha ustida).
+ * "Menyuni yig'ish". Yig'ilganda faqat ikonkalar qoladi (nomi — sichqoncha ustida); kassada — [collapsedClass] bilan
+ * boshqacha (kategoriya kartochkalari).
  */
-export function SidebarPanel({ collapsed, onToggle, className = '', children }: PanelProps) {
+export function SidebarPanel({ collapsed, onToggle, className = '', collapsedClass = `w-[72px] ${PANEL}`, children }: PanelProps) {
   const t = useT()
   const toggleLabel = collapsed ? t.common.expandMenu : t.common.collapseMenu
   return (
-    <aside className={`flex shrink-0 flex-col bg-surface shadow-card dark:bg-coal dark:shadow-[1px_0_0_var(--color-line)] transition-[width] duration-200 ${collapsed ? 'w-[72px]' : 'w-60'} ${className}`}>
+    <aside className={`flex shrink-0 flex-col transition-[width] duration-200 ${collapsed ? collapsedClass : `w-60 ${PANEL}`} ${className}`}>
       <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-3">{children}</nav>
       <button
         type="button"

@@ -16,8 +16,8 @@ type Props = {
 }
 
 /**
- * Kassa menyusi: kategoriyalar (sozlamaga ko'ra chapda — admin paneldagi kabi yig'iladigan menyu, yoki tepada rasmli
- * qator) va tanlangan kategoriyaning taomlari filial narxida. Sotuvda yo'q taom (`price: null`) ko'rinadi, lekin bosilmaydi.
+ * Kassa menyusi: kategoriyalar (sozlamaga ko'ra chapda — admin paneldagi kabi yig'iladigan menyu, yig'ilganda tepadagi
+ * qatorning kartochkalari ustma-ust; yoki tepada rasmli qator) va tanlangan kategoriyaning taomlari filial narxida. Sotuvda yo'q taom (`price: null`) ko'rinadi, lekin bosilmaydi.
  * Taomlar to'ri va [footer] header'dagi "− +" bilan kichrayadi (`zoom` — rasm, yozuv, tugma bir xil nisbatda, qatorga
  * ko'proq kartochka sig'adi); kategoriyalar o'zgarmaydi.
  */
