@@ -51,6 +51,11 @@ export interface Branch {
    * yuboradi). Admin kartochkadan bir bosishda o'chiradi (terminal buzilsa)
    */
   faceIdRequired: boolean
+  /**
+   * Oshpaz yordamchisi yo'q filial: kassir ham "Tayyor" / "Qaytarish" bosadi (buyurtmalar panelida, qayta chiqarish
+   * tugmalarining chapida). Oshpaz yordamchisining huquqi o'zgarmaydi. Standart — o'chiq
+   */
+  cashierMarksReady: boolean
   /** filial HR tizimi markazga oxirgi marta murojaat qilgan vaqt; `null` — hali ulanmagan */
   hrSeenAt: Timestamp | null
 }

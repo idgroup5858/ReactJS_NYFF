@@ -302,6 +302,7 @@ export default function KassaPage() {
         <OrdersDrawer
           branchAddress={branchAddress}
           menu={menu.data}
+          canMarkReady={branch?.cashierMarksReady === true}
           shiftId={session.shiftId}
           initialTab={panel}
           onTabChange={setDrawerTab}

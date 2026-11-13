@@ -699,6 +699,9 @@ export const uz = {
       faceId: 'FaceID tekshiruvi',
       faceIdHint:
         "Kassir smenani terminalda «Kirish» bosib ochadi, «Chiqish» bosib topshiradi. Terminal yoki HR buzilsa — o'chiring, kassirlar PIN bilan kiradi",
+      cashierReady: '«Tayyor»ni kassir bosadi',
+      cashierReadyHint:
+        "Oshpaz yordamchisi yo'q filial uchun: kassir buyurtmalar panelida «Tayyor» va «Qaytarish» ni o'zi bosadi. Oshpaz yordamchisi bo'lsa, u ham bosa oladi",
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR ulanmagan',
       hrNeverHint: "Filialdagi «NYFF HR» ga shu filialning HR kalitini kiriting",

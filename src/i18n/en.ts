@@ -687,6 +687,9 @@ export const en: Dict = {
       faceId: 'FaceID check',
       faceIdHint:
         'The cashier opens the shift by pressing «Kirish» on the terminal and hands it over with «Chiqish». If the terminal or HR breaks — switch it off, cashiers sign in with PIN',
+      cashierReady: 'Cashier marks «Ready»',
+      cashierReadyHint:
+        'For a branch without a kitchen assistant: the cashier presses «Ready» and «Undo» in the orders panel. If there is a kitchen assistant, they can press it too',
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR not connected',
       hrNeverHint: "Enter this branch's HR key in the branch «NYFF HR» app",

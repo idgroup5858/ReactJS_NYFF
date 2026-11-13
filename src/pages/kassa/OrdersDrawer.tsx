@@ -1,4 +1,4 @@
-import { Banknote, Check, ChefHat, Printer, ReceiptText, Truck, Undo2, X } from 'lucide-react'
+import { Banknote, Check, CheckCheck, ChefHat, Printer, ReceiptText, RotateCcw, Truck, Undo2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { api } from '@/api'
 import { useActiveOrders, useDeliveryOrders, useShift } from '@/api/queries'
@@ -7,7 +7,7 @@ import { PAYMENT_ICONS } from '@/components/order/orderIcons'
 import { useRecentReady } from '@/components/order/useRecentReady'
 import { SectionTitle } from '@/components/ui/Card'
 import SegmentedControl from '@/components/ui/SegmentedControl'
-import { canReleaseCourier } from '@/domain/rules'
+import { canReleaseCourier, READY_SHOWN_MS } from '@/domain/rules'
 import { PAYMENT_METHODS, type ID, type Menu, type Order, type PaymentMethod, type PaymentSplit } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
 import { formatMoney, formatOrderNumber } from '@/lib/format'
@@ -23,6 +23,8 @@ type Props = {
   branchAddress: string
   /** kassa menyusi — oshxona chekida ichimliklarni, truck chekida truck taomlarini ajratish uchun */
   menu: Menu | undefined
+  /** filialda `cashierMarksReady` (oshpaz yordamchisi yo'q) — kassir ham "Tayyor" / "Qaytarish" bosadi */
+  canMarkReady: boolean
   shiftId: ID | null
   initialTab: OrdersTab
   /** kassir bo'limni almashtirdi — kassa qaysi buyurtmalarni ko'rganini biladi (ogohlantirish to'xtaydi) */
@@ -34,6 +36,7 @@ type RowProps = {
   order: Order
   branchAddress: string
   menu: Menu | undefined
+  canMarkReady: boolean
   now: Date
   onAccept: (order: Order) => void
 }
@@ -42,9 +45,10 @@ const ICON_BUTTON = 'btn-ghost flex h-9 w-9 items-center justify-center rounded'
 
 /**
  * Kassir tugmalari: pulini olish / qabul qilish, chek, kuryerdan olish (dostavka), bekor qilish. "Tayyor" va "Qaytarish" —
- * oshpaz yordamchisida.
+ * oshpaz yordamchisida; filialda `cashierMarksReady` yoqilgan bo'lsa — kassirda ham (qayta chiqarish tugmalarining
+ * chapida, oshxona ekranidagidek: "Qaytarish" — yaqinda tayyor bo'lgan va kuryer yo'lga chiqmaganida).
  */
-function CashierRow({ order, branchAddress, menu, now, onAccept }: RowProps) {
+function CashierRow({ order, branchAddress, menu, canMarkReady, now, onAccept }: RowProps) {
   const t = useT()
   const number = formatOrderNumber(order.number)
 
@@ -77,6 +81,11 @@ function CashierRow({ order, branchAddress, menu, now, onAccept }: RowProps) {
     }, t.orders.acceptedToast(number))
   }
 
+  const showReady = canMarkReady && order.status === 'preparing'
+  // oshxona ekranidagidek — faqat "yaqinda tayyor"larda; kuryer yo'lga chiqqan bo'lsa server ham rad etadi
+  const showReopen =
+    canMarkReady && order.status === 'ready' && !order.departedAt && !!order.readyAt && now.getTime() - new Date(order.readyAt).getTime() < READY_SHOWN_MS
+
   return (
     <OrderRow order={order} now={now} showCustomer amount={<span className="text-sm font-bold whitespace-nowrap text-neutral-950 tabular-nums">{formatMoney(order.total, t)}</span>}>
       <div className="flex flex-wrap justify-end gap-1.5">
@@ -91,6 +100,26 @@ function CashierRow({ order, branchAddress, menu, now, onAccept }: RowProps) {
           <button type="button" onClick={() => onAccept(order)} className="btn-primary flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase">
             <Banknote size={14} />
             {t.orders.accept}
+          </button>
+        )}
+        {showReady && (
+          <button
+            type="button"
+            onClick={() => void act(() => api.orders.ready(order.id), t.orders.readyToast(number))}
+            className="flex h-9 cursor-pointer items-center gap-1.5 rounded bg-emerald-600 px-3 text-xs font-bold text-white uppercase transition-colors hover:bg-emerald-700"
+          >
+            <CheckCheck size={14} />
+            {t.orders.ready}
+          </button>
+        )}
+        {showReopen && (
+          <button
+            type="button"
+            onClick={() => void act(() => api.orders.reopen(order.id), t.orders.reopenedToast)}
+            className="btn-ghost flex h-9 items-center gap-1.5 rounded px-3 text-xs font-bold uppercase"
+          >
+            <RotateCcw size={14} />
+            {t.orders.reopen}
           </button>
         )}
         {/* qayta chiqarish (qog'oz tiqildi, chek yo'qoldi) — har biri alohida */}
@@ -160,11 +189,11 @@ function OrderList({ orders, empty, ...row }: Omit<RowProps, 'order'> & { orders
  * O'ngdan ochiladigan panel. Online — mobil ilovadan kelganlar (mijoz, telefon, manzil; "Qabul qilish" → chek →
  * oshxona). Kioskdan — kassada to'lanadigan buyurtmalar (pulini olib tasdiqlanadi → chek → oshxona).
  * Tayyorlanmoqda — oshxonadagilar va yaqinda tayyor bo'lganlar: kassir faqat kuzatadi ("Tayyor" / "Qaytarish" — oshpaz
- * yordamchisining ekranida, `/oshxona`). Dostavka — kuryer ishidagi mobil dostavkalar (kuryer kutayotgan, olingan,
+ * yordamchisining ekranida, `/oshxona`; filialda `cashierMarksReady` yoqilgan bo'lsa — kassir ham bosadi). Dostavka — kuryer ishidagi mobil dostavkalar (kuryer kutayotgan, olingan,
  * yo'ldagi, "Yetkazib bo'lmadi" bilan qaytgan): kassir kuryerdan oladi yoki bekor qiladi. Smenam — kassirning shu
  * smenadagi savdosi.
  */
-export default function OrdersDrawer({ branchAddress, menu, shiftId, initialTab, onTabChange, onClose }: Props) {
+export default function OrdersDrawer({ branchAddress, menu, canMarkReady, shiftId, initialTab, onTabChange, onClose }: Props) {
   const t = useT()
   const now = useNow(1000)
   const { data: active } = useActiveOrders()
@@ -195,7 +224,7 @@ export default function OrdersDrawer({ branchAddress, menu, shiftId, initialTab,
   // smenaning buyurtmalari va tushumi — serverdan (yangisi birinchi)
   const shiftOrders = shift ? [...shift.orders].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []
   const summary = shift?.summary ?? null
-  const row = { branchAddress, menu, now, onAccept: setAccepting }
+  const row = { branchAddress, menu, canMarkReady, now, onAccept: setAccepting }
 
   const accept = async (payment: PaymentMethod, split?: PaymentSplit): Promise<Order | null> => {
     if (!accepting) return null
