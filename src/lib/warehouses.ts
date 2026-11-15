@@ -1,13 +1,15 @@
 import type { Branch, ID, Warehouse } from '@/domain/types'
 import type { Dict } from '@/i18n/uz'
 
-/** Ombor nomi joriy tilda: "Markaziy ombor" yoki "Chilonzor ombori". */
+/**
+ * Ombor nomi — "ombor" / «склад» so'zisiz (foydalanuvchi: "faqat nomi bilan"): "Markaziy" (joriy tilda) yoki filialning
+ * hozirgi nomi — "Chilonzor" (`warehouses.name` filial qayta nomlanganda o'zgarmaydi).
+ */
 export function warehouseLabel(warehouses: Warehouse[], branches: Branch[], warehouseId: ID, t: Dict): string {
   const warehouse = warehouses.find((w) => w.id === warehouseId)
   if (!warehouse) return '—'
   if (warehouse.kind === 'central') return t.stock.central
-  const branch = branches.find((b) => b.id === warehouse.branchId)
-  return t.stock.branchWarehouse(branch?.name ?? warehouse.name)
+  return branches.find((b) => b.id === warehouse.branchId)?.name ?? warehouse.name
 }
 
 /** Markaziy ombor birinchi, keyin faol filiallar omborlari (filiallar tartibida). */

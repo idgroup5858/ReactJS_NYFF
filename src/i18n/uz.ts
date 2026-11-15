@@ -7,6 +7,8 @@ export const uz = {
     back: 'Orqaga',
     collapseMenu: "Menyuni yig'ish",
     expandMenu: 'Menyuni ochish',
+    /** telefondagi ☰ tugmasi va chiqadigan menyu */
+    menu: 'Menyu',
     logout: 'Chiqish',
     cancel: 'Bekor qilish',
     confirm: 'Tasdiqlash',
@@ -410,8 +412,8 @@ export const uz = {
     nav: 'Qoldiqlar',
     hint: "Ombor tanlang — qoldiq, ogohlantirish chegarasi, to'ldirish normasi va qiymati",
     warehouse: 'Ombor',
-    central: 'Markaziy ombor',
-    branchWarehouse: (name: string) => `${name} ombori`,
+    /** ombor nomi — "ombor" so'zisiz (filial ombori — filial nomi bilan) */
+    central: 'Markaziy',
     groups: {
       bread: 'Non',
       meat: "Go'sht va tuxum",
@@ -515,6 +517,15 @@ export const uz = {
     list: "Ko'chirishlar tarixi",
     number: (number: number) => `Ko'chirish №${number}`,
     empty: "Hali ko'chirish bo'lmagan",
+  },
+  warehouseSettings: {
+    open: 'Sozlamalar',
+    title: 'Ombor sozlamalari',
+    tabs: "Bo'limlar",
+    tabsHint: "O'chirilgan bo'lim tepadagi qatorda ko'rinmaydi. Kamida bittasi qoladi.",
+    transfer: "Ko'chirish yo'nalishi",
+    transferHint: "Yangi ko'chirish shu omborlar tanlangan holda ochiladi. «Avtomatik» — markaziydan birinchi filialga.",
+    auto: 'Avtomatik',
   },
   ingredients: {
     deleteTitle: "Mahsulot o'chirilsinmi?",

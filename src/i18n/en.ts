@@ -6,6 +6,7 @@ export const en: Dict = {
     back: 'Back',
     collapseMenu: 'Collapse menu',
     expandMenu: 'Expand menu',
+    menu: 'Menu',
     logout: 'Log out',
     cancel: 'Cancel',
     confirm: 'Confirm',
@@ -402,8 +403,7 @@ export const en: Dict = {
     nav: 'Stock',
     hint: 'Pick a warehouse — stock level, alert threshold, refill level and value',
     warehouse: 'Warehouse',
-    central: 'Central warehouse',
-    branchWarehouse: (name: string) => `${name} warehouse`,
+    central: 'Central',
     groups: {
       bread: 'Bread',
       meat: 'Meat & eggs',
@@ -504,6 +504,15 @@ export const en: Dict = {
     list: 'Transfer history',
     number: (number: number) => `Transfer #${number}`,
     empty: 'No transfers yet',
+  },
+  warehouseSettings: {
+    open: 'Settings',
+    title: 'Warehouse settings',
+    tabs: 'Sections',
+    tabsHint: 'A switched-off section is hidden from the top bar. At least one stays visible.',
+    transfer: 'Transfer direction',
+    transferHint: 'A new transfer opens with these warehouses selected. «Auto» — from central to the first branch.',
+    auto: 'Auto',
   },
   ingredients: {
     deleteTitle: 'Delete this item?',

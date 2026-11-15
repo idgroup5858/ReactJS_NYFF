@@ -13,6 +13,7 @@ import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatDateTime, formatNumber, formatUnit } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
+import { useSettings } from '@/store/settingsStore'
 import { linesFromParams, newDraftLine, readyLines, type DraftLine } from './draftLines'
 import LinesEditor from './LinesEditor'
 import { usePageState, useServerPage } from './serverPagination'
@@ -31,11 +32,14 @@ export default function TransfersPage() {
   const users = useUsers().data ?? []
   const warehouses = activeWarehouses(allWarehouses, branches)
   const valid = (id: string | null) => warehouses.find((w) => w.id === id)?.id
-  // omborlar serverdan keladi: tanlov (yoki `?from=&to=`) yaroqli bo'lmaguncha — markaziy → birinchi boshqa ombor
+  // omborlar serverdan keladi: tanlov (yoki `?from=&to=`) yaroqli bo'lmaguncha — "Sozlamalar" dagi yo'nalish, u ham
+  // yo'q (avtomatik) bo'lsa — markaziy → birinchi boshqa ombor
+  const { transferDefaults } = useSettings()
   const [fromChoice, setFrom] = useState(params.get('from') ?? '')
   const [toChoice, setTo] = useState(params.get('to') ?? '')
-  const from = valid(fromChoice) ?? warehouses[0]?.id ?? ''
-  const to = valid(toChoice) ?? warehouses.find((w) => w.id !== from)?.id ?? ''
+  const from = valid(fromChoice) ?? valid(transferDefaults.from) ?? warehouses[0]?.id ?? ''
+  const defaultTo = valid(transferDefaults.to)
+  const to = valid(toChoice) ?? (defaultTo !== from ? defaultTo : undefined) ?? warehouses.find((w) => w.id !== from)?.id ?? ''
   const [lines, setLines] = useState<DraftLine[]>(() => linesFromParams(params))
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)

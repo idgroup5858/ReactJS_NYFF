@@ -41,6 +41,16 @@ export type ListView = (typeof LIST_VIEWS)[number]
 export const MENU_SCALES = [0.6, 0.7, 0.8, 0.9, 1] as const
 export type MenuScale = (typeof MENU_SCALES)[number]
 
+/** Ta'minotchining ombor tablari (planshet: chap menyu o'rniga tepada) — tartibi ekrandagidek. */
+export const WAREHOUSE_TABS = ['stock', 'purchase', 'transfer', 'ingredients'] as const
+export type WarehouseTab = (typeof WAREHOUSE_TABS)[number]
+
+/** Ko'chirish formasi ochilgandagi yo'nalish; `null` — avtomatik (markaziy → birinchi boshqa ombor). */
+export interface TransferDefaults {
+  from: ID | null
+  to: ID | null
+}
+
 /** Shu kompyuterda oxirgi muvaffaqiyatli kirilgan ish joyi (`cashier` / `kitchen` / `supplier`) va filiali. */
 export interface LastLogin {
   mode: string
@@ -69,6 +79,10 @@ export interface DeviceSettings {
   categoryRailCollapsed: boolean
   /** qoldiqlar va mahsulotlar sahifasining ko'rinishi */
   warehouseView: ListView
+  /** ta'minotchi: tepadagi qatorda yashirilgan ombor tablari (kamida bittasi ko'rinadi) */
+  hiddenWarehouseTabs: WarehouseTab[]
+  /** ombor: ko'chirish formasi shu yo'nalish bilan ochiladi */
+  transferDefaults: TransferDefaults
   /** kassa: internet uzilsa shu kompyuterdagi offline kassaga o'tadi (offline server o'rnatilgan bo'lsa) */
   offlineEnabled: boolean
   /** offline server manzili (kassa kompyuterida, `NestJS_NYFF` — `node dist/offline/main`) */
@@ -100,6 +114,19 @@ function sanitizeLastLogin(raw: unknown): LastLogin | null {
   return { mode, branchId: typeof branchId === 'string' ? branchId : null }
 }
 
+function sanitizeHiddenTabs(raw: unknown): WarehouseTab[] {
+  if (!Array.isArray(raw)) return []
+  const hidden = WAREHOUSE_TABS.filter((tab) => raw.includes(tab))
+  // hammasi yashirilgan (qo'lda tahrirlangan) — bo'sh qator qolmasin
+  return hidden.length < WAREHOUSE_TABS.length ? hidden : []
+}
+
+function sanitizeTransferDefaults(raw: unknown): TransferDefaults {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const id = (field: unknown) => (typeof field === 'string' && field ? field : null)
+  return { from: id(value.from), to: id(value.to) }
+}
+
 function sanitize(raw: unknown): DeviceSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof DeviceSettings, unknown>>
   return {
@@ -114,6 +141,8 @@ function sanitize(raw: unknown): DeviceSettings {
     sidebarCollapsed: value.sidebarCollapsed === true,
     categoryRailCollapsed: value.categoryRailCollapsed === true,
     warehouseView: LIST_VIEWS.find((view) => view === value.warehouseView) ?? 'list',
+    hiddenWarehouseTabs: sanitizeHiddenTabs(value.hiddenWarehouseTabs),
+    transferDefaults: sanitizeTransferDefaults(value.transferDefaults),
     offlineEnabled: value.offlineEnabled === true,
     offlineUrl: typeof value.offlineUrl === 'string' && value.offlineUrl.trim() ? value.offlineUrl.trim() : DEFAULT_OFFLINE_URL,
     alertVolume: clampVolume(value.alertVolume),
@@ -146,6 +175,14 @@ export const setImageFit = (imageFit: ImageFit) => save({ imageFit })
 export const setSidebarCollapsed = (sidebarCollapsed: boolean) => save({ sidebarCollapsed })
 export const setCategoryRailCollapsed = (categoryRailCollapsed: boolean) => save({ categoryRailCollapsed })
 export const setWarehouseView = (warehouseView: ListView) => save({ warehouseView })
+/** Oxirgi ko'rinib turgan tab yashirilmaydi. */
+export function setWarehouseTabVisible(tab: WarehouseTab, visible: boolean): void {
+  const others = settingsStore.get().hiddenWarehouseTabs.filter((hidden) => hidden !== tab)
+  const next = visible ? others : [...others, tab]
+  if (next.length >= WAREHOUSE_TABS.length) return
+  save({ hiddenWarehouseTabs: WAREHOUSE_TABS.filter((value) => next.includes(value)) })
+}
+export const setTransferDefaults = (transferDefaults: TransferDefaults) => save({ transferDefaults })
 export const setOfflineEnabled = (offlineEnabled: boolean) => save({ offlineEnabled })
 export const setOfflineUrl = (offlineUrl: string) => save({ offlineUrl })
 export const setAlertVolume = (alertVolume: number) => save({ alertVolume: clampVolume(alertVolume) })

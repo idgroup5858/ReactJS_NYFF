@@ -6,16 +6,18 @@ type Props = {
   size?: 'md' | 'lg'
   /** yashirin tugma: logotip 10 soniya bosib turilsa (oshxona — to'liq ekran, TV / kiosk — xodim oynasi) */
   onHold?: () => void
+  /** telefonda (640 px dan tor) faqat "NY" belgisi — header'ga tugmalar sig'sin */
+  compact?: boolean
 }
 
 /** Sariq "NY" belgisi + ikki qatorli nom (taksi uslubi). */
-export default function Brand({ tone = 'dark', size = 'md', onHold }: Props) {
+export default function Brand({ tone = 'dark', size = 'md', onHold, compact = false }: Props) {
   const badge = size === 'lg' ? 'h-12 w-12 text-lg' : 'h-9 w-9 text-[13px]'
   const title = size === 'lg' ? 'text-base' : 'text-[13px]'
   const brand = (
     <span className="flex items-center gap-2.5 select-none">
       <span className={`flex shrink-0 items-center justify-center rounded bg-taxi font-black tracking-tight text-coal ${badge}`}>NY</span>
-      <span className="leading-none">
+      <span className={`leading-none ${compact ? 'hidden sm:block' : ''}`}>
         <span className={`block font-extrabold tracking-[0.18em] uppercase ${title} ${tone === 'dark' ? 'text-white' : 'text-neutral-950'}`}>
           New York
         </span>

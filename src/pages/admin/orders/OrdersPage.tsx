@@ -169,9 +169,10 @@ export default function OrdersPage() {
       <Card className="overflow-hidden">
         <div className="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 lg:grid-cols-4">
           {summary.map((cell) => (
-            <div key={cell.label} className="bg-surface px-4 py-2.5">
+            // telefonda ikki ustunda summa sig'sin — shrift va chekka kichikroq
+            <div key={cell.label} className="bg-surface px-3 py-2.5 sm:px-4">
               <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">{cell.label}</p>
-              <p className="text-base font-extrabold whitespace-nowrap">
+              <p className="text-sm font-extrabold whitespace-nowrap sm:text-base">
                 {cell.value}
                 {cell.sub !== undefined && <span className="ml-1.5 text-xs font-semibold text-neutral-500">· {cell.sub}</span>}
               </p>

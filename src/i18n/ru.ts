@@ -6,6 +6,7 @@ export const ru: Dict = {
     back: 'Назад',
     collapseMenu: 'Свернуть меню',
     expandMenu: 'Развернуть меню',
+    menu: 'Меню',
     logout: 'Выйти',
     cancel: 'Отмена',
     confirm: 'Подтвердить',
@@ -402,8 +403,7 @@ export const ru: Dict = {
     nav: 'Остатки',
     hint: 'Выберите склад — остаток, порог уведомления, норма пополнения и стоимость',
     warehouse: 'Склад',
-    central: 'Центральный склад',
-    branchWarehouse: (name: string) => `Склад «${name}»`,
+    central: 'Центральный',
     groups: {
       bread: 'Хлеб',
       meat: 'Мясо и яйца',
@@ -504,6 +504,15 @@ export const ru: Dict = {
     list: 'История перемещений',
     number: (number: number) => `Перемещение №${number}`,
     empty: 'Перемещений пока не было',
+  },
+  warehouseSettings: {
+    open: 'Настройки',
+    title: 'Настройки склада',
+    tabs: 'Разделы',
+    tabsHint: 'Выключенный раздел не показывается в верхней строке. Хотя бы один остаётся.',
+    transfer: 'Направление перемещения',
+    transferHint: 'Новое перемещение открывается с этими складами. «Авто» — из центрального в первый филиал.',
+    auto: 'Авто',
   },
   ingredients: {
     deleteTitle: 'Удалить товар?',

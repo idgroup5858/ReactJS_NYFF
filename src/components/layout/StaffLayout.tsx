@@ -1,5 +1,5 @@
-import { LogOut, MapPin } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { LogOut, MapPin, Menu } from 'lucide-react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useBranches } from '@/api/queries'
 import { logout, useCurrentUser } from '@/api/session'
@@ -9,7 +9,9 @@ import Brand from './Brand'
 import ColorModeToggle from './ColorModeToggle'
 import { HEADER_BUTTON } from './headerButton'
 import LanguageSwitcher from './LanguageSwitcher'
-import Sidebar, { type NavGroup } from './Sidebar'
+import NavDrawer from './NavDrawer'
+import NavTabs from './NavTabs'
+import Sidebar, { type NavGroup, type NavItem } from './Sidebar'
 import ThemeMenu from './ThemeMenu'
 import { useColorModeRoot } from './useColorModeRoot'
 
@@ -20,6 +22,8 @@ type Props = {
   actions?: ReactNode
   /** bo'lim sahifalari (admin, ombor) — chapda yig'iladigan menyu */
   nav?: NavGroup[]
+  /** chap menyu o'rniga header ostidagi tablar (ta'minotchi — planshetda) */
+  tabs?: NavItem[]
   /** "Chiqish" bosilganda (kassir uchun — smenani topshirish savoli); berilmasa darhol chiqadi */
   onLogout?: () => void
   /** `page` — markazda cheklangan kenglik va chekka bo'shliqlar (admin, ombor); `fill` — butun ekran (kassa) */
@@ -63,17 +67,21 @@ export function HeaderAction({ label, icon, onClick, badge, compact = true }: Ac
 
 /**
  * Xodim ekranlari qobig'i: tepada qora panel (brend · bo'lim · filial | amallar · til · xodim · chiqish), admin va omborda —
- * chapda yig'iladigan menyu ([Sidebar]).
+ * chapda yig'iladigan menyu ([Sidebar]; telefonda — ☰ [NavDrawer]), ta'minotchida — uning o'rniga header ostida tablar
+ * ([NavTabs]).
  */
-export default function StaffLayout({ title, children, actions, nav, onLogout, variant = 'page', onBrandHold, colorMode = false }: Props) {
+export default function StaffLayout({ title, children, actions, nav, tabs, onLogout, variant = 'page', onBrandHold, colorMode = false }: Props) {
   const t = useT()
   const branches = useBranches().data
   const user = useCurrentUser()
   const navigate = useNavigate()
   const branch = user?.branchId ? branches?.find((b) => b.id === user.branchId) : undefined
-  // qorong'i rejim — faqat back-office'da (chap menyusi bor sahifalar: admin, ombor; menyusizlardan — NBU test)
-  const backOffice = nav !== undefined || colorMode
+  // qorong'i rejim — faqat back-office'da (chap menyusi / tablari bor sahifalar: admin, ombor; menyusizlardan — NBU test)
+  const backOffice = nav !== undefined || tabs !== undefined || colorMode
   useColorModeRoot(backOffice)
+  // telefondagi ☰ menyu
+  const [menuOpen, setMenuOpen] = useState(false)
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   const defaultLogout = () => {
     // admin umumiy kirish ekranida yo'q — o'zining kirish oynasiga (`/admin`)
@@ -85,9 +93,15 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
   return (
     <div className={`flex flex-col ${variant === 'fill' ? 'h-screen' : 'min-h-screen'}`}>
       <header className="sticky top-0 z-30 shrink-0 bg-coal text-white dark:shadow-[0_1px_0_var(--color-line)]">
-        <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
+        {/* telefon (360–430 px): ☰ · "NY" · bo'lim · amallar ikonka bilan · chiqish — eniga sig'adi */}
+        <div className="flex h-14 items-center gap-2 px-3 sm:gap-4 sm:px-6">
+          {nav && (
+            <button type="button" onClick={() => setMenuOpen(true)} aria-label={t.common.menu} title={t.common.menu} className={`${HEADER_BUTTON} md:hidden`}>
+              <Menu size={18} />
+            </button>
+          )}
           <Link to="/" className="shrink-0" aria-label={t.common.home}>
-            <Brand onHold={onBrandHold} />
+            <Brand onHold={onBrandHold} compact />
           </Link>
           <span className="hidden h-6 w-px bg-coal-line sm:block" />
           <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -101,9 +115,12 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {actions}
-            {backOffice && <ColorModeToggle />}
-            <ThemeMenu />
-            <div className="hidden sm:block">
+            {/* chap menyusi bor sahifada telefonda — ☰ menyusida */}
+            <div className={`${nav ? 'hidden md:flex' : 'flex'} items-center gap-2 sm:gap-3`}>
+              {backOffice && <ColorModeToggle />}
+              <ThemeMenu />
+            </div>
+            <div className={nav ? 'hidden md:block' : 'hidden sm:block'}>
               <LanguageSwitcher tone="dark" />
             </div>
             {user && (
@@ -126,11 +143,22 @@ export default function StaffLayout({ title, children, actions, nav, onLogout, v
         <main className="min-h-0 flex-1">{children}</main>
       ) : nav ? (
         <div className="flex flex-1">
-          <Sidebar groups={nav} />
+          {/* telefonda chap menyu yo'q — ☰ ([NavDrawer]); o'ram cho'ziladi, ichidagi menyu sticky bo'lib turadi */}
+          <div className="hidden shrink-0 md:block">
+            <Sidebar groups={nav} />
+          </div>
           <main className="min-w-0 flex-1 p-4 sm:p-6">
             <div className="page-enter mx-auto max-w-screen-2xl">{children}</div>
           </main>
+          {menuOpen && <NavDrawer groups={nav} onClose={closeMenu} />}
         </div>
+      ) : tabs ? (
+        <>
+          <NavTabs items={tabs} />
+          <main className="min-w-0 flex-1 p-4 sm:p-6">
+            <div className="page-enter mx-auto max-w-screen-2xl">{children}</div>
+          </main>
+        </>
       ) : (
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
           <div className="page-enter">{children}</div>

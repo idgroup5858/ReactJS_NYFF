@@ -290,6 +290,10 @@
   .page-enter {
     animation: page-enter 0.18s ease-out;
   }
+  /* telefondagi chap menyu (☰) chapdan chiqadi */
+  .drawer-enter {
+    animation: drawer-enter 0.2s ease-out;
+  }
   .shake {
     animation: shake 0.32s ease-in-out;
   }
@@ -416,6 +420,15 @@
   }
 }
 
+@keyframes drawer-enter {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @keyframes shake {
   0%,
   100% {
@@ -433,6 +446,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
+  .drawer-enter,
   .shake,
   .queue-wiggle,
   .goodbye-blink {
@@ -577,6 +591,18 @@
 :root[data-mode="dark"] :is(.btn-primary, .btn-dark, .btn-ghost, .btn-icon):focus-visible,
 :root[data-mode="dark"] .swal2-container .swal2-actions > button:focus-visible {
   outline-color: var(--color-vsc-focus) !important;
+}
+
+/*
+ * Telefon: iPhone Safari 16 px dan kichik shriftli maydonga bosilganda sahifani kattalashtirib, shundayligicha qoldiradi
+ * (maydonlar ixcham — 14 px, POS uchun). Telefonda 16 px; qatlamsiz — Tailwind'ning `text-sm` / `text-xs` idan ustun.
+ */
+@media (max-width: 767.98px) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* ───────────────────────── SweetAlert2 ─────────────────────────

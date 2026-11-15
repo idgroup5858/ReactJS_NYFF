@@ -74,13 +74,14 @@ export function SidebarBadge({ value, collapsed, tone = 'alert', active = false 
 
 /**
  * Admin / ombor chap menyusi: guruhlar bo'yicha (admin uchun boshqaruv va ombor doim birga — bo'lim almashganda menyu
- * yo'qolmaydi). Yig'ilish holati shu qurilmada saqlanadi.
+ * yo'qolmaydi). Yig'ilish holati shu qurilmada saqlanadi. Telefonda ko'rinmaydi — o'rniga [NavDrawer] (☰).
  */
 export default function Sidebar({ groups }: { groups: NavGroup[] }) {
   const { sidebarCollapsed: collapsed } = useSettings()
 
+  // `dvh` — telefon / planshet brauzerida manzil qatori ostida qolmasin (pastdagi "Menyuni yig'ish" ko'rinsin)
   return (
-    <SidebarPanel collapsed={collapsed} onToggle={() => setSidebarCollapsed(!collapsed)} className="sticky top-14 h-[calc(100vh-3.5rem)]">
+    <SidebarPanel collapsed={collapsed} onToggle={() => setSidebarCollapsed(!collapsed)} className="sticky top-14 h-[calc(100dvh-3.5rem)]">
       {groups.map((group, index) => (
         <div key={group.title} className="space-y-1">
           <SidebarGroupTitle collapsed={collapsed} first={index === 0}>

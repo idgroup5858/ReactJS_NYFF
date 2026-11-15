@@ -134,9 +134,10 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
         {kpis.map((kpi) => (
-          <Card key={kpi.label} className={`px-4 py-3 ${kpi.strong ? 'bg-coal! text-white' : ''}`}>
-            <p className={`text-[11px] font-semibold tracking-[0.1em] whitespace-nowrap uppercase ${kpi.strong ? 'text-white/60' : 'text-neutral-500'}`}>{kpi.label}</p>
-            <p className={`mt-1 text-xl font-extrabold whitespace-nowrap tabular-nums ${kpi.strong ? 'text-taxi' : (kpi.tone ?? 'text-neutral-950')}`}>{kpi.value}</p>
+          // telefonda ikki ustunda summa sig'sin — shrift va chekka kichikroq
+          <Card key={kpi.label} className={`px-3 py-3 sm:px-4 ${kpi.strong ? 'bg-coal! text-white' : ''}`}>
+            <p className={`truncate text-[11px] font-semibold tracking-[0.1em] uppercase ${kpi.strong ? 'text-white/60' : 'text-neutral-500'}`}>{kpi.label}</p>
+            <p className={`mt-1 text-base font-extrabold whitespace-nowrap tabular-nums sm:text-xl ${kpi.strong ? 'text-taxi' : (kpi.tone ?? 'text-neutral-950')}`}>{kpi.value}</p>
             <div className="mt-1 flex min-h-5 flex-wrap items-center gap-x-2 text-xs text-neutral-500">
               {kpi.delta}
               {kpi.sub && <span>{kpi.sub}</span>}
