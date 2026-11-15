@@ -298,7 +298,7 @@ export interface Transfer {
   createdAt: Timestamp
 }
 
-/** `adjust` — qoldiqni 0 ga tushirish ("Tuzatish", faqat admin) */
+/** `adjust` — qoldiqni tuzatish ("Tuzatish"): 0 ga tushirish (faqat admin) yoki qo'lda yozish (admin va ta'minotchi) */
 export type MovementKind = 'purchase' | 'transfer_in' | 'transfer_out' | 'sale' | 'sale_cancel' | 'adjust'
 
 /** Qoldiqning har bir o'zgarishi — tarix va hisobotlar uchun. */
@@ -314,7 +314,10 @@ export interface StockMovement {
   createdAt: Timestamp
 }
 
-/** "Tuzatish №N" — qoldiqni 0 ga tushirish (bitta mahsulot yoki butun ombor); o'zgarishlar — harakatlarda (`adjust`). */
+/**
+ * "Tuzatish №N" — qoldiqni 0 ga tushirish (bitta mahsulot yoki butun ombor) yoki qo'lda yozish (bitta mahsulot);
+ * o'zgarishlar — harakatlarda (`adjust`).
+ */
 export interface StockAdjustment {
   id: ID
   number: number
@@ -323,7 +326,7 @@ export interface StockAdjustment {
   createdAt: Timestamp
 }
 
-/** 0 ga tushirish natijasi: hammasi allaqachon 0 bo'lsa — hujjat `null`, `count` 0. */
+/** 0 ga tushirish / qo'lda yozish natijasi: o'zgarish yo'q (allaqachon shu qoldiq) bo'lsa — hujjat `null`, `count` 0. */
 export interface StockReset {
   adjustment: StockAdjustment | null
   count: number

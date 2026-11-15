@@ -81,7 +81,7 @@ export interface IngredientInput {
    */
   unit: StockUnit
   /**
-   * 1 birlik (qadoq bo'lsa — 1 dona) narxi (faqat admin); berilmasa — o'zgarmaydi (qadoq hajmi o'zgarsa server yangi
+   * 1 birlik (qadoq bo'lsa — 1 dona) narxi (admin va ta'minotchi); berilmasa — o'zgarmaydi (qadoq hajmi o'zgarsa server yangi
    * birlikka qayta hisoblaydi), `null` — narxsiz
    */
   lastPrice?: number | null
@@ -259,6 +259,12 @@ export const api = {
         'movements',
         'reports',
       ),
+    /**
+     * admin va ta'minotchi: qoldiqni qo'lda yozish — [qty] yangi qoldiq, asosiy birlikda (g / ml / dona), butun ≥ 0;
+     * farqi tarixda "Tuzatish №N". Hozirgisi bilan bir xil — `count` 0, hech narsa yozilmaydi.
+     */
+    setQty: (warehouseId: ID, ingredientId: ID, qty: number) =>
+      then(http.put<StockReset>(`/stock/${warehouseId}/${ingredientId}/qty`, { qty }), 'stock', 'movements', 'reports'),
   },
   users: {
     changeOwnPin: (oldPin: string, newPin: string) => http.put<void>('/auth/pin', { oldPin, newPin }),

@@ -53,8 +53,8 @@ const isUsed = (usage: IngredientUsage): boolean =>
 
 /**
  * Ombor mahsulotini qo'shish / tahrirlash oynasi: nomlar 3 tilda, guruh, birlik (tahrirda — faqat admin), qadoq hajmi
- * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (bu yerda faqat admin; ta'minotchi
- * ko'radi — u narxni kirimda yozadi, oxirgi narx shunga yangilanadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
+ * (600 g lik ketchup — kirim va qoldiq donada), 1 birlik (qadoqli — 1 dona) narxi (admin ham, ta'minotchi ham — 2026-11-15;
+ * har kirimda kirim narxiga yangilanadi). Qadoq hajmi o'zgarsa narx yangi birlikka o'zi o'giriladi (28 000 / kg →
  * 16 800 / dona) — kiritilgan narxdan, oraliq qiymatlardan emas (yozilayotgan "6" → "60" → "600" yaxlitlashni yig'masin).
  *
  * Birlik tahrirda kg / l ↔ dona o'zgarsa — narx bo'shaydi (28 000 / kg dan "28 / dona" ma'nosiz), saqlashda mahsulot
@@ -91,8 +91,8 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
     setSaving(true)
     try {
       const { name, group, unit, active } = draft
-      // ta'minotchi narxni o'zgartirmaydi — yuborilmaydi (qadoq hajmi o'zgarsa server o'zi qayta hisoblaydi)
-      const lastPrice = isAdmin ? (price === '' ? null : Number(price)) : undefined
+      // admin ham, ta'minotchi ham (2026-11-15); bo'sh — narxsiz
+      const lastPrice = price === '' ? null : Number(price)
       // 0 — serverda `invalid_qty` (bo'sh — qadoqsiz)
       const packSize = draft.packSize === '' ? null : Number(draft.packSize)
       await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, packSize, lastPrice })
@@ -224,12 +224,11 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">{t.units[baseUnitOf(draft.unit)]}</span>
             </div>
           </Field>
-          <Field label={t.ingredients.price(count)} htmlFor="ing-price" hint={isAdmin ? t.ingredients.priceHint : t.ingredients.priceAdminOnly}>
+          <Field label={t.ingredients.price(count)} htmlFor="ing-price" hint={t.ingredients.priceHint}>
             <input
               id="ing-price"
               value={price === '' ? '' : formatNumber(Number(price))}
               onChange={(event) => setDraft({ ...draft, price: event.target.value.replace(/\D/g, '').slice(0, 9), priceSize: size })}
-              disabled={!isAdmin}
               inputMode="numeric"
               placeholder="—"
               className={`${inputClass} text-right font-bold tabular-nums`}
