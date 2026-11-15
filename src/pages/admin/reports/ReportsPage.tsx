@@ -147,7 +147,7 @@ export default function ReportsPage() {
       </div>
 
       {/* diagramma va "Diqqat talab" bir xil balandlikda — orada bo'sh joy qolmasligi uchun */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <Card>
           <CardHeader title={singleDay ? t.admin.reports.byHour : t.admin.reports.byDay} hint={t.admin.reports.chartHint} />
           <div className="p-4">
@@ -183,7 +183,7 @@ export default function ReportsPage() {
       </div>
 
       {/* tushum tarkibi: uchala kesim bir qatorda, bir xil balandlikda */}
-      <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader title={t.admin.reports.byPayment} />
           <div className="p-4">
@@ -226,7 +226,7 @@ export default function ReportsPage() {
         </Card>
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader title={t.admin.reports.topProducts} />
           <div className="p-4">

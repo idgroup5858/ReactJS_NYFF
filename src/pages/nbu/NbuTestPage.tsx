@@ -102,7 +102,7 @@ export default function NbuTestPage() {
             </div>
           )}
 
-          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+          <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
             <div className="space-y-6">
               {NBU_GROUPS.map((group) => (
                 <section key={group.title} className="space-y-3">

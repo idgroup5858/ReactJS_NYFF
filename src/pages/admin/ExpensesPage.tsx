@@ -77,7 +77,7 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-5">
       <PageHeader title={t.admin.expenses.title} description={t.admin.expenses.hint} />
-      <div className="grid items-start gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
         <Card>
           <CardHeader title={t.admin.expenses.add} />
           <form onSubmit={(event) => void save(event)} className="space-y-3 p-4">

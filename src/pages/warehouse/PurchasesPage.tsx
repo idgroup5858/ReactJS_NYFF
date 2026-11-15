@@ -110,8 +110,10 @@ export default function PurchasesPage() {
     }
   }
 
+  // `grid-cols-1` (minmax(0, 1fr)) — bitta ustunda (planshet) ustun ekran enida qoladi; usiz ustun eng uzun bir qatorli
+  // matnga ("nima keldi" — truncate) qarab cho'zilib, butun sahifa yonga surilardi
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
       <Card>
         <CardHeader title={t.purchase.newTitle} hint={t.purchase.hint} />
         <form onSubmit={(event) => void submit(event)} className="space-y-4 p-4">

@@ -100,7 +100,7 @@ export default function OrderDetailsBody({ order }: { order: Order }) {
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <dl className="space-y-1.5 text-sm">
           <div className="flex justify-between gap-3">
             <dt className="text-neutral-500">{t.admin.orders.payment}</dt>

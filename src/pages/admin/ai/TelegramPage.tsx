@@ -121,7 +121,7 @@ function Connected({ status }: { status: TelegramStatus }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         <Card>
           <CardHeader title={t.ai.telegram.linkTitle} hint={t.ai.telegram.personal} />
           <div className="flex flex-col gap-5 p-4 md:flex-row md:items-center">

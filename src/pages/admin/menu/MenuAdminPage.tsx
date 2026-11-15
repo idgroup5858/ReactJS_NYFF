@@ -78,7 +78,7 @@ export default function MenuAdminPage() {
           </button>
         }
       />
-      <div className="grid items-start gap-5 lg:grid-cols-[310px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[310px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
         <Card>
           <CardHeader
             title={t.admin.menu.categories}

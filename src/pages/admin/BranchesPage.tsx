@@ -252,7 +252,7 @@ export default function BranchesPage() {
         }
       />
       {branches.length === 0 && <ListPlaceholder icon={Store} empty={t.login.noBranches} query={branchesQuery} />}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {branches.map((branch) => {
           const revenue = todayReport?.byBranch.find((stat) => stat.branchId === branch.id)?.revenue ?? 0
           const live = overview?.liveOrders.find((item) => item.branchId === branch.id)?.count ?? 0

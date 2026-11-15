@@ -84,7 +84,7 @@ export default function TransfersPage() {
   )
 
   return (
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
       <Card>
         <CardHeader title={t.transfer.newTitle} hint={t.transfer.hint} />
         <form onSubmit={(event) => void submit(event)} className="space-y-4 p-4">

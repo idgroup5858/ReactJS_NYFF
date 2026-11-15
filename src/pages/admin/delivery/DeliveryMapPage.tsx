@@ -87,7 +87,7 @@ export default function DeliveryMapPage() {
       <Breadcrumbs items={[{ label: t.admin.branches.title, to: BRANCHES_PATH }, { label: d.title }]} />
       <PageHeader title={d.title} description={d.hint} />
 
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 min-h-0 flex-1 gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <div className="flex min-h-0 flex-col gap-4 lg:overflow-y-auto">
           {editing && selected ? (
             <DeliveryEditor

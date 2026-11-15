@@ -93,7 +93,7 @@ export default function ShiftDetailPage() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="px-4 py-2">
           <dl className="divide-y divide-dashed divide-neutral-200 text-sm">
             {rows.map((row) => (
