@@ -155,6 +155,15 @@ export interface AuthUser {
   email: string | null
 }
 
+/** Kirish ekranidagi xodim (`GET /auth/staff`). */
+export interface StaffMember extends AuthUser {
+  /**
+   * filial bo'yicha so'ralganda, kassirda: shu filialdagi ochiq smenasi ochilgan vaqt (yo'q — `null`). Boshqa kassir
+   * shu filialga kirsa, server bu smenani yopadi (kassir topshirmay ketgan)
+   */
+  openShiftAt?: Timestamp | null
+}
+
 // ───────────────────────── Menyu ─────────────────────────
 
 export interface Category {

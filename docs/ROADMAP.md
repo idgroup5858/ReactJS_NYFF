@@ -152,6 +152,16 @@ backend bilan tekshirilgan. Qolgani: haqiqiy API manzili, FCM push, Click, iOS.
   - buyurtma bir martadan ko'p o'tkazilmaydi (filiallar orasida aylanib yurmasin): ikkinchi filial ham 5 daqiqada
     qabul qilmasa — bekor;
   - Click bilan oldindan to'langan buyurtma bekor bo'lsa — pul qaytarilishi kerak (Click ulanganda hal qilinadi).
+- **Bir filialda ikki kassa — topshirilmagan smenani yopishda himoya (kelishilgan 2026-11-17, hali qilinmagan).**
+  Hozir (backend PLAN.md 22) kassir shu filialga PIN bilan kirsa, filialdagi **boshqa** kassirlarning ochiq smenalari
+  yopiladi — bitta kassa uchun to'g'ri. Filialda ikkinchi kassa qo'yilganda: kassasi hozir serverga ulangan
+  (Socket.IO — kassa sahifasi ochiq yoki bloklangan) kassirning smenasi yopilmasin, faqat ulanmaganiniki (brauzer
+  yopilgan). Buning uchun `PresenceService` "kassa ulangan" ni filial bo'yicha emas, kassir bo'yicha ham bilishi kerak.
+  Kirish ekranida bunday kassir — ogohlantirishsiz, "Ishlayapti" belgisi bilan.
+- **Smena o'zi yopilishi — taklif qilingan, foydalanuvchi hozircha rad etgan (2026-11-17: "ko'p ish, serverga
+  og'irlik").** Kassa sahifasi brauzer «X» bilan yopilgach 30 daqiqa qayta ochilmasa — smena avtomatik yopiladi,
+  adminga Telegram. Internet uzilishi (offline kassa) bilan farqlash — uzilish turi bo'yicha (toza yopilish / ping
+  javobsiz), `shifts` da "kassa yopilgan vaqt" ustuni va har daqiqalik fon ishi kerak.
 
 ## 3. Google Maps: xarajat va xavfsizlik
 

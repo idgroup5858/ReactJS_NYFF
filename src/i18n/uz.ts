@@ -80,6 +80,12 @@ export const uz = {
     noUsers: "Bu yerda hali xodim yo'q — admin qo'shadi",
     noBranches: "Faol filial yo'q",
     lastUsed: 'Oxirgi',
+    /** kassa kirish ekrani: kassir smenani topshirmay ketgan (`openShiftAt`; vaqt — `08:15` yoki boshqa kun bo'lsa sana bilan) */
+    shiftLeftOpen: (name: string, since: string) => `Smena yopilmagan: ${name} (${since} dan ochiq)`,
+    shiftLeftOpenHint: 'Boshqa kassir kirsa, bu smena avtomatik yopiladi va adminga xabar boradi',
+    shiftLeftOpenBadge: (since: string) => `Smena yopilmagan · ${since}`,
+    /** PIN oynasida — boshqa kassir tanlangan */
+    shiftWillClose: (names: string) => `Kirsangiz smena yopiladi: ${names}`,
     otherBranch: 'Boshqa filial tanlash',
     retry: "Qayta urinish",
     changeBranch: 'Filialni almashtirish',

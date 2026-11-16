@@ -1,4 +1,4 @@
-import { ChevronLeft, LoaderCircle } from 'lucide-react'
+import { ChevronLeft, LoaderCircle, TriangleAlert } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { api } from '@/api'
@@ -8,7 +8,7 @@ import { homePathFor, login, useCurrentUser } from '@/api/session'
 import Brand from '@/components/layout/Brand'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { fullName } from '@/domain/rules'
-import type { AuthUser, Branch, ID } from '@/domain/types'
+import type { Branch, ID, StaffMember } from '@/domain/types'
 import { errorMessage, pinFailure, useT, type PinFailure } from '@/i18n'
 import { enterFullscreen } from '@/lib/fullscreen'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
@@ -111,6 +111,8 @@ export default function LoginPage() {
   // shu ish joyiga (va filialga) tegishli faol xodimlar — manzildagi `user` ham shu ro'yxatdan bo'lishi shart
   const users = staffQuery.data ?? []
   const user = users.find((u) => u.id === userParam)
+  // kassa: boshqa kassir smenasini topshirmay ketgan — shu kassir kirsa, server o'sha smenani yopadi
+  const closingShifts = user?.role === 'cashier' ? users.filter((u) => u.id !== user.id && u.openShiftAt) : []
 
   const go = (next: Record<string, string>) => setParams(next)
 
@@ -128,7 +130,7 @@ export default function LoginPage() {
     void navigate(`/${screen}/${selected.id}`)
   }
 
-  const selectUser = (selected: AuthUser) => go({ ...Object.fromEntries(params), user: selected.id })
+  const selectUser = (selected: StaffMember) => go({ ...Object.fromEntries(params), user: selected.id })
 
   const submitPin = async (pin: string): Promise<PinFailure | null> => {
     if (!user) return null
@@ -208,6 +210,12 @@ export default function LoginPage() {
               <p className="text-xs text-neutral-500">{t.roles[user.role]}</p>
             </div>
           </div>
+          {closingShifts.length > 0 && (
+            <p role="alert" className="flex gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+              <TriangleAlert size={16} className="shrink-0 text-amber-600" />
+              <span>{t.login.shiftWillClose(closingShifts.map((u) => fullName(u)).join(', '))}</span>
+            </p>
+          )}
           <PinPad key={user.id} onSubmit={submitPin} />
           {faceIdRequest && (
             <FaceIdRequestPanel

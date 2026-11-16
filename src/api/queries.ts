@@ -26,7 +26,7 @@ import type {
   Shift,
   ShiftsSummary,
   ShiftWithSummary,
-  AuthUser,
+  StaffMember,
   StockItem,
   TelegramStatus,
   Transfer,
@@ -82,9 +82,9 @@ export const useScreenCode = (kind: ScreenKind, branchId: ID) =>
 
 export const useWarehouses = () => useQuery('warehouses', () => http.get<Warehouse[]>('/warehouses'))
 
-/** Kirish ekrani: faol xodimlar (PINsiz). */
+/** Kirish ekrani: faol xodimlar (PINsiz); filial bo'yicha — kassirlarda shu filialdagi ochiq smena (`openShiftAt`). */
 export const useStaffList = (params: { branchId?: ID | null; role?: Role | null }, options: HookOptions = {}) =>
-  useQuery(on(keyOf('staff:', params), options), () => http.get<AuthUser[]>('/auth/staff', params, { token: null }), options)
+  useQuery(on(keyOf('staff:', params), options), () => http.get<StaffMember[]>('/auth/staff', params, { token: null }), options)
 
 /** Admin va ta'minotchi: barcha xodimlar (ismlar uchun). */
 export const useUsers = () => useQuery('users', () => http.get<User[]>('/users'))
