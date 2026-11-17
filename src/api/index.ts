@@ -33,6 +33,7 @@ import type {
   Transfer,
   TvOrder,
   User,
+  Warehouse,
   WorkHours,
 } from '@/domain/types'
 import type { ScreenKind } from '@/store/screenCodes'
@@ -288,9 +289,27 @@ export const api = {
     /** oshpaz yordamchisi yo'q filial — kassir ham "Tayyor" / "Qaytarish" bosadi */
     setCashierMarksReady: (branchId: ID, enabled: boolean) =>
       then(http.put<Branch>(`/branches/${branchId}/cashier-ready`, { enabled }), 'branches'),
-    /** markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi */
+    /**
+     * markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi; yoqilganda filial omboridagi minuslar 0 ga
+     * ("Tuzatish"), plusdagilar markaziy omborga ("Ko'chirish")
+     */
     setStockFromCentral: (branchId: ID, enabled: boolean) =>
-      then(http.put<Branch>(`/branches/${branchId}/stock-from-central`, { enabled }), 'branches'),
+      then(
+        http.put<Branch>(`/branches/${branchId}/stock-from-central`, { enabled }),
+        'branches',
+        'transfers',
+        'stock',
+        'movements',
+        'reports',
+      ),
+    /** switch yoqilishidan oldin (tasdiq oynasiga): filial omborida nechta mahsulot minusda (0 ga) va plusda (markazga) */
+    stockMergePreview: async (branchId: ID): Promise<{ minus: number; plus: number }> => {
+      const warehouses = await http.get<Warehouse[]>('/warehouses')
+      const warehouse = warehouses.find((w) => w.kind === 'branch' && w.branchId === branchId)
+      if (!warehouse) return { minus: 0, plus: 0 }
+      const stock = await http.get<StockItem[]>('/stock', { warehouseId: warehouse.id })
+      return { minus: stock.filter((s) => s.qty < 0).length, plus: stock.filter((s) => s.qty > 0).length }
+    },
     /** filial HR tizimi kalitini yangilash — eskisi bilan HR endi ulana olmaydi */
     renewHrKey: (branchId: ID) => then(http.post<{ key: string }>(`/branches/${branchId}/hr-key`), `hr-key:${branchId}`),
     /** offline kassa (Electron) kalitini yangilash — eskisi bilan kassa kompyuteri endi ulana olmaydi */

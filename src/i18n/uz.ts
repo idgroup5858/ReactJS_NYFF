@@ -724,7 +724,13 @@ export const uz = {
         "Oshpaz yordamchisi yo'q filial uchun: kassir buyurtmalar panelida «Tayyor» va «Qaytarish» ni o'zi bosadi. Oshpaz yordamchisi bo'lsa, u ham bosa oladi",
       stockFromCentral: 'Sotuv markaziy ombordan',
       stockFromCentralHint:
-        "Markaziy omborga juda yaqin filial uchun: sotilgan taomlar mahsuloti filial omboridan emas, markaziy ombordan ayriladi. Qoldiq ko'chirilmaydi — filial omborini kerak bo'lsa «Omborni 0 qilish» bilan tushiring",
+        "Markaziy omborga juda yaqin filial uchun: sotilgan taomlar mahsuloti filial omboridan emas, markaziy ombordan ayriladi. Yoqilganda filial omboridagi minuslar 0 ga tushadi, plusdagilar markaziy omborga o'tadi",
+      stockFromCentralTitle: 'Sotuv markaziy ombordan yoqilsinmi?',
+      stockFromCentralText: (name: string, minus: number, plus: number) =>
+        minus + plus === 0
+          ? `«${name}» omborida qoldiq yo'q — hech narsa ko'chmaydi. Bundan keyin sotuv markaziy ombordan ayriladi.`
+          : `«${name}» omborida: ${minus} ta minus qoldiq 0 ga tushadi, ${plus} ta mahsulot qoldig'i markaziy omborga o'tadi (tarixda «Tuzatish» va «Ko'chirish»). Bundan keyin sotuv markaziy ombordan ayriladi. Buni ortga qaytarib bo'lmaydi.`,
+      stockFromCentralConfirm: 'Yoqish',
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR ulanmagan',
       hrNeverHint: "Filialdagi «NYFF HR» ga shu filialning HR kalitini kiriting",

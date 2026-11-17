@@ -252,4 +252,5 @@ hisoblashi kerak bo'lardi. Qoldiqlar 0 da yoqilsa — filialning hamma sotuvi da
 
 **Boshqa variant bajarildi (2026-11-17): "Sotuv markaziy ombordan"** — markazga juda yaqin filial (Luchvoy, 5 metr)
 uchun filial switchi: sotuv **doim** markaziy ombordan ayriladi, filialga ko'chirish umuman qilinmaydi — shuning uchun
-yuqoridagi ikki marta ayrilish yo'q (`NestJS_NYFF/PLAN.md` 2-bo'lim, `API.md` 7.2).
+yuqoridagi ikki marta ayrilish yo'q. Yoqilgan paytda filial ombori bir marta markazga qo'shiladi: minuslar 0 ga,
+plusdagilar markazga (`NestJS_NYFF/PLAN.md` 2-bo'lim, `API.md` 7.2).

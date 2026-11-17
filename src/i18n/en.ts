@@ -707,7 +707,13 @@ export const en: Dict = {
         'For a branch without a kitchen assistant: the cashier presses «Ready» and «Undo» in the orders panel. If there is a kitchen assistant, they can press it too',
       stockFromCentral: 'Sell from the central warehouse',
       stockFromCentralHint:
-        "For a branch right next to the central warehouse: ingredients of sold dishes are deducted from the central warehouse instead of the branch one. Stock is not moved — reset the branch warehouse with «Reset warehouse to 0» if needed",
+        'For a branch right next to the central warehouse: ingredients of sold dishes are deducted from the central warehouse instead of the branch one. When switched on, negative branch stock is set to 0 and positive stock moves to the central warehouse',
+      stockFromCentralTitle: 'Sell from the central warehouse?',
+      stockFromCentralText: (name: string, minus: number, plus: number) =>
+        minus + plus === 0
+          ? `«${name}» warehouse has no stock — nothing is moved. From now on sales are deducted from the central warehouse.`
+          : `«${name}» warehouse: ${minus} negative item(s) will be set to 0, stock of ${plus} item(s) moves to the central warehouse (history: «Adjustment» and «Transfer»). From now on sales are deducted from the central warehouse. This can't be undone.`,
+      stockFromCentralConfirm: 'Switch on',
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR not connected',
       hrNeverHint: "Enter this branch's HR key in the branch «NYFF HR» app",

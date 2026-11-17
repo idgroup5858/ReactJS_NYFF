@@ -199,10 +199,18 @@ export default function BranchesPage() {
     }
   }
 
-  /** Markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi (qoldiq ko'chirilmaydi). */
-  const setStockFromCentral = async (branchId: ID, enabled: boolean) => {
+  /**
+   * Markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi. Yoqishdan oldin tasdiq: filial omboridagi
+   * minuslar 0 ga tushadi, plusdagilar markazga o'tadi (ortga qaytmaydi). O'chirish — tasdiqsiz, qoldiqqa tegmaydi.
+   */
+  const setStockFromCentral = async (branch: Branch, enabled: boolean) => {
     try {
-      await api.branches.setStockFromCentral(branchId, enabled)
+      if (enabled) {
+        const { minus, plus } = await api.branches.stockMergePreview(branch.id)
+        const text = t.admin.branches.stockFromCentralText(branch.name, minus, plus)
+        if (!(await confirmDialog(t.admin.branches.stockFromCentralTitle, text, t.admin.branches.stockFromCentralConfirm))) return
+      }
+      await api.branches.setStockFromCentral(branch.id, enabled)
     } catch (error) {
       showToast(errorMessage(error), 'error')
     }
@@ -404,7 +412,7 @@ export default function BranchesPage() {
               <div className="space-y-1.5 rounded-card border border-line p-3">
                 <Toggle
                   checked={branch.stockFromCentral}
-                  onChange={(enabled) => void setStockFromCentral(branch.id, enabled)}
+                  onChange={(enabled) => void setStockFromCentral(branch, enabled)}
                   label={t.admin.branches.stockFromCentral}
                 />
                 <p className="text-xs leading-relaxed text-neutral-500">{t.admin.branches.stockFromCentralHint}</p>
