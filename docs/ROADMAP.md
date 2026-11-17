@@ -220,6 +220,10 @@ admin "Filiallar" → "Offline kalit" (`NestJS_NYFF/API.md` 14).
 
 ## 5. Ombor: chegara, norma va markazdan to'ldirish (kelishilgan va bajarildi 2026-11-08)
 
+> **2026-11-18: norma olib tashlandi** — markaziy omborda uni chegara deb o'ylab to'ldirishgan. `stock.targetQty` va
+> `target-qty` endpoint yo'q (migratsiya `DropStockTarget`); "To'ldirish" — chegara × 2, chegara yo'q — 10 birlik;
+> "Chegara" endi "Ogohlantirish chegarasi" deb yoziladi. Pastdagi norma haqidagi qismlar — tarix.
+
 **Bajarildi:** `stock.targetQty` (migratsiya `StockTargetQty`), `PUT /stock/:w/:i/target-qty`, "Qoldiqlar" sahifasida
 "Norma" ustuni (yozilmagani — kulrang avtomatik son), "To'ldirish" / "Hammasini to'ldirish (N)" (ko'chirish yoki kirim
 formasi `?items=id:son,…` bilan), Telegram "kam qoldi" va smena hisobotida "markazda: …" (`NestJS_NYFF/API.md` 7.6, 13).

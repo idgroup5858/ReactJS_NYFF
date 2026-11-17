@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useIngredients, useStock } from '@/api/queries'
 import { inputClass } from '@/components/ui/styles'
-import type { ID } from '@/domain/types'
+import type { ID, Ingredient } from '@/domain/types'
 import { toBase } from '@/domain/units'
 import { useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock, formatUnit } from '@/lib/format'
@@ -12,23 +12,28 @@ import IngredientPicker from './IngredientPicker'
 type Props = {
   lines: DraftLine[]
   onChange: (lines: DraftLine[]) => void
-  /** shu ombordagi mavjud qoldiq ko'rsatiladi: kirimda — qayerga, ko'chirishda — qayerdan */
+  /** shu ombordagi mavjud qoldiq ko'rsatiladi: kirimda — qayerga, ko'chirish va tayyorlashda — qayerdan */
   availableIn: ID
   /**
    * kirim — 1 birlik narxi maydoni (oxirgi narx oldindan yozilgan), qator summasi, qoldiq chegaradan kam bo'lsa qizil;
-   * ko'chirish — miqdor qoldiqdan oshsa qizil
+   * ko'chirish — miqdor qoldiqdan oshsa qizil; tayyorlash (sarflandi) — ko'chirishdek, lekin miqdor **qadoqsiz**
+   * (kg / l / dona: qadoqli tuxum ham donada)
    */
-  mode: 'purchase' | 'transfer'
+  mode: 'purchase' | 'transfer' | 'production'
+  /** tanlab bo'lmaydigan mahsulot (tayyorlashda — tayyor mahsulotning o'zi) */
+  excludeId?: ID
 }
 
 /**
- * Mahsulot qatorlari muharriri (kirim va ko'chirish): mahsulot (qidiruvli, guruhlar va alifbo bo'yicha ro'yxat), miqdor ombor birligida,
+ * Mahsulot qatorlari muharriri (kirim, ko'chirish, tayyorlash): mahsulot (qidiruvli, guruhlar va alifbo bo'yicha ro'yxat), miqdor ombor birligida,
  * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham.
  */
-export default function LinesEditor({ lines, onChange, availableIn, mode }: Props) {
+export default function LinesEditor({ lines, onChange, availableIn, mode, excludeId }: Props) {
   const t = useT()
   const allIngredients = useIngredients().data ?? []
-  const ingredients = allIngredients.filter((i) => i.active)
+  const ingredients = allIngredients.filter((i) => i.active && i.id !== excludeId)
+  // tayyorlashda qadoq hisobga olinmaydi — miqdor kg / l / dona
+  const packOf = (ingredient: Ingredient) => (mode === 'production' ? null : ingredient.packSize)
   // tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0, chegara yo'q).
   // yuklanguncha `undefined` — "—" ko'rinadi, hech narsa qizil bo'lmaydi
   const stock = useStock(availableIn || undefined, { enabled: !!availableIn }).data
@@ -43,7 +48,7 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
         const item = ingredient && stock?.find((s) => s.ingredientId === ingredient.id)
         const available = ingredient && stock ? (item?.qty ?? 0) : null
         // qadoqli mahsulot (ketchup 600 g) — miqdor donada, qoldiq grammda
-        const tooMuch = mode === 'transfer' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit, ingredient.packSize) > available
+        const tooMuch = mode !== 'purchase' && ingredient && available !== null && qty > 0 && toBase(qty, ingredient.unit, packOf(ingredient)) > available
         // Qoldiqlar sahifasidagi "Kam" bilan bir xil: chegara qo'yilgan va qoldiq undan kam
         const low = mode === 'purchase' && !!item && item.minQty > 0 && item.qty < item.minQty
         // kirim: yozilgan narx yoki oxirgi narx; miqdor bor-u narx yo'q — qizil (yuborib bo'lmaydi)
@@ -76,7 +81,7 @@ export default function LinesEditor({ lines, onChange, availableIn, mode }: Prop
                 className={`${inputClass} pr-12 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">
-                {ingredient ? countUnit(ingredient, t) : ''}
+                {ingredient ? countUnit({ unit: ingredient.unit, packSize: packOf(ingredient) }, t) : ''}
               </span>
             </label>
             {mode === 'purchase' && (

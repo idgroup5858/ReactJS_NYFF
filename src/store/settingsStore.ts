@@ -42,7 +42,7 @@ export const MENU_SCALES = [0.6, 0.7, 0.8, 0.9, 1] as const
 export type MenuScale = (typeof MENU_SCALES)[number]
 
 /** Ta'minotchining ombor tablari (planshet: chap menyu o'rniga tepada) — tartibi ekrandagidek. */
-export const WAREHOUSE_TABS = ['stock', 'purchase', 'transfer', 'ingredients'] as const
+export const WAREHOUSE_TABS = ['stock', 'purchase', 'transfer', 'production', 'ingredients'] as const
 export type WarehouseTab = (typeof WAREHOUSE_TABS)[number]
 
 /** Ko'chirish formasi ochilgandagi yo'nalish; `null` — avtomatik (markaziy → birinchi boshqa ombor). */

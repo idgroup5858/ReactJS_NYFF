@@ -6,12 +6,13 @@ import Field from '@/components/ui/Field'
 import Modal from '@/components/ui/Modal'
 import { inputClass, selectClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
-import { INGREDIENT_GROUPS, type ID, type LocalizedText, type Product } from '@/domain/types'
+import type { ID, LocalizedText, Product } from '@/domain/types'
 import { baseUnitOf } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatNumber } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import FormFooter from '@/components/ui/FormFooter'
+import IngredientPicker from '@/pages/warehouse/IngredientPicker'
 import ImagePicker from './ImagePicker'
 
 type RecipeDraft = { key: number; ingredientId: ID; qty: string }
@@ -156,21 +157,13 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
             const ingredient = allIngredients.find((i) => i.id === line.ingredientId)
             return (
               <div key={line.key} className="flex items-center gap-2">
-                <select value={line.ingredientId} onChange={(event) => updateLine(line.key, { ingredientId: event.target.value })} aria-label={t.purchase.chooseIngredient} className={`${selectClass} min-w-0 flex-1`}>
-                  <option value="">{t.purchase.chooseIngredient}</option>
-                  {INGREDIENT_GROUPS.map((group) => {
-                    const items = ingredients.filter((i) => i.group === group)
-                    return items.length === 0 ? null : (
-                      <optgroup key={group} label={t.stock.groups[group]}>
-                        {items.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {localize(item.name)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )
-                  })}
-                </select>
+                <IngredientPicker
+                  value={line.ingredientId}
+                  onChange={(id) => updateLine(line.key, { ingredientId: id })}
+                  ingredients={ingredients}
+                  selected={ingredient}
+                  className="min-w-0 flex-1"
+                />
                 <label className="relative w-28 shrink-0">
                   <input
                     value={line.qty}

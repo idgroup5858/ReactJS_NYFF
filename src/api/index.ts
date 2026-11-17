@@ -19,9 +19,12 @@ import type {
   LocalizedText,
   Order,
   OrderType,
+  Page,
   PaymentMethod,
   PaymentSplit,
   Product,
+  Production,
+  ProductionItem,
   Purchase,
   RecipeLine,
   Role,
@@ -88,6 +91,8 @@ export interface IngredientInput {
   lastPrice?: number | null
   /** qadoq hajmi asosiy birlikda (600 — 1 dona = 600 g), butun 1…1 000 000; `null` — qadoqsiz */
   packSize: number | null
+  /** sarf materiali — yangi partiya kelganda eski qoldiq "Sarflandi"; berilmasa — o'zgarmaydi */
+  consumable?: boolean
   active: boolean
 }
 
@@ -170,6 +175,8 @@ export interface PurchaseLine extends DocumentLine {
 export interface NewExpenseInput {
   branchId: ID
   kind: ExpenseKind
+  /** faqat `kind: 'ingredient'` da (majburiy) */
+  ingredientId?: ID
   amount: number
   date: DateKey
   note?: string
@@ -230,12 +237,26 @@ export const api = {
     create: (input: { fromWarehouseId: ID; toWarehouseId: ID; items: DocumentLine[]; note?: string }) =>
       then(http.post<Transfer>('/transfers', input), 'transfers', 'stock', 'movements', 'reports'),
   },
+  productions: {
+    /**
+     * Tayyorlash — doim markaziy omborda: sarflanganlar ([items]) ayriladi, tayyor mahsulot ([ingredientId], [qty])
+     * qo'shiladi; miqdorlar qadoqsiz (kg / l / dona). Tayyor mahsulotning oxirgi narxi tannarxdan yangilanadi.
+     */
+    create: (input: { ingredientId: ID; qty: number; items: ProductionItem[]; note?: string }) =>
+      then(http.post<Production>('/productions', input), 'productions', 'ingredients', 'stock', 'movements'),
+    /** shu mahsulotning oxirgi tayyorlashi — formadagi "sarflandi" ro'yxatini oldindan to'ldirish uchun */
+    last: async (ingredientId: ID): Promise<Production | null> =>
+      (await http.get<Page<Production>>('/productions', { ingredientId, limit: 1 })).items[0] ?? null,
+  },
   ingredients: {
     save: ({ id, ...input }: IngredientInput) =>
       then(
         id ? http.patch<Ingredient>(`/ingredients/${id}`, input) : http.post<Ingredient>('/ingredients', input),
         'ingredients',
         'menu:',
+        // "Sarf materiali" — "kam qoldi" ro'yxati va bosh sahifa soni o'zgaradi
+        'stock',
+        'reports',
       ),
     /** retseptda, kirimda, ko'chirishda, harakatda yo'q mahsulot — qoldiq yozuvlari bilan (aks holda `in_use`) */
     remove: (id: ID) => then(http.delete<void>(`/ingredients/${id}`), 'ingredients', 'stock', 'reports'),
@@ -244,9 +265,6 @@ export const api = {
     /** ogohlantirish chegarasi — asosiy birlikda (g / ml / dona) */
     setMinQty: (warehouseId: ID, ingredientId: ID, minQty: number) =>
       then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/min-qty`, { minQty }), 'stock', 'reports'),
-    /** norma — "To'ldirish" shu darajagacha, asosiy birlikda; 0 — yozilmagan (chegara × 2 / 10 birlik) */
-    setTargetQty: (warehouseId: ID, ingredientId: ID, targetQty: number) =>
-      then(http.put<StockItem>(`/stock/${warehouseId}/${ingredientId}/target-qty`, { targetQty }), 'stock'),
   },
   stock: {
     /**

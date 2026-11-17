@@ -1,7 +1,7 @@
 import { Plus, Receipt, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api } from '@/api'
-import { useBranches, useExpenses } from '@/api/queries'
+import { useBranches, useExpenses, useIngredients } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
 import Field from '@/components/ui/Field'
@@ -9,11 +9,16 @@ import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/style
 import PageHeader from '@/components/ui/PageHeader'
 import Pagination from '@/components/ui/Pagination'
 import { usePagination } from '@/components/ui/usePagination'
-import { EXPENSE_KINDS, type DateKey, type ExpenseKind } from '@/domain/types'
-import { errorMessage, useT } from '@/i18n'
+import { EXPENSE_KINDS, type DateKey, type Expense, type ExpenseKind, type ID } from '@/domain/types'
+import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatNumber } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { useToday } from '@/lib/useNow'
+import IngredientPicker from '@/pages/warehouse/IngredientPicker'
+
+/** mahsulotdan boshqa turlar — tanlash ro'yxatining boshida */
+const GENERAL_KINDS = EXPENSE_KINDS.filter((kind) => kind !== 'ingredient')
+const isGeneralKind = (id: string): id is ExpenseKind => (GENERAL_KINDS as string[]).includes(id)
 
 /** Oyning oxirgi kuni: `2026-02` → `2026-02-28`. */
 function monthEnd(month: string): DateKey {
@@ -22,19 +27,24 @@ function monthEnd(month: string): DateKey {
 }
 
 /**
- * Chiqimlar (hozircha faqat kommunal: svet, gaz, suv, internet, boshqa): chapda qo'shish formasi, o'ngda tanlangan
- * oy va filial bo'yicha ro'yxat (10 tadan sahifalab) va turlar bo'yicha jami. Hisobotda tushumdan ayriladi.
+ * Chiqimlar (kommunal: svet, gaz, suv, internet, boshqa — va ombor mahsulotiga to'lov, qoldiqqa ta'sir qilmaydi): chapda
+ * qo'shish formasi (turi — qidiruvli ro'yxat: boshida kommunal turlar, keyin mahsulot guruhlari), o'ngda tanlangan oy va
+ * filial bo'yicha ro'yxat (10 tadan sahifalab) va turlar bo'yicha jami. Hisobotda tushumdan ayriladi.
  */
 export default function ExpensesPage() {
   const t = useT()
+  const localize = useLocalize()
   const today = useToday()
   const allBranches = useBranches().data ?? []
   const branches = allBranches.filter((b) => b.active)
+  const allIngredients = useIngredients().data ?? []
 
   const [branchChoice, setBranchChoice] = useState('')
   // tanlanmagan bo'lsa — birinchi faol filial (filiallar keyinroq yuklanishi mumkin)
   const branchId = branchChoice || branches[0]?.id || ''
   const [kind, setKind] = useState<ExpenseKind>('electricity')
+  // faqat `kind: 'ingredient'` da
+  const [ingredientId, setIngredientId] = useState<ID>('')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(today)
   const [note, setNote] = useState('')
@@ -48,12 +58,27 @@ export default function ExpensesPage() {
   const total = list.reduce((sum, e) => sum + e.amount, 0)
   const { pageItems, pagination, reset } = usePagination(list, `${month}|${filterBranch}`)
 
+  const choose = (id: ID) => {
+    if (isGeneralKind(id)) {
+      setKind(id)
+      setIngredientId('')
+    } else {
+      setKind('ingredient')
+      setIngredientId(id)
+    }
+  }
+  /** jadvalda: mahsulot to'lovi — mahsulot nomi, qolganlari — turi */
+  const kindLabel = (expense: Expense) => {
+    const ingredient = expense.ingredientId ? allIngredients.find((i) => i.id === expense.ingredientId) : undefined
+    return ingredient ? localize(ingredient.name) : t.admin.expenses.kinds[expense.kind]
+  }
+
   const save = async (event: FormEvent) => {
     event.preventDefault()
     if (saving) return
     setSaving(true)
     try {
-      await api.expenses.create({ branchId, kind, amount: Number(amount), date, note })
+      await api.expenses.create({ branchId, kind, ...(kind === 'ingredient' && { ingredientId }), amount: Number(amount), date, note })
       setAmount('')
       setNote('')
       reset()
@@ -91,13 +116,14 @@ export default function ExpensesPage() {
               </select>
             </Field>
             <Field label={t.admin.expenses.kind} htmlFor="ex-kind">
-              <select id="ex-kind" value={kind} onChange={(event) => setKind(event.target.value as ExpenseKind)} className={selectClass}>
-                {EXPENSE_KINDS.map((value) => (
-                  <option key={value} value={value}>
-                    {t.admin.expenses.kinds[value]}
-                  </option>
-                ))}
-              </select>
+              <IngredientPicker
+                id="ex-kind"
+                value={kind === 'ingredient' ? ingredientId : kind}
+                onChange={choose}
+                extra={{ title: t.admin.expenses.general, items: GENERAL_KINDS.map((value) => ({ id: value, label: t.admin.expenses.kinds[value] })) }}
+                ingredients={allIngredients.filter((i) => i.active)}
+                selected={allIngredients.find((i) => i.id === ingredientId)}
+              />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label={t.admin.expenses.amount} htmlFor="ex-amount">
@@ -116,7 +142,7 @@ export default function ExpensesPage() {
             <Field label={t.common.note} htmlFor="ex-note">
               <input id="ex-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={120} className={inputClass} />
             </Field>
-            <button type="submit" disabled={!amount || !date || !branchId || saving} className="btn-primary flex h-11 w-full items-center justify-center gap-2 rounded text-sm font-bold">
+            <button type="submit" disabled={!amount || !date || !branchId || (kind === 'ingredient' && !ingredientId) || saving} className="btn-primary flex h-11 w-full items-center justify-center gap-2 rounded text-sm font-bold">
               <Plus size={16} />
               {t.admin.expenses.add}
             </button>
@@ -147,14 +173,15 @@ export default function ExpensesPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 sm:grid-cols-3 2xl:grid-cols-6">
+              {/* 6 tur + jami: 2 / 4 ustunda jami ikki katak egallaydi — bo'sh katak qolmaydi */}
+              <div className="grid grid-cols-2 gap-px border-b border-neutral-200 bg-neutral-200 sm:grid-cols-4 2xl:grid-cols-7">
                 {EXPENSE_KINDS.map((value) => (
                   <div key={value} className="bg-surface px-3 py-2">
                     <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">{t.admin.expenses.kinds[value]}</p>
                     <p className="text-sm font-bold tabular-nums">{formatMoney(list.filter((e) => e.kind === value).reduce((sum, e) => sum + e.amount, 0), t)}</p>
                   </div>
                 ))}
-                <div className="bg-brand-50 px-3 py-2">
+                <div className="col-span-2 bg-brand-50 px-3 py-2 2xl:col-span-1">
                   <p className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">{t.purchase.total}</p>
                   <p className="text-sm font-extrabold tabular-nums">{formatMoney(total, t)}</p>
                 </div>
@@ -176,7 +203,7 @@ export default function ExpensesPage() {
                         <td className={`${tdClass} whitespace-nowrap tabular-nums`}>{expense.date.split('-').reverse().join('.')}</td>
                         <td className={tdClass}>{allBranches.find((b) => b.id === expense.branchId)?.name ?? '—'}</td>
                         <td className={tdClass}>
-                          {t.admin.expenses.kinds[expense.kind]}
+                          {kindLabel(expense)}
                           {expense.note && <span className="block text-xs text-neutral-500">{expense.note}</span>}
                         </td>
                         <td className={`${tdClass} text-right font-bold whitespace-nowrap tabular-nums`}>{formatMoney(expense.amount, t)}</td>

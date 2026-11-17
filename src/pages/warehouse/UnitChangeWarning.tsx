@@ -57,7 +57,7 @@ export default function UnitChangeWarning({
   const notes = [
     priceEmpty && w.price(countUnit(next, t)),
     next.packSize !== null && w.pack(countUnit(next, t), `${formatNumber(next.packSize)} ${t.units[baseUnitOf(next.unit)]}`),
-    usage.purchases + usage.transfers > 0 && w.history(usage.purchases, usage.transfers),
+    usage.purchases + usage.transfers + usage.productions > 0 && w.history(usage.purchases, usage.transfers, usage.productions),
   ].filter((note): note is string => typeof note === 'string')
 
   return (
@@ -105,7 +105,6 @@ export default function UnitChangeWarning({
                     <p className="text-neutral-600 tabular-nums">
                       {w.qty}: {change(row.qty)}
                       {row.minQty > 0 && ` · ${w.min}: ${change(row.minQty)}`}
-                      {row.targetQty > 0 && ` · ${w.target}: ${change(row.targetQty)}`}
                     </p>
                   </li>
                 ))}

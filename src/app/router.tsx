@@ -45,6 +45,7 @@ export const router = createBrowserRouter([
             { index: true, lazy: async () => ({ Component: (await import('@/pages/warehouse/StockPage')).default }) },
             { path: 'kirim', lazy: async () => ({ Component: (await import('@/pages/warehouse/PurchasesPage')).default }) },
             { path: 'kochirish', lazy: async () => ({ Component: (await import('@/pages/warehouse/TransfersPage')).default }) },
+            { path: 'tayyorlash', lazy: async () => ({ Component: (await import('@/pages/warehouse/ProductionPage')).default }) },
             { path: 'mahsulotlar', lazy: async () => ({ Component: (await import('@/pages/warehouse/IngredientsPage')).default }) },
           ],
         },

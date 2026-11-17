@@ -27,6 +27,7 @@ import { baseUnitOf, convertPrice, sameScale, unitSize } from '@/domain/units'
 import { countUnit, formatMoney, formatNumber, formatUnit } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
+import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
 import UnitChangeWarning from './UnitChangeWarning'
 
@@ -41,6 +42,7 @@ type Draft = {
   packSize: string
   price: string
   priceSize: number
+  consumable: boolean
   active: boolean
 }
 
@@ -77,9 +79,10 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
           packSize: ingredient.packSize !== null ? String(ingredient.packSize) : '',
           price: ingredient.lastPrice !== null ? String(ingredient.lastPrice) : '',
           priceSize: unitSize(ingredient.unit, ingredient.packSize),
+          consumable: ingredient.consumable,
           active: ingredient.active,
         }
-      : { name: { uz: '', ru: '', en: '' }, group: 'vegetables', unit: 'kg', packSize: '', price: '', priceSize: unitSize('kg'), active: true },
+      : { name: { uz: '', ru: '', en: '' }, group: 'vegetables', unit: 'kg', packSize: '', price: '', priceSize: unitSize('kg'), consumable: false, active: true },
   )
   const setName = (lang: keyof LocalizedText, value: string) => setDraft({ ...draft, name: { ...draft.name, [lang]: value } })
   const size = unitSize(draft.unit, packOf(draft))
@@ -90,12 +93,12 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
   const submit = async () => {
     setSaving(true)
     try {
-      const { name, group, unit, active } = draft
+      const { name, group, unit, active, consumable } = draft
       // admin ham, ta'minotchi ham (2026-11-15); bo'sh — narxsiz
       const lastPrice = price === '' ? null : Number(price)
       // 0 — serverda `invalid_qty` (bo'sh — qadoqsiz)
       const packSize = draft.packSize === '' ? null : Number(draft.packSize)
-      await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, packSize, lastPrice })
+      await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, consumable, packSize, lastPrice })
       showToast(t.common.saved)
       onClose()
     } catch (error) {
@@ -235,7 +238,14 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
             />
           </Field>
         </div>
-        <Toggle checked={draft.active} onChange={(active) => setDraft({ ...draft, active })} label={t.common.active} />
+        {/* "Faol" yonida — sarf materiali (salfetka, yuvish vositalari): izohi o'ngda, oyna balandligi o'smasin */}
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-2">
+          <Toggle checked={draft.active} onChange={(active) => setDraft({ ...draft, active })} label={t.common.active} />
+          <div className="min-w-0 flex-1">
+            <Toggle checked={draft.consumable} onChange={(consumable) => setDraft({ ...draft, consumable })} label={t.ingredients.consumable} />
+            <p className="mt-0.5 pl-10 text-xs text-neutral-500">{t.ingredients.consumableHint}</p>
+          </div>
+        </div>
       </form>
     </Modal>
   )
@@ -319,6 +329,7 @@ export default function IngredientsPage() {
                     <tr key={ingredient.id} className={ingredient.active ? '' : 'opacity-50'}>
                       <td className={cellClass}>
                         <span className="font-semibold text-neutral-950">{localize(ingredient.name)}</span>
+                        {ingredient.consumable && <ConsumableBadge />}
                         <span className="ml-2 text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</span>
                       </td>
                       <td className={`${cellClass} whitespace-nowrap text-neutral-600`}>{formatUnit(ingredient, t)}</td>
@@ -355,7 +366,10 @@ export default function IngredientsPage() {
               {section.items.map((ingredient) => (
                 <div key={ingredient.id} className={`flex flex-col gap-2 rounded-card bg-surface p-3.5 shadow-card dark:ring-1 dark:ring-line ${ingredient.active ? '' : 'opacity-50'}`}>
                   <div>
-                    <p className="leading-snug font-semibold text-neutral-950">{localize(ingredient.name)}</p>
+                    <p className="leading-snug font-semibold text-neutral-950">
+                      {localize(ingredient.name)}
+                      {ingredient.consumable && <ConsumableBadge />}
+                    </p>
                     <p className="text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</p>
                   </div>
                   {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg", qadoqli — "16 800 so'm / dona (600 g)";

@@ -1,6 +1,7 @@
 import type {
   Branch,
   Category,
+  ConsumptionStat,
   CourierStatus,
   DateKey,
   Expense,
@@ -19,6 +20,8 @@ import type {
   Page,
   PaymentMethod,
   Product,
+  Production,
+  ProductProfit,
   Purchase,
   PurchaseStatus,
   Role,
@@ -139,6 +142,10 @@ export const usePurchases = (params: { status?: PurchaseStatus; warehouseId?: ID
 export const useTransfers = (params: { warehouseId?: ID; page?: number; limit?: number } = {}) =>
   useQuery(keyOf('transfers', params), () => http.get<Page<Transfer>>('/transfers', params))
 
+/** Tayyorlashlar (yangisi birinchi); [ingredientId] — shu mahsulot tayyorlanganlari. */
+export const useProductions = (params: { ingredientId?: ID; page?: number; limit?: number } = {}) =>
+  useQuery(keyOf('productions', params), () => http.get<Page<Production>>('/productions', params))
+
 // ───────────────────────── Buyurtmalar ─────────────────────────
 
 /**
@@ -218,6 +225,14 @@ export const useExpenses = (params: { branchId?: ID; from?: DateKey; to?: DateKe
 /** Sotuv hisoboti: [branchId] `null` — butun tarmoq. */
 export const useSalesReport = (range: { from: DateKey; to: DateKey; branchId?: ID | null } | null) =>
   useQuery(range ? keyOf('reports:sales', range) : null, () => http.get<SalesReport>('/reports/sales', range!))
+
+/** Taomlar foydasi (sotuv paytidagi tannarx bilan): [branchId] `null` — butun tarmoq; [range] `null` — so'ralmaydi. */
+export const useProductProfit = (range: { from: DateKey; to: DateKey; branchId?: ID | null } | null) =>
+  useQuery(range ? keyOf('reports:products', range) : null, () => http.get<ProductProfit[]>('/reports/products', range!))
+
+/** Xo'jalik sarflari (sarf materiallari "Sarflandi"): [branchId] `null` — hamma omborlar; [range] `null` — so'ralmaydi. */
+export const useConsumption = (range: { from: DateKey; to: DateKey; branchId?: ID | null } | null) =>
+  useQuery(range ? keyOf('reports:consumption', range) : null, () => http.get<ConsumptionStat[]>('/reports/consumption', range!))
 
 /** Admin bosh sahifasi ko'rsatkichlari — faqat admin (boshqa rolda `enabled: false`). */
 export const useOverview = (options: HookOptions = {}) =>

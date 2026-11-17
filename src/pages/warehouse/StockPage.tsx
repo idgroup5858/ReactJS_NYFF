@@ -18,19 +18,19 @@ import { countUnit, formatMoney, formatNumber, formatStock } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { activeWarehouses, parseQty, warehouseLabel } from '@/lib/warehouses'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
+import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
 import MovementsModal from './MovementsModal'
 import { useLastData } from './serverPagination'
 
 /**
- * [min] — chegara, [target] — yozilgan norma (0 — yo'q), asosiy birlikda. [low] — to'ldirish kerak: chegaradan kam yoki
- * qoldiq minus (chegarasiz ham — qoldiq kiritilmasdan sotilgan; chegarasiz 0 — yo'q, ishlatilmayotgan bo'lishi mumkin).
+ * [min] — ogohlantirish chegarasi, asosiy birlikda. [low] — to'ldirish kerak: chegaradan kam yoki qoldiq minus
+ * (chegarasiz ham — qoldiq kiritilmasdan sotilgan; chegarasiz 0 — yo'q, ishlatilmayotgan bo'lishi mumkin).
  */
-type Row = { ingredient: Ingredient; stock: StockItem | undefined; qty: number; min: number; target: number; low: boolean }
+type Row = { ingredient: Ingredient; stock: StockItem | undefined; qty: number; min: number; low: boolean }
 
-/** Joyida tahrirlanadigan son: qoldiqning o'zi (qo'lda), ogohlantirish chegarasi yoki to'ldirish normasi. */
-type Editable = 'qty' | 'min' | 'target'
-type Limit = Exclude<Editable, 'qty'>
+/** Joyida tahrirlanadigan son: qoldiqning o'zi (qo'lda) yoki ogohlantirish chegarasi. */
+type Editable = 'qty' | 'min'
 
 /** Ombor birligidagi miqdor (qadoqli mahsulotda — donada). */
 const inUnits = (baseQty: number, ingredient: Ingredient) => fromBase(baseQty, ingredient.unit, ingredient.packSize)
@@ -43,9 +43,8 @@ function roundUnits(units: number, ingredient: Ingredient, up: boolean): number 
   return round(Number((units * step).toFixed(6))) / step
 }
 
-/** "To'ldirish" qaysi darajagacha (asosiy birlikda): norma → yo'q bo'lsa chegara × 2 → u ham yo'q bo'lsa 10 birlik. */
+/** "To'ldirish" qaysi darajagacha (asosiy birlikda): chegara × 2, chegara yo'q bo'lsa — 10 birlik. Norma yo'q (2026-11-18). */
 function refillTarget(row: Row): number {
-  if (row.target > 0) return row.target
   if (row.min > 0) return row.min * 2
   return 10 * unitSize(row.ingredient.unit, row.ingredient.packSize)
 }
@@ -62,15 +61,15 @@ function suggestedRefill(row: Row, source: number | undefined): number {
 }
 
 /**
- * Qoldiq, chegara yoki normani joyida tahrirlash (ombor birligida, qadoqli mahsulotda — donada); normada bo'sh / 0 —
- * avtomatik. Qoldiq (admin va ta'minotchi) — sanab chiqilgan haqiqiy son: server farqini "Tuzatish №N" qilib yozadi.
+ * Qoldiq yoki chegarani joyida tahrirlash (ombor birligida, qadoqli mahsulotda — donada). Qoldiq (admin va ta'minotchi) —
+ * sanab chiqilgan haqiqiy son: server farqini "Tuzatish №N" qilib yozadi.
  */
 function NumberEditor({ row, field, warehouseId, onDone }: { row: Row; field: Editable; warehouseId: ID; onDone: () => void }) {
   const t = useT()
-  const current = field === 'qty' ? row.qty : field === 'min' ? row.min : row.target
+  const current = field === 'qty' ? row.qty : row.min
   const [value, setValue] = useState(String(Number(inUnits(current, row.ingredient).toFixed(3))))
   const save = async () => {
-    const qty = field === 'target' && value.trim() === '' ? 0 : parseQty(value)
+    const qty = parseQty(value)
     if (!(qty >= 0)) return showToast(t.errors.invalid_qty, 'error')
     const base = toBase(qty, row.ingredient.unit, row.ingredient.packSize)
     try {
@@ -78,9 +77,8 @@ function NumberEditor({ row, field, warehouseId, onDone }: { row: Row; field: Ed
         const { count } = await api.stock.setQty(warehouseId, row.ingredient.id, base)
         showToast(count > 0 ? t.stock.qtySaved : t.stock.qtyUnchanged, count > 0 ? 'success' : 'info')
       } else {
-        if (field === 'min') await api.ingredients.setMinQty(warehouseId, row.ingredient.id, base)
-        else await api.ingredients.setTargetQty(warehouseId, row.ingredient.id, base)
-        showToast(field === 'min' ? t.stock.minSaved : t.stock.targetSaved)
+        await api.ingredients.setMinQty(warehouseId, row.ingredient.id, base)
+        showToast(t.stock.minSaved)
       }
       onDone()
     } catch (error) {
@@ -100,7 +98,7 @@ function NumberEditor({ row, field, warehouseId, onDone }: { row: Row; field: Ed
         value={value}
         onChange={(event) => setValue(event.target.value)}
         inputMode="decimal"
-        aria-label={field === 'qty' ? t.stock.qty : field === 'min' ? t.stock.min : t.stock.target}
+        aria-label={field === 'qty' ? t.stock.qty : t.stock.min}
         className={`${inputClass} w-20!`}
       />
       <span className="text-xs text-neutral-500">{countUnit(row.ingredient, t)}</span>
@@ -135,24 +133,17 @@ function LowBadge({ row }: { row: Row }) {
   )
 }
 
-/**
- * Ogohlantirish chegarasi yoki to'ldirish normasi — bosilsa joyida tahrirlash ochiladi. Norma yozilmagan bo'lsa —
- * "To'ldirish" yetkazadigan daraja kulrang (chegara × 2 yoki 10 birlik), ustida — qoidasi.
- */
-function LimitButton({ row, limit, onEdit }: { row: Row; limit: Limit; onEdit: () => void }) {
+/** Ogohlantirish chegarasi — bosilsa joyida tahrirlash ochiladi; ustida — nima uchunligi. */
+function MinButton({ row, onEdit }: { row: Row; onEdit: () => void }) {
   const t = useT()
-  const auto = limit === 'target' && row.target === 0
-  const value = limit === 'min' ? row.min : row.target || refillTarget(row)
-  const title =
-    limit === 'min' ? t.stock.editMin : auto ? `${t.stock.targetAuto(row.min > 0 ? t.stock.targetAutoMin : t.stock.targetAutoDefault)}. ${t.stock.editTarget}` : t.stock.editTarget
   return (
     <button
       type="button"
       onClick={onEdit}
-      title={title}
-      className={`group flex cursor-pointer items-center gap-1.5 font-semibold whitespace-nowrap tabular-nums hover:text-neutral-950 ${auto ? 'text-neutral-400' : 'text-neutral-700'}`}
+      title={t.stock.editMin}
+      className="group flex cursor-pointer items-center gap-1.5 font-semibold whitespace-nowrap text-neutral-700 tabular-nums hover:text-neutral-950"
     >
-      {value > 0 ? formatStock(value, row.ingredient, t) : '—'}
+      {row.min > 0 ? formatStock(row.min, row.ingredient, t) : '—'}
       <Pencil size={12} className="text-neutral-300 group-hover:text-select" />
     </button>
   )
@@ -200,10 +191,7 @@ function RowActions({ row, refillTo, onHistory, onReset, stretch = false }: Omit
   )
 }
 
-/**
- * Mahsulot kartochkasi: nomi, holati (faqat kam / tugagan), katta qoldiq, chegara va norma (uchalasi bosib
- * tahrirlanadi), qiymati, amallar.
- */
+/** Mahsulot kartochkasi: nomi, holati (faqat kam / tugagan), katta qoldiq va chegara (ikkalasi bosib tahrirlanadi), qiymati, amallar. */
 function StockCard({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps) {
   const t = useT()
   const localize = useLocalize()
@@ -214,7 +202,10 @@ function StockCard({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps
   return (
     <div className={`flex flex-col gap-3 rounded-card border-2 p-3.5 shadow-card ${row.low ? 'border-red-200 bg-red-50' : 'border-transparent bg-surface dark:border-line'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 leading-snug font-semibold text-neutral-950">{localize(row.ingredient.name)}</p>
+        <p className="min-w-0 leading-snug font-semibold text-neutral-950">
+          {localize(row.ingredient.name)}
+          {row.ingredient.consumable && <ConsumableBadge />}
+        </p>
         <LowBadge row={row} />
       </div>
       {editing === 'qty' ? (
@@ -224,20 +215,16 @@ function StockCard({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps
           <QtyButton row={row} onEdit={() => setEditing('qty')} large />
         </div>
       )}
-      {editing === 'min' || editing === 'target' ? (
+      {editing === 'min' ? (
         <div className="space-y-1">
-          <p className="text-xs text-neutral-500">{editing === 'min' ? t.stock.min : t.stock.target}</p>
-          <NumberEditor row={row} field={editing} warehouseId={warehouseId} onDone={done} />
+          <p className="text-xs text-neutral-500">{t.stock.min}</p>
+          <NumberEditor row={row} field="min" warehouseId={warehouseId} onDone={done} />
         </div>
       ) : (
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+        <dl className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 text-xs">
           <dt className="text-neutral-500">{t.stock.min}</dt>
-          <dt className="text-right text-neutral-500">{t.stock.target}</dt>
-          <dd>
-            <LimitButton row={row} limit="min" onEdit={() => setEditing('min')} />
-          </dd>
           <dd className="flex justify-end">
-            <LimitButton row={row} limit="target" onEdit={() => setEditing('target')} />
+            <MinButton row={row} onEdit={() => setEditing('min')} />
           </dd>
           <dt className="mt-1.5 text-neutral-500">{t.stock.value}</dt>
           <dd className="mt-1.5 text-right font-semibold whitespace-nowrap text-neutral-700 tabular-nums">{value !== null ? formatMoney(value, t) : '—'}</dd>
@@ -253,28 +240,29 @@ function StockCard({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps
 /** ixcham jadval katagi — kartochkadagidan pastroq qatorlar */
 const cellClass = `${tdClass} py-1.5!`
 
-/** Ixcham ko'rinishdagi qator: nomi + holati, qoldiq, chegara va norma (uchalasi bosib tahrirlanadi), qiymati, amallar. */
+/** Ixcham ko'rinishdagi qator: nomi + holati, qoldiq va chegara (ikkalasi bosib tahrirlanadi), qiymati, amallar. */
 function StockRow({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps) {
   const t = useT()
   const localize = useLocalize()
   const [editing, setEditing] = useState<Editable | null>(null)
   const value = rowValue(row)
   const editor = (field: Editable) => <NumberEditor row={row} field={field} warehouseId={warehouseId} onDone={() => setEditing(null)} />
-  const limitCell = (limit: Limit) => (editing === limit ? editor(limit) : <LimitButton row={row} limit={limit} onEdit={() => setEditing(limit)} />)
 
   return (
     <tr className={row.low ? 'bg-red-50/70' : ''}>
       <td className={cellClass}>
         <span className="flex items-center gap-2">
-          <span className="font-semibold text-neutral-950">{localize(row.ingredient.name)}</span>
+          <span className="font-semibold text-neutral-950">
+            {localize(row.ingredient.name)}
+            {row.ingredient.consumable && <ConsumableBadge />}
+          </span>
           <LowBadge row={row} />
         </span>
       </td>
       <td className={`${cellClass} text-right`}>
         {editing === 'qty' ? <div className="flex justify-end">{editor('qty')}</div> : <QtyButton row={row} onEdit={() => setEditing('qty')} />}
       </td>
-      <td className={cellClass}>{limitCell('min')}</td>
-      <td className={cellClass}>{limitCell('target')}</td>
+      <td className={cellClass}>{editing === 'min' ? editor('min') : <MinButton row={row} onEdit={() => setEditing('min')} />}</td>
       <td className={`${cellClass} text-right font-semibold text-neutral-700 tabular-nums`}>{value !== null ? formatMoney(value, t) : '—'}</td>
       <td className={cellClass}>
         <RowActions row={row} refillTo={refillTo} onHistory={onHistory} onReset={onReset} />
@@ -285,8 +273,8 @@ function StockRow({ row, warehouseId, refillTo, onHistory, onReset }: ItemProps)
 
 /**
  * Qoldiqlar: ombor tanlanadi → mahsulotlar guruhlar bo'yicha kartochkalar to'rida yoki ixcham jadvalda (ko'rinish shu
- * qurilmada saqlanadi): qoldiq (qo'lda ham yoziladi — tarixda "Tuzatish"), ogohlantirish chegarasi va to'ldirish normasi
- * (uchalasi tahrirlanadi), qiymati. Kam qolgan /
+ * qurilmada saqlanadi): qoldiq (qo'lda ham yoziladi — tarixda "Tuzatish"), ogohlantirish chegarasi (ikkalasi
+ * tahrirlanadi), qiymati. Kam qolgan /
  * minusdagilar guruh boshida, "To'ldirish" (bittasi) va "Hammasini to'ldirish" (ko'rinib turgan kamlarning hammasi bitta
  * hujjatda) — ko'chirish (filial, markazdan; markazda bori bilan cheklanadi) yoki kirim (markaziy) formasi tayyor holda.
  */
@@ -328,7 +316,8 @@ export default function StockPage() {
       const stock = stockById.get(ingredient.id)
       const qty = stock?.qty ?? 0
       const min = stock?.minQty ?? 0
-      return { ingredient, stock, qty, min, target: stock?.targetQty ?? 0, low: (min > 0 && qty < min) || qty < 0 }
+      // sarf materiali — qoldig'i keyingi partiyagacha kamaymaydi, "kam qoldi" yo'q (server `GET /stock/low` dagidek)
+      return { ingredient, stock, qty, min, low: !ingredient.consumable && ((min > 0 && qty < min) || qty < 0) }
     })
   const search = query.trim().toLowerCase()
   const visible = rows
@@ -464,7 +453,6 @@ export default function StockPage() {
                   <th className={thClass}>{t.stock.name}</th>
                   <th className={`${thClass} text-right`}>{t.stock.qty}</th>
                   <th className={thClass}>{t.stock.min}</th>
-                  <th className={thClass}>{t.stock.target}</th>
                   <th className={`${thClass} text-right`}>{t.stock.value}</th>
                   <th className={thClass} />
                 </tr>
@@ -472,7 +460,7 @@ export default function StockPage() {
               {sections.map((section) => (
                 <tbody key={section.group} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
                   <tr className="bg-neutral-50">
-                    <td colSpan={6} className="px-3 py-1.5">
+                    <td colSpan={5} className="px-3 py-1.5">
                       <GroupHeading group={section.group} count={section.rows.length} compact />
                     </td>
                   </tr>

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BarChart3, Boxes, ClipboardList, Clock, Package, PackagePlus, Receipt, ShoppingBag, Sparkles, Store, Users, UtensilsCrossed } from 'lucide-react'
+import { ArrowLeftRight, BarChart3, Boxes, ChefHat, ClipboardList, Clock, Package, PackagePlus, Receipt, ShoppingBag, Sparkles, Store, Users, UtensilsCrossed } from 'lucide-react'
 import { useLowStock, useOverview } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { useT } from '@/i18n'
@@ -23,6 +23,7 @@ export function useWarehouseNav(): WarehouseNavItem[] {
     { tab: 'stock', to: '/ombor', label: t.stock.nav, icon: Boxes, end: true, badge: isAdmin ? overview?.lowStock : lowStock?.length },
     { tab: 'purchase', to: '/ombor/kirim', label: t.purchase.title, icon: PackagePlus },
     { tab: 'transfer', to: '/ombor/kochirish', label: t.transfer.title, icon: ArrowLeftRight },
+    { tab: 'production', to: '/ombor/tayyorlash', label: t.production.title, icon: ChefHat },
     { tab: 'ingredients', to: '/ombor/mahsulotlar', label: t.ingredients.nav, icon: Package },
   ]
 }

@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { inputClass } from '@/components/ui/styles'
 import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
@@ -9,21 +10,63 @@ const normalize = (text: string) => text.toLowerCase().replace(/[‘’ʻʼ`´]/
 /** raqamlar son sifatida: "Cola 0.5 l" → "Cola 1 l" → "Cola 1.5 l" → "Cola 2 l" */
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
-type Section = { group: IngredientGroup; items: Ingredient[] }
+type Option = { id: ID; label: string }
+type Section = { key: string; title: string; items: Option[] }
 
-/** Guruhlar tartibida, guruh ichida alifbo bo'yicha (bir xil nomlilar yonma-yon). So'zlarning hammasi nomda bo'lishi kerak. */
-function buildSections(ingredients: Ingredient[], query: string, localize: (text: Ingredient['name']) => string): Section[] {
+/** Ro'yxat boshidagi qo'shimcha bo'lim (masalan chiqim turlari): berilgan tartibda, mahsulot guruhlaridan oldin. */
+export type ExtraSection = { title: string; items: Option[] }
+
+/**
+ * Avval qo'shimcha bo'lim, keyin mahsulot guruhlari tartibida, guruh ichida alifbo bo'yicha (bir xil nomlilar yonma-yon).
+ * So'zlarning hammasi nomda bo'lishi kerak (mahsulotda — istalgan tildagi nomida).
+ */
+function buildSections(
+  ingredients: Ingredient[],
+  query: string,
+  localize: (text: Ingredient['name']) => string,
+  groupTitle: (group: IngredientGroup) => string,
+  extra?: ExtraSection,
+): Section[] {
   const words = normalize(query).split(/\s+/).filter(Boolean)
-  const matches = (item: Ingredient) =>
+  const matches = (names: string[]) =>
     words.length === 0 ||
-    Object.values(item.name).some((name) => {
+    names.some((name) => {
       const text = normalize(name)
       return words.every((word) => text.includes(word))
     })
-  return INGREDIENT_GROUPS.map((group) => ({
-    group,
-    items: ingredients.filter((item) => item.group === group && matches(item)).sort((a, b) => collator.compare(localize(a.name), localize(b.name))),
-  })).filter((section) => section.items.length > 0)
+  const head = extra ? [{ key: 'extra', title: extra.title, items: extra.items.filter((option) => matches([option.label])) }] : []
+  const groups = INGREDIENT_GROUPS.map((group) => ({
+    key: group,
+    title: groupTitle(group),
+    items: ingredients
+      .filter((item) => item.group === group && matches(Object.values(item.name)))
+      .map((item) => ({ id: item.id, label: localize(item.name) }))
+      .sort((a, b) => collator.compare(a.label, b.label)),
+  }))
+  return [...head, ...groups].filter((section) => section.items.length > 0)
+}
+
+/** ro'yxat oynasining joyi (ekranga nisbatan): pastda joy yetmasa — tugmaning tepasiga ochiladi */
+type Place = { left: number; width: number; top?: number; bottom?: number; listMax: number }
+
+const MIN_WIDTH = 256
+const LIST_MAX = 288
+/** qidiruv maydoni (32) + oraliq (6) + ichki chekinish (12) */
+const CHROME = 50
+/** tugmadan va ekran chetidan masofa */
+const GAP = 4
+const EDGE = 8
+
+function placeFor(button: HTMLElement): Place {
+  const rect = button.getBoundingClientRect()
+  const width = Math.max(rect.width, MIN_WIDTH)
+  const left = Math.max(EDGE, Math.min(rect.left, window.innerWidth - width - EDGE))
+  const below = window.innerHeight - rect.bottom - GAP - EDGE
+  const above = rect.top - GAP - EDGE
+  if (below < CHROME + LIST_MAX && above > below) {
+    return { left, width, bottom: window.innerHeight - rect.top + GAP, listMax: Math.max(96, Math.min(LIST_MAX, above - CHROME)) }
+  }
+  return { left, width, top: rect.bottom + GAP, listMax: Math.max(96, Math.min(LIST_MAX, below - CHROME)) }
 }
 
 type Props = {
@@ -33,38 +76,53 @@ type Props = {
   ingredients: Ingredient[]
   /** tanlangan mahsulot — ro'yxatda bo'lmasa ham (nofaol) nomi ko'rinadi */
   selected?: Ingredient
+  /** ro'yxat boshida mahsulot bo'lmagan tanlovlar (masalan chiqimda: svet, gaz...) — `value` ulardan biri bo'lishi mumkin */
+  extra?: ExtraSection
+  /** tugma id si — `<label htmlFor>` bilan bog'lash uchun */
+  id?: string
   className?: string
 }
 
 /**
  * Mahsulot tanlash: select ko'rinishidagi tugma → qidiruv maydoni va guruhlangan ro'yxat. Klaviatura: yozish — qidiruv,
  * ↑/↓ — yurish, Enter — tanlash, Esc — yopish. Yopiq tugmada harf bosilsa — o'sha harf bilan qidiruv ochiladi.
+ * Ro'yxat `body` ga chiqariladi — oyna (Modal) ichida ham kesilmaydi; pastda joy yetmasa tepaga ochiladi. `extra` —
+ * ro'yxat boshida mahsulot bo'lmagan tanlovlar (chiqim turlari), qidiruv ularga ham ishlaydi.
  */
-export default function IngredientPicker({ value, onChange, ingredients, selected, className = '' }: Props) {
+export default function IngredientPicker({ value, onChange, ingredients, selected, extra, id, className = '' }: Props) {
   const t = useT()
   const localize = useLocalize()
   const listId = useId()
-  const [open, setOpen] = useState(false)
+  const [place, setPlace] = useState<Place | null>(null)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const open = place !== null
 
-  const sections = open ? buildSections(ingredients, query, localize) : []
+  const groupTitle = (group: IngredientGroup) => t.stock.groups[group]
+  const sections = open ? buildSections(ingredients, query, localize, groupTitle, extra) : []
   const flat = sections.flatMap((section) => section.items)
   const indexOf = new Map(flat.map((item, index) => [item.id, index]))
+  const current = extra?.items.find((option) => option.id === value)?.label ?? (selected ? localize(selected.name) : null)
 
   const openWith = (initial = '') => {
+    if (!buttonRef.current) return
     // qidiruvsiz ochilsa — tanlangan mahsulot ustida turadi
-    const index = initial ? 0 : buildSections(ingredients, '', localize).flatMap((section) => section.items).findIndex((item) => item.id === value)
+    const index = initial
+      ? 0
+      : buildSections(ingredients, '', localize, groupTitle, extra)
+          .flatMap((section) => section.items)
+          .findIndex((item) => item.id === value)
     setQuery(initial)
     setActive(Math.max(0, index))
-    setOpen(true)
+    setPlace(placeFor(buttonRef.current))
   }
   const close = (refocus = false) => {
-    setOpen(false)
+    setPlace(null)
     if (refocus) buttonRef.current?.focus()
   }
   const pick = (id: ID) => {
@@ -76,10 +134,22 @@ export default function IngredientPicker({ value, onChange, ingredients, selecte
     if (!open) return
     searchRef.current?.focus()
     const onPointer = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (!rootRef.current?.contains(target) && !popupRef.current?.contains(target)) setPlace(null)
+    }
+    // sahifa yoki oyna o'ralsa / o'lchami o'zgarsa — ro'yxat tugma ortidan yuradi (ro'yxatning o'z o'ralishi bundan mustasno)
+    const onMove = (event: Event) => {
+      if (event.target instanceof Node && popupRef.current?.contains(event.target)) return
+      if (buttonRef.current) setPlace(placeFor(buttonRef.current))
     }
     document.addEventListener('mousedown', onPointer)
-    return () => document.removeEventListener('mousedown', onPointer)
+    window.addEventListener('scroll', onMove, true)
+    window.addEventListener('resize', onMove)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      window.removeEventListener('scroll', onMove, true)
+      window.removeEventListener('resize', onMove)
+    }
   }, [open])
 
   useEffect(() => {
@@ -121,72 +191,81 @@ export default function IngredientPicker({ value, onChange, ingredients, selecte
     <div ref={rootRef} className={`relative ${className}`}>
       <button
         ref={buttonRef}
+        id={id}
         type="button"
         onClick={() => (open ? close() : openWith())}
         onKeyDown={onButtonKey}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={t.purchase.chooseIngredient}
+        // id bo'lsa — nomi `<label>` dan
+        aria-label={id ? undefined : t.purchase.chooseIngredient}
         className={`${inputClass} flex cursor-pointer items-center gap-2 text-left focus-visible:border-neutral-900 focus-visible:outline-none dark:focus-visible:border-vsc-focus`}
       >
-        <span className={`min-w-0 flex-1 truncate ${selected ? '' : 'text-neutral-400'}`}>{selected ? localize(selected.name) : t.purchase.chooseIngredient}</span>
+        <span className={`min-w-0 flex-1 truncate ${current ? '' : 'text-neutral-400'}`}>{current ?? t.purchase.chooseIngredient}</span>
         <ChevronDown size={14} className={`shrink-0 text-neutral-500 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className="absolute top-full right-0 left-0 z-40 mt-1 min-w-64 rounded-card bg-surface p-1.5 text-neutral-900 shadow-float">
-          <label className="relative block">
-            <Search size={14} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-neutral-400" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value)
-                setActive(0)
-              }}
-              onKeyDown={onSearchKey}
-              placeholder={t.stock.search}
-              role="combobox"
-              aria-label={t.stock.search}
-              aria-expanded
-              aria-controls={listId}
-              aria-activedescendant={flat[active] ? `${listId}-${active}` : undefined}
-              className={`${inputClass} pl-8`}
-            />
-          </label>
-          <div ref={listRef} id={listId} role="listbox" className="mt-1.5 max-h-72 overflow-y-auto">
-            {sections.length === 0 ? (
-              <p className="px-2.5 py-3 text-center text-sm text-neutral-500">{t.stock.emptySearch}</p>
-            ) : (
-              sections.map((section) => (
-                <div key={section.group} role="group" aria-label={t.stock.groups[section.group]}>
-                  <p className="px-2.5 pt-2 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{t.stock.groups[section.group]}</p>
-                  {section.items.map((item) => {
-                    const index = indexOf.get(item.id) ?? -1
-                    const isSelected = item.id === value
-                    return (
-                      <div
-                        key={item.id}
-                        id={`${listId}-${index}`}
-                        data-index={index}
-                        role="option"
-                        aria-selected={isSelected}
-                        // fokus qidiruv maydonida qolsin
-                        onMouseDown={(event) => event.preventDefault()}
-                        onMouseMove={() => setActive(index)}
-                        onClick={() => pick(item.id)}
-                        className={`flex cursor-pointer items-center gap-2 rounded px-2.5 py-1.5 text-sm ${index === active ? 'bg-neutral-100' : ''} ${isSelected ? 'font-semibold' : ''}`}
-                      >
-                        <span className="min-w-0 flex-1 truncate">{localize(item.name)}</span>
-                        {isSelected && <Check size={14} className="shrink-0 text-select" />}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      {place &&
+        createPortal(
+          // Modal (z-50) ustida
+          <div
+            ref={popupRef}
+            style={{ left: place.left, width: place.width, top: place.top, bottom: place.bottom }}
+            className="fixed z-[60] rounded-card bg-surface p-1.5 text-neutral-900 shadow-float"
+          >
+            <label className="relative block">
+              <Search size={14} className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-neutral-400" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value)
+                  setActive(0)
+                }}
+                onKeyDown={onSearchKey}
+                placeholder={t.stock.search}
+                role="combobox"
+                aria-label={t.stock.search}
+                aria-expanded
+                aria-controls={listId}
+                aria-activedescendant={flat[active] ? `${listId}-${active}` : undefined}
+                className={`${inputClass} pl-8`}
+              />
+            </label>
+            <div ref={listRef} id={listId} role="listbox" style={{ maxHeight: place.listMax }} className="mt-1.5 overflow-y-auto">
+              {sections.length === 0 ? (
+                <p className="px-2.5 py-3 text-center text-sm text-neutral-500">{t.stock.emptySearch}</p>
+              ) : (
+                sections.map((section) => (
+                  <div key={section.key} role="group" aria-label={section.title}>
+                    <p className="px-2.5 pt-2 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{section.title}</p>
+                    {section.items.map((item) => {
+                      const index = indexOf.get(item.id) ?? -1
+                      const isSelected = item.id === value
+                      return (
+                        <div
+                          key={item.id}
+                          id={`${listId}-${index}`}
+                          data-index={index}
+                          role="option"
+                          aria-selected={isSelected}
+                          // fokus qidiruv maydonida qolsin
+                          onMouseDown={(event) => event.preventDefault()}
+                          onMouseMove={() => setActive(index)}
+                          onClick={() => pick(item.id)}
+                          className={`flex cursor-pointer items-center gap-2 rounded px-2.5 py-1.5 text-sm ${index === active ? 'bg-neutral-100' : ''} ${isSelected ? 'font-semibold' : ''}`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {isSelected && <Check size={14} className="shrink-0 text-select" />}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

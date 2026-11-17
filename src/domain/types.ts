@@ -236,6 +236,11 @@ export interface Ingredient {
   packSize: number | null
   /** oxirgi tasdiqlangan kirimdagi 1 birlik (qadoq bo'lsa — 1 dona, aks holda kg / l / dona) narxi — keyingi kirimda avtomatik yoziladi */
   lastPrice: number | null
+  /**
+   * Sarf materiali (salfetka, yuvish vositalari): yangi partiya kelganda (kirim, ko'chirish) eski qoldiq "Sarflandi"
+   * (`consume`) bo'ladi; "kam qoldi" ogohlantirishlariga kirmaydi
+   */
+  consumable: boolean
   active: boolean
 }
 
@@ -247,11 +252,6 @@ export interface StockItem {
   qty: number
   /** asosiy birlikda; qoldiq shundan kam bo'lsa — ogohlantirish. 0 — kuzatilmaydi */
   minQty: number
-  /**
-   * Norma, asosiy birlikda: "To'ldirish" qoldiqni shu darajagacha yetkazadi. 0 — yozilmagan: chegara × 2, chegara ham
-   * yo'q bo'lsa — 10 birlik (`refillTarget`)
-   */
-  targetQty: number
 }
 
 /** Ombor mahsuloti qayerlarda ishlatilgan (`GET /ingredients/:id/usage`, admin) — birlikni o'zgartirishdan oldin. */
@@ -264,6 +264,8 @@ export interface IngredientUsage {
   /** tasdiq kutayotgan eski kirimlar — bo'lsa kg / l ↔ dona o'zgartirib bo'lmaydi (`pending_purchase`) */
   pendingPurchases: number
   transfers: number
+  /** tayyorlashlar — shu mahsulot tayyorlangan yoki sarflangan */
+  productions: number
 }
 
 export type PurchaseStatus = 'pending' | 'approved' | 'rejected'
@@ -312,8 +314,38 @@ export interface Transfer {
   createdAt: Timestamp
 }
 
-/** `adjust` — qoldiqni tuzatish ("Tuzatish"): 0 ga tushirish (faqat admin) yoki qo'lda yozish (admin va ta'minotchi) */
-export type MovementKind = 'purchase' | 'transfer_in' | 'transfer_out' | 'sale' | 'sale_cancel' | 'adjust'
+/** Tayyorlashda sarflangan mahsulot: miqdor **qadoqsiz** birlikda — kg / l / dona (qadoqli tuxum ham donada). */
+export interface ProductionItem {
+  ingredientId: ID
+  qty: number
+}
+
+/**
+ * "Tayyorlash №N" — markaziy omborda bir nechta mahsulotdan yangisi: go'sht, tuxum, yog' → katlet. Sarflanganlar
+ * ayriladi, tayyor mahsulot qo'shiladi (harakat turi `production`).
+ */
+export interface Production {
+  id: ID
+  number: number
+  warehouseId: ID
+  /** tayyor mahsulot */
+  ingredientId: ID
+  /** chiqqan miqdor, qadoqsiz birlikda — kg / l / dona */
+  qty: number
+  items: ProductionItem[]
+  /** tannarx, so'm; sarflanganlardan birining narxi bo'lmasa — `null` */
+  cost: number | null
+  note: string
+  createdBy: ID
+  createdAt: Timestamp
+}
+
+/**
+ * `adjust` — qoldiqni tuzatish ("Tuzatish"): 0 ga tushirish (faqat admin) yoki qo'lda yozish (admin va ta'minotchi);
+ * `production` — tayyorlash: sarflangan — manfiy, tayyor mahsulot — musbat; `consume` — "Sarflandi": sarf materialiga
+ * yangi partiya kelganda eski qoldiq (sabab — o'sha kirim yoki ko'chirish, `refId`)
+ */
+export type MovementKind = 'purchase' | 'transfer_in' | 'transfer_out' | 'sale' | 'sale_cancel' | 'adjust' | 'production' | 'consume'
 
 /** Qoldiqning har bir o'zgarishi — tarix va hisobotlar uchun. */
 export interface StockMovement {
@@ -326,6 +358,8 @@ export interface StockMovement {
   /** sabab bo'lgan hujjat: buyurtma, kirim, ko'chirish yoki tuzatish id'si */
   refId: ID
   createdAt: Timestamp
+  /** faqat "Sarflandi" da — hisobdan chiqqan qoldiqning o'sha paytdagi narxdagi qiymati; boshqalarida / narxsiz — `null` */
+  cost?: number | null
 }
 
 /**
@@ -501,14 +535,17 @@ export interface ShiftSummary {
 
 export type ShiftWithSummary = Shift & { summary: ShiftSummary }
 
-export type ExpenseKind = 'electricity' | 'gas' | 'water' | 'internet' | 'other'
-export const EXPENSE_KINDS: ExpenseKind[] = ['electricity', 'gas', 'water', 'internet', 'other']
+/** `ingredient` — ombor mahsulotiga to'lov (qaysi — `ingredientId`), qoldiqqa ta'sir qilmaydi */
+export type ExpenseKind = 'electricity' | 'gas' | 'water' | 'internet' | 'other' | 'ingredient'
+export const EXPENSE_KINDS: ExpenseKind[] = ['electricity', 'gas', 'water', 'internet', 'other', 'ingredient']
 
-/** Chiqim — hozircha faqat kommunal to'lovlar. */
+/** Chiqim — kommunal to'lovlar va ombor mahsulotiga to'lov. */
 export interface Expense {
   id: ID
   branchId: ID
   kind: ExpenseKind
+  /** `kind: 'ingredient'` da — qaysi mahsulot, boshqalarida `null` */
+  ingredientId: ID | null
   amount: number
   date: DateKey
   note: string
@@ -595,6 +632,29 @@ export interface ProductStat {
   name: LocalizedText
   qty: number
   revenue: number
+}
+
+/**
+ * Taom foydasi (`GET /reports/products`): sotilgan soni va tushumi, ulardan tannarxi ma'lum qismi (`costedQty`,
+ * `costedRevenue`) va o'sha qismning sotuv paytidagi tannarxi (`cost`). Foyda — `costedRevenue − cost`; tannarxi
+ * noma'lumi — `qty − costedQty` (tannarx yozilishidan oldingi sotuv yoki retseptida narxsiz mahsulot bo'lgan).
+ */
+export interface ProductProfit extends ProductStat {
+  costedQty: number
+  costedRevenue: number
+  cost: number
+}
+
+/**
+ * Xo'jalik sarfi (`GET /reports/consumption`): sarf materiali davrda qancha "Sarflandi" — miqdori asosiy birlikda,
+ * qiymati ma'lum qismi (`costedQty`) va uning summasi (`cost`).
+ */
+export interface ConsumptionStat {
+  ingredientId: ID
+  name: LocalizedText
+  qty: number
+  costedQty: number
+  cost: number
 }
 
 export interface BranchStat extends Tally {

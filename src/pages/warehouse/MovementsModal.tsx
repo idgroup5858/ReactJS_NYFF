@@ -5,13 +5,14 @@ import { tdClass, thClass } from '@/components/ui/styles'
 import { fullName } from '@/domain/rules'
 import type { ID, MovementWithRef } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatDateTime, formatOrderNumber, formatStock } from '@/lib/format'
+import { formatDateTime, formatMoney, formatOrderNumber, formatStock } from '@/lib/format'
 import { warehouseLabel } from '@/lib/warehouses'
 import { usePageState, useServerPage } from './serverPagination'
 
 /**
  * Bitta mahsulotning bitta ombordagi harakatlari (10 tadan, eng yangisi birinchi): kirim, ko'chirish, sotuv, bekor
- * qilish, tuzatish (0 ga) — hujjat raqami bilan; tuzatishda — kim qilgani ham.
+ * qilish, tuzatish (0 ga), tayyorlash, sarflandi — hujjat raqami bilan; tuzatish va tayyorlashda — kim qilgani ham,
+ * sarflandida — qiymati.
  */
 export default function MovementsModal({ warehouseId, ingredientId, onClose }: { warehouseId: ID; ingredientId: ID; onClose: () => void }) {
   const t = useT()
@@ -39,9 +40,16 @@ export default function MovementsModal({ warehouseId, ingredientId, onClose }: {
         const other = movement.refWarehouseId ? warehouseLabel(warehouses, branches, movement.refWarehouseId, t) : '—'
         return `${t.transfer.number(movement.refNumber)} · ${other}`
       }
-      case 'adjust': {
+      case 'adjust':
+      case 'production': {
+        const document = movement.kind === 'adjust' ? t.stock.refAdjustment(movement.refNumber) : t.production.number(movement.refNumber)
         const author = users.find((u) => u.id === movement.refBy)
-        return author ? `${t.stock.refAdjustment(movement.refNumber)} · ${fullName(author)}` : t.stock.refAdjustment(movement.refNumber)
+        return author ? `${document} · ${fullName(author)}` : document
+      }
+      case 'consume': {
+        // yangi partiyani olib kelgan hujjat (kirim yoki ko'chirish — id prefiksidan) va hisobdan chiqqan qiymat
+        const document = movement.refId.startsWith('trf_') ? t.transfer.number(movement.refNumber) : t.purchase.number(movement.refNumber)
+        return movement.cost != null ? `${document} · ${formatMoney(movement.cost, t)}` : document
       }
     }
   }

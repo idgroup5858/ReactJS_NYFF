@@ -1,6 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, ClipboardCheck, Monitor, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useBranches, useOverview, useSalesReport } from '@/api/queries'
 import { ORDER_TYPE_ICONS, PAYMENT_ICONS } from '@/components/order/orderIcons'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -14,8 +14,12 @@ import PeriodFilter from '../PeriodFilter'
 import { useLatest, usePeriod } from '../usePeriod'
 import BarChart, { type BarPoint } from './BarChart'
 import BarList from './BarList'
+import ConsumptionCard from './ConsumptionCard'
+import ProductProfitTab from './ProductProfitTab'
 
-const pad = (value: number) => String(value).padStart(2, '0')
+type View = 'overview' | 'profit'
+
+const pad =(value: number) => String(value).padStart(2, '0')
 
 const NO_TALLY: Tally = { orders: 0, revenue: 0 }
 
@@ -34,7 +38,7 @@ function emptyReport(range: { from: DateKey; to: DateKey }): SalesReport {
     topProducts: [],
     byBranch: [],
     expenses: 0,
-    expensesByKind: { electricity: 0, gas: 0, water: 0, internet: 0, other: 0 },
+    expensesByKind: { electricity: 0, gas: 0, water: 0, internet: 0, other: 0, ingredient: 0 },
     net: 0,
   }
 }
@@ -58,7 +62,8 @@ function Delta({ current, previous }: { current: number; previous: number }) {
 /**
  * Hisobotlar (admin bosh sahifasi): davr (bugun / kecha / 7 kun / 30 kun / tanlangan) va filial bo'yicha tushum,
  * buyurtmalar, o'rtacha chek, kommunal xarajatlar va sof natija; kunlik (yoki soatlik) diagramma; to'lov turi,
- * buyurtma turi, manba, filiallar va eng ko'p sotilgan taomlar.
+ * buyurtma turi, manba, filiallar va eng ko'p sotilgan taomlar. Ikkinchi tab — "Taomlar foydasi" (`?tab=profit`):
+ * shu davr va filial bo'yicha har taomning tannarxi va foydasi; "Umumiy" tab o'zgarmagan.
  */
 export default function ReportsPage() {
   const t = useT()
@@ -68,16 +73,20 @@ export default function ReportsPage() {
   const period = usePeriod('today')
   const { range } = period
   const [branchId, setBranchId] = useState<string>('all')
+  const [params, setParams] = useSearchParams()
+  const view: View = params.get('tab') === 'profit' ? 'profit' : 'overview'
+  const onOverview = view === 'overview'
 
   const branch = branchId === 'all' ? null : branchId
-  const current = useSalesReport({ ...range, branchId: branch })
+  // "Taomlar foydasi" ochiq paytda sotuv hisoboti so'ralmaydi (qaytganda oxirgisi ko'rinib turadi)
+  const current = useSalesReport(onOverview ? { ...range, branchId: branch } : null)
   const report = useLatest(current.data) ?? emptyReport(range)
   // oldingi xuddi shunday uzunlikdagi davr — o'sish / kamayish foizi uchun; u ma'lumot boshlanishidan (birinchi
   // buyurtma kunidan) oldin bo'lsa — solishtirish noto'g'ri (+3000%), so'ralmaydi ham, ko'rsatilmaydi ham
   const previousFrom = addDays(range.from, -dateRange(range.from, range.to).length)
   const firstOrderDate = overview?.firstOrderDate ?? null
   const previousRange = firstOrderDate !== null && previousFrom >= firstOrderDate ? { from: previousFrom, to: addDays(range.from, -1), branchId: branch } : null
-  const previous = useSalesReport(previousRange).data
+  const previous = useSalesReport(onOverview ? previousRange : null).data
   const comparable = previousRange !== null && previous !== undefined
 
   const money = (value: number) => formatMoney(value, t)
@@ -112,11 +121,23 @@ export default function ReportsPage() {
     { label: t.admin.reports.net, value: money(report.net), sub: t.admin.reports.netHint, tone: report.net < 0 ? 'text-red-700' : 'text-neutral-950' },
   ]
 
-  return (
-    <div className="space-y-5">
+  // sarlavha, tablar va davr / filial filtri — ikkala tabda umumiy
+  const header = (
+    <>
       <PageHeader
         title={t.admin.reports.title}
-        description={t.admin.reports.hint}
+        description={onOverview ? t.admin.reports.hint : t.admin.reports.profit.hint}
+        actions={
+          <SegmentedControl<View>
+            label={t.admin.reports.title}
+            value={view}
+            onChange={(next) => setParams(next === 'profit' ? { tab: 'profit' } : {}, { replace: true })}
+            options={[
+              { value: 'overview', label: t.admin.reports.tabs.overview },
+              { value: 'profit', label: t.admin.reports.tabs.profit },
+            ]}
+          />
+        }
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -129,6 +150,22 @@ export default function ReportsPage() {
           options={[{ value: 'all', label: t.admin.reports.allBranches }, ...branches.map((b) => ({ value: b.id, label: b.name }))]}
         />
       </div>
+    </>
+  )
+
+  if (!onOverview) {
+    return (
+      <div className="space-y-5">
+        {header}
+        <ProductProfitTab range={range} branchId={branch} />
+        <ConsumptionCard range={range} branchId={branch} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {header}
 
       {current.error !== null && !current.data && <p className="rounded-card bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage(current.error)}</p>}
 
