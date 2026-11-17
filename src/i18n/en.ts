@@ -705,6 +705,9 @@ export const en: Dict = {
       cashierReady: 'Cashier marks «Ready»',
       cashierReadyHint:
         'For a branch without a kitchen assistant: the cashier presses «Ready» and «Undo» in the orders panel. If there is a kitchen assistant, they can press it too',
+      stockFromCentral: 'Sell from the central warehouse',
+      stockFromCentralHint:
+        "For a branch right next to the central warehouse: ingredients of sold dishes are deducted from the central warehouse instead of the branch one. Stock is not moved — reset the branch warehouse with «Reset warehouse to 0» if needed",
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR not connected',
       hrNeverHint: "Enter this branch's HR key in the branch «NYFF HR» app",

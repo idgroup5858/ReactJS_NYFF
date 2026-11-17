@@ -249,3 +249,7 @@ miqdor** oddiy ko'chirish qilinsa, ikkala ombor ham to'g'ri (filial −2 + 5 = 3
 partiya bilan ko'chadi (5 kg olib kelinadi, 2 kg sotiladi): ko'chirish qilinmasa markaz tizimda ortiqcha ko'rinadi,
 olib kelingan 5 kg ko'chirilsa — sotilgan 2 kg ikki marta ayriladi; xodim har safar "qanchasi ayrilib bo'ldi" deb
 hisoblashi kerak bo'lardi. Qoldiqlar 0 da yoqilsa — filialning hamma sotuvi darrov markazdan ketardi.
+
+**Boshqa variant bajarildi (2026-11-17): "Sotuv markaziy ombordan"** — markazga juda yaqin filial (Luchvoy, 5 metr)
+uchun filial switchi: sotuv **doim** markaziy ombordan ayriladi, filialga ko'chirish umuman qilinmaydi — shuning uchun
+yuqoridagi ikki marta ayrilish yo'q (`NestJS_NYFF/PLAN.md` 2-bo'lim, `API.md` 7.2).

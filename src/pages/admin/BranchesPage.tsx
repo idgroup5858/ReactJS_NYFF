@@ -199,6 +199,15 @@ export default function BranchesPage() {
     }
   }
 
+  /** Markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi (qoldiq ko'chirilmaydi). */
+  const setStockFromCentral = async (branchId: ID, enabled: boolean) => {
+    try {
+      await api.branches.setStockFromCentral(branchId, enabled)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+
   /**
    * Admin navbat ekranini / kioskni ochadi — kod so'ralmaydi: filialning joriy kodi (yangilangan bo'lsa ham) oldindan
    * shu brauzerga yoziladi, ekran uni o'qiydi. Kod olinmasa (server javob bermadi) — ekran o'zi so'raydi.
@@ -390,6 +399,15 @@ export default function BranchesPage() {
                   label={t.admin.branches.cashierReady}
                 />
                 <p className="text-xs leading-relaxed text-neutral-500">{t.admin.branches.cashierReadyHint}</p>
+              </div>
+              {/* markaziy omborga juda yaqin filial: sotuv markaziy ombordan ayriladi */}
+              <div className="space-y-1.5 rounded-card border border-line p-3">
+                <Toggle
+                  checked={branch.stockFromCentral}
+                  onChange={(enabled) => void setStockFromCentral(branch.id, enabled)}
+                  label={t.admin.branches.stockFromCentral}
+                />
+                <p className="text-xs leading-relaxed text-neutral-500">{t.admin.branches.stockFromCentralHint}</p>
               </div>
               {branch.active && (
                 <div className="flex gap-2">

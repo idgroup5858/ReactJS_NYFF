@@ -56,6 +56,11 @@ export interface Branch {
    * tugmalarining chapida). Oshpaz yordamchisining huquqi o'zgarmaydi. Standart — o'chiq
    */
   cashierMarksReady: boolean
+  /**
+   * Markaziy omborga juda yaqin filial: sotuv retsepti filial omboridan emas, markaziy ombordan ayriladi. Qoldiq
+   * ko'chirilmaydi, filial omboriga tegilmaydi. Standart — o'chiq
+   */
+  stockFromCentral: boolean
   /** filial HR tizimi markazga oxirgi marta murojaat qilgan vaqt; `null` — hali ulanmagan */
   hrSeenAt: Timestamp | null
 }

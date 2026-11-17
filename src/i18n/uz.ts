@@ -722,6 +722,9 @@ export const uz = {
       cashierReady: '«Tayyor»ni kassir bosadi',
       cashierReadyHint:
         "Oshpaz yordamchisi yo'q filial uchun: kassir buyurtmalar panelida «Tayyor» va «Qaytarish» ni o'zi bosadi. Oshpaz yordamchisi bo'lsa, u ham bosa oladi",
+      stockFromCentral: 'Sotuv markaziy ombordan',
+      stockFromCentralHint:
+        "Markaziy omborga juda yaqin filial uchun: sotilgan taomlar mahsuloti filial omboridan emas, markaziy ombordan ayriladi. Qoldiq ko'chirilmaydi — filial omborini kerak bo'lsa «Omborni 0 qilish» bilan tushiring",
       hrSeen: (ago: string) => `HR: ${ago}`,
       hrNever: 'HR ulanmagan',
       hrNeverHint: "Filialdagi «NYFF HR» ga shu filialning HR kalitini kiriting",

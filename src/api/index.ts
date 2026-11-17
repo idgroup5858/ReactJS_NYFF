@@ -288,6 +288,9 @@ export const api = {
     /** oshpaz yordamchisi yo'q filial — kassir ham "Tayyor" / "Qaytarish" bosadi */
     setCashierMarksReady: (branchId: ID, enabled: boolean) =>
       then(http.put<Branch>(`/branches/${branchId}/cashier-ready`, { enabled }), 'branches'),
+    /** markaziy omborga juda yaqin filial — sotuv markaziy ombordan ayriladi */
+    setStockFromCentral: (branchId: ID, enabled: boolean) =>
+      then(http.put<Branch>(`/branches/${branchId}/stock-from-central`, { enabled }), 'branches'),
     /** filial HR tizimi kalitini yangilash — eskisi bilan HR endi ulana olmaydi */
     renewHrKey: (branchId: ID) => then(http.post<{ key: string }>(`/branches/${branchId}/hr-key`), `hr-key:${branchId}`),
     /** offline kassa (Electron) kalitini yangilash — eskisi bilan kassa kompyuteri endi ulana olmaydi */
