@@ -14,8 +14,11 @@ export interface PricedLine extends CartLine {
   price: number | null
 }
 
-/** Kassada dostavka yo'q — u faqat mobil ilovadan keladi (manzil, joylashuv, kuryer). */
-const KASSA_ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway']
+/**
+ * Kassadagi "Dostavka" — faqat chekdagi belgi (telefon orqali buyurtma, o'z yetkazuvchisi): manzil, kuryer, online
+ * dostavka mantiqi yo'q — ular faqat mobil ilova buyurtmasida (`source: 'mobile'`). TV ga chiqmaydi, oshxonada bor.
+ */
+const KASSA_ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery']
 
 type Props = {
   /** tepadagi ochiq cheklar tablari */
@@ -44,7 +47,7 @@ export default function CartPanel(props: Props) {
   const [orderNoteOpen, setOrderNoteOpen] = useState(false)
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0)
-  /** qator nega to'lanmaydi: sotuvdan olingan yoki "faqat zalda" taom olib ketishda; `null` — hammasi joyida */
+  /** qator nega to'lanmaydi: sotuvdan olingan yoki "faqat zalda" taom olib ketish / dostavkada; `null` — hammasi joyida */
   const problemOf = (line: PricedLine): string | null =>
     line.price === null ? t.menu.unavailable : allowedForType(line.product, orderType) ? null : t.menu.dineInOnly
   const blocked = lines.length === 0 || lines.some((line) => problemOf(line) !== null)
@@ -62,7 +65,7 @@ export default function CartPanel(props: Props) {
 
       {/* buyurtma turi — ixcham segmentli tanlov (boshqa sahifalardagi SegmentedControl uslubida, to'liq kenglikda) */}
       <div className="shrink-0 border-b border-neutral-200/70 px-3 py-2">
-        <div className="grid grid-cols-2 gap-1 rounded bg-neutral-200/70 p-1" role="radiogroup" aria-label={t.kassa.orderType}>
+        <div className="grid grid-cols-3 gap-1 rounded bg-neutral-200/70 p-1" role="radiogroup" aria-label={t.kassa.orderType}>
           {KASSA_ORDER_TYPES.map((type) => {
             const Icon = ORDER_TYPE_ICONS[type]
             const active = type === orderType
