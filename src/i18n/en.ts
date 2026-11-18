@@ -246,6 +246,8 @@ export const en: Dict = {
     online: 'Online',
     awaitingAccept: 'Awaiting acceptance',
     paidOnline: 'Paid via Click',
+    paidCard: 'Paid by card in the app',
+    refundCard: 'Customer paid by card in the app — refund the money',
     payOnDelivery: 'Cash — to courier',
     payOnPickup: 'Cash — at branch',
     customer: 'Customer',

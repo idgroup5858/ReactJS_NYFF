@@ -89,10 +89,19 @@ export function formatDateTime(iso: string): string {
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()} ${formatTime(iso)}`
 }
 
-/** Mobil buyurtmada mijoz tanlagan to'lov: "Click orqali to'langan" / "Naqd — kuryerga" / "Naqd — filialda". */
+/**
+ * Mobil buyurtmada mijoz tanlagan to'lov: "Ilovada karta bilan to'langan" / "Click orqali to'langan" / "Naqd — kuryerga"
+ * / "Naqd — filialda".
+ */
 export function formatOnlinePayment(online: OnlineInfo, type: OrderType, t: Dict): string {
+  if (online.payment === 'card') return t.orders.paidCard
   if (online.payment === 'click') return t.orders.paidOnline
   return type === 'delivery' ? t.orders.payOnDelivery : t.orders.payOnPickup
+}
+
+/** Mijoz ilovada oldindan to'lagan (karta / Click) — kassir va kuryer undan pul olmaydi. */
+export function isPrepaidOnline(online: OnlineInfo): boolean {
+  return online.payment !== 'cash'
 }
 
 /** Retsept miqdori asosiy birlikda: "120 g", "1 dona". */

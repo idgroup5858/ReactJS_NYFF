@@ -256,6 +256,8 @@ export const uz = {
     online: 'Online',
     awaitingAccept: 'Qabul kutilmoqda',
     paidOnline: "Click orqali to'langan",
+    paidCard: "Ilovada karta bilan to'langan",
+    refundCard: "Mijoz ilovada karta bilan to'lagan — pulni qaytaring",
     payOnDelivery: 'Naqd — kuryerga',
     payOnPickup: 'Naqd — filialda',
     customer: 'Mijoz',

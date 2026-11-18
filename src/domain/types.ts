@@ -392,15 +392,17 @@ export const ORDER_SOURCES: OrderSource[] = ['cashier', 'kiosk', 'mobile']
 export type MobilePlatform = 'android' | 'ios'
 
 /**
- * Mobil ilovadan kelgan buyurtma: mijoz, telefon, manzil (faqat dostavkada) va u tanlagan to'lov — `click` (ilovada
- * to'langan) yoki `cash` (kuryerga / filialda naqd). Kassir "Qabul qilish" bosganda shu to'lov bilan oshxonaga ketadi.
+ * Mobil ilovadan kelgan buyurtma: mijoz, telefon, manzil (faqat dostavkada) va u tanlagan to'lov — `cash` (kuryerga /
+ * filialda naqd), `card` (ilovada karta bilan oldindan to'langan — buyurtma faqat to'lovdan keyin keladi; bekor qilinsa
+ * admin pulni qaytaradi) yoki `click` (ilovada to'langan belgisi). Kassir "Qabul qilish" bosganda shu to'lov bilan
+ * oshxonaga ketadi.
  */
 export interface OnlineInfo {
   platform: MobilePlatform
   name: string
   phone: string
   address: string
-  payment: 'click' | 'cash'
+  payment: 'click' | 'cash' | 'card'
   /** mijoz belgilagan joy (GPS / xarita) — dostavkada majburiy, filialni server shu bo'yicha tanlaydi */
   location: LatLng | null
 }

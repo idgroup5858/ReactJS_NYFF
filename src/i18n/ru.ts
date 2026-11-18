@@ -246,6 +246,8 @@ export const ru: Dict = {
     online: 'Онлайн',
     awaitingAccept: 'Ждёт приёма',
     paidOnline: 'Оплачен через Click',
+    paidCard: 'Оплачен картой в приложении',
+    refundCard: 'Клиент оплатил картой в приложении — верните деньги',
     payOnDelivery: 'Наличные — курьеру',
     payOnPickup: 'Наличные — в филиале',
     customer: 'Клиент',

@@ -100,6 +100,13 @@ export default function OrderDetailsBody({ order }: { order: Order }) {
         </p>
       )}
 
+      {/* ilovada karta bilan oldindan to'langan, keyin bekor qilingan — pulni admin o'zi qaytaradi (tizimda qaytarish yo'q) */}
+      {order.status === 'cancelled' && order.online?.payment === 'card' && (
+        <p className="rounded-card bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+          {t.orders.refundCard} · <span className="tabular-nums">{order.online.phone}</span>
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <dl className="space-y-1.5 text-sm">
           <div className="flex justify-between gap-3">

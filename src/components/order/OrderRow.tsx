@@ -2,7 +2,7 @@ import { MapPin, Phone, Timer, User } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Order } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
-import { formatOnlinePayment, formatOrderNumber, formatTime } from '@/lib/format'
+import { formatOnlinePayment, formatOrderNumber, formatTime, isPrepaidOnline } from '@/lib/format'
 import { formatElapsed, minutesSince } from '@/lib/useNow'
 import { CourierLine } from './CourierStatus'
 import { OrderTypeBadge, SourceBadge, StatusPill } from './OrderBadges'
@@ -84,7 +84,7 @@ export default function OrderRow({ order, now, showCustomer = false, layout = 'r
               <Phone size={12} className="text-sky-600" />
               {customer.phone}
             </a>
-            <span className={`font-bold ${customer.payment === 'click' ? 'text-emerald-700' : 'text-amber-700'}`}>{formatOnlinePayment(customer, order.type, t)}</span>
+            <span className={`font-bold ${isPrepaidOnline(customer) ? 'text-emerald-700' : 'text-amber-700'}`}>{formatOnlinePayment(customer, order.type, t)}</span>
           </p>
           {customer.address && (
             <p className="flex items-start gap-1">
