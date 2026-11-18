@@ -15,7 +15,7 @@ export interface PricedLine extends CartLine {
 }
 
 /**
- * Kassadagi "Dostavka" — faqat chekdagi belgi (telefon orqali buyurtma, o'z yetkazuvchisi): manzil, kuryer, online
+ * Kassadagi "Yetkazish" (`delivery`) — faqat chekdagi belgi (telefon orqali buyurtma, o'z yetkazuvchisi): manzil, kuryer, online
  * dostavka mantiqi yo'q — ular faqat mobil ilova buyurtmasida (`source: 'mobile'`). TV ga chiqmaydi, oshxonada bor.
  */
 const KASSA_ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery']
