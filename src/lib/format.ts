@@ -1,4 +1,4 @@
-import { baseUnitOf, fromBase, splitPacks } from '@/domain/units'
+import { baseUnitOf, fromBase, splitPacks, toBase } from '@/domain/units'
 import type { OnlineInfo, OrderType, StockUnit } from '@/domain/types'
 import type { Dict } from '@/i18n/uz'
 
@@ -58,6 +58,16 @@ export function formatStock(baseQty: number, item: Counted, t: Dict): string {
     rest > 0 ? `${formatNumber(rest)}${NBSP}${t.units[baseUnitOf(item.unit)]}` : null,
   ].filter(Boolean)
   return `${baseQty < 0 ? '−' : ''}${parts.join(' + ')}`
+}
+
+/**
+ * Kirim / ko'chirish qatoridagi miqdor (ombor birligida, qadoqli — qadoqda; backend `docQtyText` bilan bir xil).
+ * Donali qadoqli mahsulot (tuxum, 1 qadoq = 30 dona) — to'liq qadoqlar va qolgan dona: 50/30 → "1 qadoq + 20 dona";
+ * boshqasi — "12,5 kg", "10 dona (600 g)" ([short] — qadoq hajmisiz: "10 dona").
+ */
+export function formatDocQty(qty: number, item: Counted, t: Dict, short = false): string {
+  if (item.unit === 'pcs' && item.packSize !== null) return formatStock(toBase(qty, item.unit, item.packSize), item, t)
+  return `${formatNumber(qty, 3)}${NBSP}${short ? countUnit(item, t) : formatUnit(item, t)}`
 }
 
 /** Buyurtma raqami: 7 → "#007" — TV, kassa va chekda bir xil. */

@@ -2,7 +2,7 @@ import { useIngredients } from '@/api/queries'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
-import { formatMoney, formatNumber, formatUnit } from '@/lib/format'
+import { formatDocQty, formatMoney, formatNumber } from '@/lib/format'
 
 const STATUS_CLASSES: Record<PurchaseStatus, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -53,9 +53,9 @@ export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
             return (
               <tr key={item.ingredientId}>
                 <td className={tdClass}>{ingredient ? localize(ingredient.name) : item.ingredientId}</td>
-                {/* birlik — hujjat yozilgan paytdagi qadoq bilan ("10 dona (600 g)"), mahsulotniki keyin o'zgargan bo'lsa ham */}
+                {/* birlik — hujjat yozilgan paytdagi qadoq bilan ("10 dona (600 g)", tuxum — "1 qadoq + 20 dona"), mahsulotniki keyin o'zgargan bo'lsa ham */}
                 <td className={`${tdClass} text-right whitespace-nowrap tabular-nums`}>
-                  {formatNumber(item.qty, 3)} {ingredient ? formatUnit({ unit: ingredient.unit, packSize: item.packSize }, t) : ''}
+                  {ingredient ? formatDocQty(item.qty, { unit: ingredient.unit, packSize: item.packSize }, t) : formatNumber(item.qty, 3)}
                 </td>
                 <td className={`${tdClass} text-right whitespace-nowrap`}>
                   {editable ? (

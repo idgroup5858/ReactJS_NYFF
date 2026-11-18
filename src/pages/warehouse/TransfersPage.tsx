@@ -10,7 +10,7 @@ import Pagination from '@/components/ui/Pagination'
 import { selectClass, textareaClass } from '@/components/ui/styles'
 import { fullName } from '@/domain/rules'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatDateTime, formatNumber, formatUnit } from '@/lib/format'
+import { formatDateTime, formatDocQty } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
 import { useSettings } from '@/store/settingsStore'
@@ -44,7 +44,8 @@ export default function TransfersPage() {
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const ready = readyLines(lines)
+  // donali qadoqli mahsulotda (tuxum) — qadoq + dona maydonlari
+  const ready = readyLines(lines, ingredients)
   // yangisi birinchi, 10 tadan — server sahifalaydi
   const paging = usePageState()
   const transfers = useTransfers({ page: paging.page, limit: paging.limit })
@@ -150,7 +151,7 @@ export default function TransfersPage() {
                           const ingredient = ingredients.find((i) => i.id === item.ingredientId)
                           // birlik — hujjat yozilgan paytdagi qadoq bilan
                           return ingredient
-                            ? `${localize(ingredient.name)} — ${formatNumber(item.qty, 3)} ${formatUnit({ unit: ingredient.unit, packSize: item.packSize }, t)}`
+                            ? `${localize(ingredient.name)} — ${formatDocQty(item.qty, { unit: ingredient.unit, packSize: item.packSize }, t)}`
                             : item.ingredientId
                         })
                         .join(' · ')}

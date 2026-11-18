@@ -11,7 +11,7 @@ import { selectClass, textareaClass } from '@/components/ui/styles'
 import { fullName, purchaseTotal } from '@/domain/rules'
 import type { ID, Purchase } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { countUnit, formatDateTime, formatMoney, formatNumber } from '@/lib/format'
+import { formatDateTime, formatDocQty, formatMoney } from '@/lib/format'
 import { showToast } from '@/lib/swal'
 import { activeWarehouses, warehouseLabel } from '@/lib/warehouses'
 import { linesFromParams, newDraftLine, readyPurchase, type DraftLine } from './draftLines'
@@ -38,7 +38,7 @@ export function PurchaseRow({ purchase, defaultOpen = false, children }: { purch
     .map((item) => {
       const ingredient = ingredients.find((i) => i.id === item.ingredientId)
       if (!ingredient) return null
-      return `${localize(ingredient.name)} ${formatNumber(item.qty, 3)} ${countUnit({ unit: ingredient.unit, packSize: item.packSize }, t)}`
+      return `${localize(ingredient.name)} ${formatDocQty(item.qty, { unit: ingredient.unit, packSize: item.packSize }, t, true)}`
     })
     .filter(Boolean)
     .join(' · ')

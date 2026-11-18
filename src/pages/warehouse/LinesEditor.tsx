@@ -5,8 +5,7 @@ import type { ID, Ingredient } from '@/domain/types'
 import { toBase } from '@/domain/units'
 import { useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock, formatUnit } from '@/lib/format'
-import { parseQty } from '@/lib/warehouses'
-import { linePrice, newDraftLine, type DraftLine } from './draftLines'
+import { lineQty, linePrice, newDraftLine, piecePack, type DraftLine } from './draftLines'
 import IngredientPicker from './IngredientPicker'
 
 type Props = {
@@ -26,7 +25,8 @@ type Props = {
 
 /**
  * Mahsulot qatorlari muharriri (kirim, ko'chirish, tayyorlash): mahsulot (qidiruvli, guruhlar va alifbo bo'yicha ro'yxat), miqdor ombor birligida,
- * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham.
+ * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham. Donali qadoqli mahsulotda
+ * (tuxum, 30 talik; kirim va ko'chirish) miqdor ikki maydonda — "[1] qadoq + [20] dona", bittasi bo'sh qolsa ham bo'ladi.
  */
 export default function LinesEditor({ lines, onChange, availableIn, mode, excludeId }: Props) {
   const t = useT()
@@ -34,6 +34,11 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
   const ingredients = allIngredients.filter((i) => i.active && i.id !== excludeId)
   // tayyorlashda qadoq hisobga olinmaydi — miqdor kg / l / dona
   const packOf = (ingredient: Ingredient) => (mode === 'production' ? null : ingredient.packSize)
+  // donali qadoqli mahsulot (tuxum, 30 talik) — kirim va ko'chirishda qadoq + dona maydonlari
+  const piecePackOf = (ingredient: Ingredient | undefined) => (mode === 'production' ? null : piecePack(ingredient))
+  const ingredientOf = (line: DraftLine) => allIngredients.find((i) => i.id === line.ingredientId)
+  // shunday qator bo'lsa miqdor ustuni hamma qatorda kengroq — ustunlar tekis tursin
+  const wide = lines.some((line) => piecePackOf(ingredientOf(line)) !== null)
   // tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0, chegara yo'q).
   // yuklanguncha `undefined` — "—" ko'rinadi, hech narsa qizil bo'lmaydi
   const stock = useStock(availableIn || undefined, { enabled: !!availableIn }).data
@@ -43,8 +48,15 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
   return (
     <div className="space-y-2">
       {lines.map((line) => {
-        const ingredient = allIngredients.find((i) => i.id === line.ingredientId)
-        const qty = parseQty(line.qty)
+        const ingredient = ingredientOf(line)
+        const pack = piecePackOf(ingredient)
+        const qty = lineQty(line, pack)
+        // donali qadoq: jami dona — "= 1 qadoq + 20 dona (50 dona)"
+        const pieces = pack !== null && qty > 0 ? toBase(qty, 'pcs', pack) : null
+        const piecesHint =
+          pieces !== null && pack !== null
+            ? `= ${formatStock(pieces, { unit: 'pcs', packSize: pack }, t)}${pieces >= pack ? ` (${formatNumber(pieces)} ${t.units.pcs})` : ''}`
+            : null
         const item = ingredient && stock?.find((s) => s.ingredientId === ingredient.id)
         const available = ingredient && stock ? (item?.qty ?? 0) : null
         // qadoqli mahsulot (ketchup 600 g) — miqdor donada, qoldiq grammda
@@ -59,8 +71,12 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
             key={line.key}
             className={`grid gap-2 rounded-card border border-neutral-200 bg-surface p-2 sm:items-center ${
               mode === 'purchase'
-                ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_8rem_11rem_auto]'
-                : 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
+                ? wide
+                  ? 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_12rem_11rem_auto]'
+                  : 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_8rem_11rem_auto]'
+                : wide
+                  ? 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_12rem_minmax(0,11rem)_auto]'
+                  : 'grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,11rem)_auto]'
             }`}
           >
             <IngredientPicker
@@ -71,19 +87,48 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
               selected={ingredient}
               className={`${mode === 'purchase' ? 'col-span-3' : 'col-span-2'} sm:col-span-1`}
             />
-            <label className="relative">
-              <input
-                value={line.qty}
-                onChange={(event) => update(line.key, { qty: event.target.value.replace(/[^\d.,]/g, '') })}
-                inputMode="decimal"
-                placeholder={t.purchase.qty}
-                aria-label={t.purchase.qty}
-                className={`${inputClass} pr-12 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
-              />
-              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">
-                {ingredient ? countUnit({ unit: ingredient.unit, packSize: packOf(ingredient) }, t) : ''}
-              </span>
-            </label>
+            {pack !== null && ingredient ? (
+              // donali qadoq: "[1] qadoq + [20] dona" — bo'sh maydon 0 hisoblanadi, ikkalasi bo'sh — qator yuborilmaydi
+              <div className="flex items-center gap-1">
+                <label className="relative min-w-0 flex-1">
+                  <input
+                    value={line.qty}
+                    onChange={(event) => update(line.key, { qty: event.target.value.replace(/[^\d.,]/g, '') })}
+                    inputMode="decimal"
+                    placeholder="0"
+                    aria-label={`${t.purchase.qty}, ${countUnit(ingredient, t)}`}
+                    className={`${inputClass} pr-9 pl-2 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
+                  />
+                  <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-neutral-400">{countUnit(ingredient, t)}</span>
+                </label>
+                <span className="text-xs text-neutral-400">+</span>
+                <label className="relative min-w-0 flex-1">
+                  <input
+                    value={line.pieces}
+                    onChange={(event) => update(line.key, { pieces: event.target.value.replace(/\D/g, '').slice(0, 7) })}
+                    inputMode="numeric"
+                    placeholder="0"
+                    aria-label={`${t.purchase.qty}, ${t.units.pcs}`}
+                    className={`${inputClass} pr-9 pl-2 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
+                  />
+                  <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs text-neutral-400">{t.units.pcs}</span>
+                </label>
+              </div>
+            ) : (
+              <label className="relative">
+                <input
+                  value={line.qty}
+                  onChange={(event) => update(line.key, { qty: event.target.value.replace(/[^\d.,]/g, '') })}
+                  inputMode="decimal"
+                  placeholder={t.purchase.qty}
+                  aria-label={t.purchase.qty}
+                  className={`${inputClass} pr-12 text-right font-bold tabular-nums ${tooMuch ? 'border-red-400 text-red-700' : ''}`}
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs text-neutral-400">
+                  {ingredient ? countUnit({ unit: ingredient.unit, packSize: packOf(ingredient) }, t) : ''}
+                </span>
+              </label>
+            )}
             {mode === 'purchase' && (
               // miqdor maydoni bilan bir xil ko'rinish: o'ngda birlik ("so'm/kg")
               <label className="relative">
@@ -110,6 +155,7 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
                     <span>
                       {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${formatUnit(ingredient, t)}` : '—'}
                     </span>
+                    {piecesHint && <span className="font-semibold text-neutral-800 tabular-nums">{piecesHint}</span>}
                     {noPrice && <span className="font-semibold text-red-700">{t.purchase.priceMissing}</span>}
                     {qty > 0 && price !== null && (
                       <span className="ml-auto font-bold text-neutral-950 tabular-nums">
@@ -126,6 +172,7 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
                     {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
                   </span>
                 )}
+                {piecesHint && <span className={`block tabular-nums ${tooMuch ? '' : 'font-semibold text-neutral-800'}`}>{piecesHint}</span>}
               </span>
             )}
             <button
