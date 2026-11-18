@@ -65,7 +65,7 @@ export const NBU_GROUPS: { title: string; items: NbuEndpoint[] }[] = [
         title: "Bir bosqichli to'lov",
         method: 'POST',
         path: '/payment/init',
-        hint: "amount — tiyinda (100000 = 1 000 so'm), currency: 860 (UZS) / 840 (USD). Javobdagi paymentUrl ni oching. Callback: ONE_TIME_PAYMENT.",
+        hint: "amount — tiyinda (100000 = 1 000 so'm), currency: 860 (UZS) / 840 (USD). Javobdagi data.url ni oching (bank sahifasi). Callback: ONE_TIME_PAYMENT.",
         template: (back) => ({ amount: 100000, currency: 860, orderId: '{{orderId}}', ...redirect(back) }),
       },
       {

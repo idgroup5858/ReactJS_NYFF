@@ -2,7 +2,7 @@ import { ExternalLink } from 'lucide-react'
 import { formatTime } from '@/lib/format'
 import type { NbuCallResult } from './nbuApi'
 
-type BankBody = { status?: { code?: number; message?: string }; data?: { paymentUrl?: string } } | null | undefined
+type BankBody = { status?: { code?: number; message?: string }; data?: { paymentUrl?: string; url?: string } } | null | undefined
 
 export function JsonBlock({ label, value, open = false }: { label: string; value: unknown; open?: boolean }) {
   return (
@@ -27,7 +27,8 @@ export function OkChip({ ok }: { ok: boolean }) {
 export default function ResultView({ result }: { result: NbuCallResult }) {
   const body = result.response?.body as BankBody
   const code = body?.status?.code
-  const paymentUrl = body?.data?.paymentUrl
+  // bank havolani `data.url` da beradi (hujjatda — `paymentUrl`)
+  const paymentUrl = body?.data?.paymentUrl ?? body?.data?.url
 
   return (
     <div className="space-y-2 rounded-card border border-line p-3">
