@@ -7,6 +7,7 @@ import FoodImage from '@/components/ui/FoodImage'
 import PageHeader from '@/components/ui/PageHeader'
 import Toggle from '@/components/ui/Toggle'
 import type { Category, ID, Product } from '@/domain/types'
+import { rawQty } from '@/domain/yieldNorm'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { formatMoney, formatRecipeQty } from '@/lib/format'
 import { showToast } from '@/lib/swal'
@@ -199,7 +200,15 @@ export default function MenuAdminPage() {
                       return (
                         <li key={line.ingredientId} className="flex justify-between gap-3 border-b border-dashed border-neutral-200 py-1.5 text-sm last:border-b-0">
                           <span className="text-neutral-700">{localize(ingredient.name)}</span>
-                          <span className="font-semibold tabular-nums">{formatRecipeQty(line.qty, ingredient.unit, t)}</span>
+                          <span className="font-semibold tabular-nums">
+                            {formatRecipeQty(line.qty, ingredient.unit, t)}
+                            {/* pishgan miqdor — ombordan xomi ayriladi */}
+                            {ingredient.cookYield !== null && (
+                              <span className="ml-1 text-xs font-normal text-emerald-700">
+                                {t.admin.menu.cooked} ({formatRecipeQty(rawQty(line.qty, ingredient.cookYield), ingredient.unit, t)})
+                              </span>
+                            )}
+                          </span>
                         </li>
                       )
                     })}

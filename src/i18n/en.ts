@@ -495,6 +495,7 @@ export const en: Dict = {
     number: (number: number) => `Receiving #${number}`,
     empty: 'No receivings',
     decidedBy: 'Reviewed by',
+    normInto: 'To stock',
   },
   transfer: {
     title: 'Transfer',
@@ -579,6 +580,32 @@ export const en: Dict = {
     consumableHint:
       'When a new batch arrives (receiving or transfer), the old stock is written off as "Used up" — for napkins, detergents, sponges and other things whose usage cannot be measured. No "running low" alerts',
     consumableBadge: 'Consumable',
+    norm: 'Yield norm',
+    normHint: 'A one-time measured sample: on receipt the item itself is not stocked — its yields are, and the price is split by weight',
+    normAdd: 'Add yield norm',
+    normRemove: 'Remove norm',
+    normSample: 'Sample',
+    normOutput: 'Yields',
+    normAddOutput: 'Add a yield',
+    normWaste: (amount: string, percent: string) => `Waste: ${amount} (${percent})`,
+    normPrice: (price: string, unit: string) => `Yield price per 1 ${unit} ≈ ${price}`,
+    normAdminOnly: 'Only an admin changes the norm',
+    normFrom: (name: string) => `Received via the «${name}» norm`,
+    normInto: (names: string) => `On receipt → ${names}`,
+    normErrors: {
+      sample: 'Enter the sample amount',
+      output: 'Pick an item and an amount in every row',
+      tooMuch: 'Yields cannot exceed the sample',
+    },
+    cook: 'Cooked',
+    cookHint: 'Grams cooked from 1000 g raw. The recipe amount is the cooked weight; the raw amount is deducted on sale. Empty — not cooked',
+    cookInvalid: 'Cooked yield — a whole number from 1 to 10 000 g',
+    cookShort: (percent: string) => `cooked ${percent}`,
+    cookWarnTitle: 'Recipe meaning changes',
+    cookWarnOn: (name: string, products: string) =>
+      `«${name}» is used in recipes: ${products}. The recipe amount will now mean cooked weight; the raw amount is deducted on sale. Check the recipes.`,
+    cookWarnOff: (name: string, products: string) =>
+      `«${name}» is used in recipes: ${products}. The recipe amount will now mean raw weight. Check the recipes.`,
   },
   admin: {
     profile: {
@@ -727,6 +754,8 @@ export const en: Dict = {
       soldIn: 'On sale at branches',
       soldInHint: 'Off — the dish is temporarily not sold at that branch: “Not on sale” at the cash desk, hidden in the kiosk and app',
       recipeHint: 'Amount per dish: g, ml or pcs — deducted from the branch stock on sale',
+      cookedHint: (raw: string) => `cooked weight · ${raw} deducted from stock`,
+      cooked: 'cooked',
     },
     branches: {
       deleteTitle: 'Delete this branch?',

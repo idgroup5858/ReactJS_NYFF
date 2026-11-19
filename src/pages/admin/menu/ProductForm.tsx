@@ -8,8 +8,9 @@ import { inputClass, selectClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import type { ID, LocalizedText, Product } from '@/domain/types'
 import { baseUnitOf } from '@/domain/units'
+import { rawQty } from '@/domain/yieldNorm'
 import { errorMessage, useLocalize, useT } from '@/i18n'
-import { formatNumber } from '@/lib/format'
+import { formatNumber, formatRecipeQty } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import FormFooter from '@/components/ui/FormFooter'
 import IngredientPicker from '@/pages/warehouse/IngredientPicker'
@@ -155,8 +156,11 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
           <p className="text-xs text-neutral-500">{t.admin.menu.recipeHint}</p>
           {recipe.map((line) => {
             const ingredient = allIngredients.find((i) => i.id === line.ingredientId)
+            // "pishganda chiqishi" yozilgan mahsulot: son — pishgan, sotuvda xomi ayriladi (100 g → 153 g)
+            const cooked = ingredient && ingredient.cookYield !== null && Number(line.qty) > 0 ? rawQty(Number(line.qty), ingredient.cookYield) : null
             return (
-              <div key={line.key} className="flex items-center gap-2">
+              <div key={line.key}>
+              <div className="flex items-center gap-2">
                 <IngredientPicker
                   value={line.ingredientId}
                   onChange={(id) => updateLine(line.key, { ingredientId: id })}
@@ -184,6 +188,12 @@ export default function ProductForm({ product, categoryId, onClose }: { product:
                 >
                   <Trash2 size={16} />
                 </button>
+              </div>
+              {ingredient && ingredient.cookYield !== null && (
+                <p className="mt-0.5 pr-12 text-right text-[11px] text-emerald-700">
+                  {cooked !== null ? t.admin.menu.cookedHint(formatRecipeQty(cooked, ingredient.unit, t)) : t.admin.menu.cooked}
+                </p>
+              )}
               </div>
             )
           })}

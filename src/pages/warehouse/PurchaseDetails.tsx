@@ -2,7 +2,7 @@ import { useIngredients } from '@/api/queries'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import type { ID, Purchase, PurchaseStatus } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
-import { formatDocQty, formatMoney, formatNumber } from '@/lib/format'
+import { formatDocQty, formatMoney, formatNumber, formatStock } from '@/lib/format'
 
 const STATUS_CLASSES: Record<PurchaseStatus, string> = {
   pending: 'bg-amber-100 text-amber-800',
@@ -52,7 +52,21 @@ export default function PurchaseDetails({ purchase, prices, onPrice }: Props) {
             const price = priceOf(item.ingredientId, item.price)
             return (
               <tr key={item.ingredientId}>
-                <td className={tdClass}>{ingredient ? localize(ingredient.name) : item.ingredientId}</td>
+                <td className={tdClass}>
+                  {ingredient ? localize(ingredient.name) : item.ingredientId}
+                  {/* normasi bor mahsulot (butun tovuq) — omborga o'zi emas, chiqqanlari qo'shilgan */}
+                  {item.outputs && item.outputs.length > 0 && (
+                    <span className="block text-xs text-emerald-700">
+                      {t.purchase.normInto}:{' '}
+                      {item.outputs
+                        .map((output) => {
+                          const found = ingredients.find((i) => i.id === output.ingredientId)
+                          return found ? `${localize(found.name)} ${formatStock(output.qty, found, t)}` : output.ingredientId
+                        })
+                        .join(', ')}
+                    </span>
+                  )}
+                </td>
                 {/* birlik — hujjat yozilgan paytdagi qadoq bilan ("10 dona (600 g)", tuxum — "1 qadoq + 20 dona"), mahsulotniki keyin o'zgargan bo'lsa ham */}
                 <td className={`${tdClass} text-right whitespace-nowrap tabular-nums`}>
                   {ingredient ? formatDocQty(item.qty, { unit: ingredient.unit, packSize: item.packSize }, t) : formatNumber(item.qty, 3)}

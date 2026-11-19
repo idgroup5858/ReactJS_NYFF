@@ -495,6 +495,7 @@ export const ru: Dict = {
     number: (number: number) => `Приход №${number}`,
     empty: 'Приходов нет',
     decidedBy: 'Рассмотрел',
+    normInto: 'На склад',
   },
   transfer: {
     title: 'Перемещение',
@@ -579,6 +580,32 @@ export const ru: Dict = {
     consumableHint:
       'Когда приходит новая партия (приход или перемещение), старый остаток списывается как «Израсходовано» — для салфеток, моющих средств, губок и прочего, расход которых не измерить. Уведомлений «заканчивается» нет',
     consumableBadge: 'Расход',
+    norm: 'Норма',
+    normHint: 'Один раз измеренный образец: при приходе на склад попадает не сам товар, а его выход; цена делится по весу',
+    normAdd: 'Добавить норму',
+    normRemove: 'Убрать норму',
+    normSample: 'Образец',
+    normOutput: 'Выход',
+    normAddOutput: 'Добавить выход',
+    normWaste: (amount: string, percent: string) => `Отходы: ${amount} (${percent})`,
+    normPrice: (price: string, unit: string) => `Цена выхода за 1 ${unit} ≈ ${price}`,
+    normAdminOnly: 'Норму меняет только админ',
+    normFrom: (name: string) => `Приходит по норме «${name}»`,
+    normInto: (names: string) => `При приходе → ${names}`,
+    normErrors: {
+      sample: 'Укажите вес образца',
+      output: 'В каждой строке укажите товар и количество',
+      tooMuch: 'Выход не может быть больше образца',
+    },
+    cook: 'После готовки',
+    cookHint: 'Сколько г готового из 1000 г сырого. Число в рецепте — готовый вес, при продаже списывается сырой. Пусто — не готовится',
+    cookInvalid: 'Выход после готовки — целое число от 1 до 10 000 г',
+    cookShort: (percent: string) => `после готовки ${percent}`,
+    cookWarnTitle: 'Изменится смысл рецептов',
+    cookWarnOn: (name: string, products: string) =>
+      `«${name}» есть в рецептах: ${products}. Теперь число в рецепте — готовый вес, при продаже списывается сырой. Проверьте рецепты.`,
+    cookWarnOff: (name: string, products: string) =>
+      `«${name}» есть в рецептах: ${products}. Теперь число в рецепте — сырой вес. Проверьте рецепты.`,
   },
   admin: {
     profile: {
@@ -727,6 +754,8 @@ export const ru: Dict = {
       soldIn: 'В продаже в филиалах',
       soldInHint: 'Выключено — блюдо временно не продаётся в этом филиале: на кассе «Не продаётся», в киоске и приложении не видно',
       recipeHint: 'Расход на одно блюдо: г, мл или шт — при продаже списывается со склада филиала',
+      cookedHint: (raw: string) => `в готовом виде · со склада списывается ${raw}`,
+      cooked: 'готов.',
     },
     branches: {
       deleteTitle: 'Удалить филиал?',

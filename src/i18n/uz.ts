@@ -510,6 +510,8 @@ export const uz = {
     number: (number: number) => `Kirim №${number}`,
     empty: "Kirimlar yo'q",
     decidedBy: "Ko'rib chiqdi",
+    /** normasi bor mahsulot (butun tovuq) — omborga uning o'rniga nima qo'shiladi */
+    normInto: 'Omborga',
   },
   transfer: {
     title: "Ko'chirish",
@@ -595,6 +597,34 @@ export const uz = {
     consumableHint:
       "Yangi partiya kelganda (kirim yoki ko'chirish) eski qoldiq «Sarflandi» bo'ladi — salfetka, yuvish vositalari, gubka kabi sarfini o'lchab bo'lmaydiganlar uchun. «Kam qoldi» ogohlantirishi kelmaydi",
     consumableBadge: 'Sarf',
+    /** norma: 64 kg tovuq → 34,5 kg go'sht + 5 kg qanot — kirimda chiqqanlari omborga */
+    norm: 'Norma',
+    normHint: "Bir marta o'lchangan namuna: kirimda bu mahsulot o'zi emas, chiqqanlari omborga qo'shiladi, narx ularga og'irligi bo'yicha bo'linadi",
+    normAdd: "Norma qo'shish",
+    normRemove: 'Normani olib tashlash',
+    normSample: 'Namuna',
+    normOutput: 'Chiqadi',
+    normAddOutput: "Chiqadigan mahsulot qo'shish",
+    normWaste: (amount: string, percent: string) => `Chiqindi: ${amount} (${percent})`,
+    normPrice: (price: string, unit: string) => `Chiqqanlarning 1 ${unit} narxi ≈ ${price}`,
+    normAdminOnly: "Normani faqat admin o'zgartiradi",
+    normFrom: (name: string) => `Kirimda «${name}» normasidan keladi`,
+    normInto: (names: string) => `Kirimda → ${names}`,
+    normErrors: {
+      sample: 'Namuna miqdorini kiriting',
+      output: 'Har qatorda mahsulot va miqdorni kiriting',
+      tooMuch: "Chiqqanlar jami namunadan ko'p bo'lmaydi",
+    },
+    /** pishganda chiqishi: 1000 g xom → 655 g pishgan; retseptdagi son — pishgan */
+    cook: 'Pishganda',
+    cookHint: "1000 g xomdan necha g pishgan. Retseptdagi son — pishgan miqdor, sotuvda xomi ayriladi. Bo'sh — pishmaydi",
+    cookInvalid: "Pishganda chiqishi — 1 dan 10 000 g gacha butun son",
+    cookShort: (percent: string) => `pishganda ${percent}`,
+    cookWarnTitle: "Retseptlar ma'nosi o'zgaradi",
+    cookWarnOn: (name: string, products: string) =>
+      `«${name}» retseptlarda bor: ${products}. Endi retseptdagi son pishgan miqdor deb o'qiladi, sotuvda xomi ayriladi. Retseptlarni tekshiring.`,
+    cookWarnOff: (name: string, products: string) =>
+      `«${name}» retseptlarda bor: ${products}. Endi retseptdagi son xom miqdor deb o'qiladi. Retseptlarni tekshiring.`,
   },
   admin: {
     profile: {
@@ -743,6 +773,9 @@ export const uz = {
       soldIn: 'Filiallarda sotuvda',
       soldInHint: "O'chirilsa — taom shu filialda vaqtincha sotilmaydi: kassada «Sotilmaydi», kiosk va ilovada ko'rinmaydi",
       recipeHint: "Bitta taomga ketadigan miqdor: g, ml yoki dona — sotilganda filial omboridan ayriladi",
+      /** "pishganda chiqishi" yozilgan mahsulot: retseptdagi son — pishgan, ombordan xomi */
+      cookedHint: (raw: string) => `pishgan holda · omborda ${raw} ayriladi`,
+      cooked: 'pishgan',
     },
     branches: {
       deleteTitle: "Filial o'chirilsinmi?",

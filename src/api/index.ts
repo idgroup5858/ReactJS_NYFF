@@ -38,6 +38,7 @@ import type {
   User,
   Warehouse,
   WorkHours,
+  YieldNorm,
 } from '@/domain/types'
 import type { ScreenKind } from '@/store/screenCodes'
 import { http } from './http'
@@ -93,6 +94,13 @@ export interface IngredientInput {
   packSize: number | null
   /** sarf materiali — yangi partiya kelganda eski qoldiq "Sarflandi"; berilmasa — o'zgarmaydi */
   consumable?: boolean
+  /**
+   * norma (faqat admin — boshqa qiymat yuborgan ta'minotchi `forbidden`): kirimda chiqqanlari omborga qo'shiladi;
+   * berilmasa — o'zgarmaydi, `null` — normasiz. Chiqqanlar shu mahsulot bilan bir o'lchamda, o'z normasi yo'q
+   */
+  yieldNorm?: YieldNorm | null
+  /** pishganda chiqishi — 1000 g dan necha g, butun 1…10 000 (faqat admin, kg / l); berilmasa — o'zgarmaydi */
+  cookYield?: number | null
   active: boolean
 }
 

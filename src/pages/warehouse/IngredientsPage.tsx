@@ -27,9 +27,12 @@ import { baseUnitOf, convertPrice, sameScale, unitSize } from '@/domain/units'
 import { countUnit, formatMoney, formatNumber, formatUnit } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
 import { setWarehouseView, useSettings } from '@/store/settingsStore'
+import { COOK_YIELD_BASE } from '@/domain/yieldNorm'
 import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
 import UnitChangeWarning from './UnitChangeWarning'
+import { cookOf, cookValid, normError, normOf, normRow, type NormDraft } from './normDraft'
+import YieldNormEditor from './YieldNormEditor'
 
 /**
  * `packSize` — qadoq hajmi asosiy birlikda (faqat raqamlar; bo'sh — qadoqsiz). `price` — kiritilgan narx (faqat
@@ -44,7 +47,20 @@ type Draft = {
   priceSize: number
   consumable: boolean
   active: boolean
+  /** norma (faqat admin o'zgartiradi): namuna va chiqadiganlar; `null` — normasiz */
+  norm: NormDraft
+  /** pishganda chiqishi — 1000 g dan necha g (faqat raqamlar; bo'sh — pishmaydi) */
+  cook: string
 }
+
+/** Mahsulotning normasi formaga: chiqadiganlarning pishganda chiqishi — ularning o'z yozuvidan. */
+const normDraftOf = (ingredient: Ingredient, all: Ingredient[]): NormDraft =>
+  ingredient.yieldNorm && {
+    qty: String(ingredient.yieldNorm.qty),
+    rows: ingredient.yieldNorm.outputs.map((output) =>
+      normRow(output.ingredientId, String(output.qty), String(all.find((i) => i.id === output.ingredientId)?.cookYield ?? '')),
+    ),
+  }
 
 /** Maydondagi qadoq hajmi: bo'sh yoki 0 — qadoqsiz. */
 const packOf = (draft: Draft): number | null => (Number(draft.packSize) > 0 ? Number(draft.packSize) : null)
@@ -67,6 +83,7 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
   const t = useT()
   const localize = useLocalize()
   const isAdmin = useCurrentUser()?.role === 'admin'
+  const allIngredients = useIngredients().data ?? []
   const [saving, setSaving] = useState(false)
   /** ishlatilgan mahsulot birligi o'zgarayotganda — ogohlantirish (bu paytda forma yashirinadi, kiritilgani saqlanadi) */
   const [warning, setWarning] = useState<IngredientUsage | null>(null)
@@ -81,14 +98,41 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
           priceSize: unitSize(ingredient.unit, ingredient.packSize),
           consumable: ingredient.consumable,
           active: ingredient.active,
+          norm: normDraftOf(ingredient, allIngredients),
+          cook: ingredient.cookYield !== null ? String(ingredient.cookYield) : '',
         }
-      : { name: { uz: '', ru: '', en: '' }, group: 'vegetables', unit: 'kg', packSize: '', price: '', priceSize: unitSize('kg'), consumable: false, active: true },
+      : {
+          name: { uz: '', ru: '', en: '' },
+          group: 'vegetables',
+          unit: 'kg',
+          packSize: '',
+          price: '',
+          priceSize: unitSize('kg'),
+          consumable: false,
+          active: true,
+          norm: null,
+          cook: '',
+        },
   )
   const setName = (lang: keyof LocalizedText, value: string) => setDraft({ ...draft, name: { ...draft.name, [lang]: value } })
   const size = unitSize(draft.unit, packOf(draft))
   /** hozirgi birlikdagi narx (ko'rsatiladi va yuboriladi) */
   const price = draft.price === '' ? '' : String(convertPrice(Number(draft.price), draft.priceSize, size))
   const count = countUnit({ unit: draft.unit, packSize: packOf(draft) }, t)
+  /** shu mahsulot boshqa mahsulot normasidan chiqadi (go'sht — tovuqdan) — o'zining normasi bo'lmaydi */
+  const source = ingredient ? allIngredients.find((i) => i.yieldNorm?.outputs.some((output) => output.ingredientId === ingredient.id)) : undefined
+  /** o'zining "pishganda chiqishi" — kg / l da, normasiz mahsulotda (butun tovuq omborga tushmaydi) */
+  const cookable = draft.unit !== 'pcs' && draft.norm === null
+  const ownCook = cookable ? cookOf(draft.cook) : null
+
+  /** chiqadiganlarning pishganda chiqishi — ularning o'z yozuviga saqlanadi (o'zgarganlari) */
+  const outputCooks = (): { output: Ingredient; cook: number | null }[] =>
+    (draft.norm?.rows ?? []).flatMap((row) => {
+      const output = allIngredients.find((i) => i.id === row.ingredientId)
+      if (!output || !sameScale(output.unit, 'kg')) return []
+      const cook = cookOf(row.cook)
+      return cook === output.cookYield ? [] : [{ output, cook }]
+    })
 
   const submit = async () => {
     setSaving(true)
@@ -98,7 +142,15 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
       const lastPrice = price === '' ? null : Number(price)
       // 0 — serverda `invalid_qty` (bo'sh — qadoqsiz)
       const packSize = draft.packSize === '' ? null : Number(draft.packSize)
-      await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, consumable, packSize, lastPrice })
+      // norma va pishganda chiqishi — faqat admin (ta'minotchi yubormaydi — o'zgarmaydi)
+      if (isAdmin) {
+        for (const { output, cook } of outputCooks()) {
+          const { id, name, group, unit, active, packSize } = output
+          await api.ingredients.save({ id, name, group, unit, active, packSize, cookYield: cook })
+        }
+      }
+      const extra = isAdmin ? { yieldNorm: normOf(draft.norm), cookYield: ownCook } : {}
+      await api.ingredients.save({ id: ingredient?.id, name, group, unit, active, consumable, packSize, lastPrice, ...extra })
       showToast(t.common.saved)
       onClose()
     } catch (error) {
@@ -107,8 +159,48 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
     }
   }
 
+  /**
+   * Pishganda chiqishi yo'qdan bor (yoki aksincha) bo'layotgan mahsulot retseptlarda bo'lsa — retseptdagi son ma'nosi
+   * o'zgaradi (xom ↔ pishgan): tasdiq so'raladi. `false` — bekor qilindi.
+   */
+  const confirmCookChanges = async (): Promise<boolean> => {
+    const changes = [
+      ...(ingredient && (ownCook === null) !== (ingredient.cookYield === null) ? [{ output: ingredient, cook: ownCook }] : []),
+      ...outputCooks().filter(({ output, cook }) => (cook === null) !== (output.cookYield === null)),
+    ]
+    for (const { output, cook } of changes) {
+      const usage = await api.ingredients.usage(output.id)
+      if (usage.products.length === 0) continue
+      const products = usage.products.map((p) => localize(p.name)).join(', ')
+      const text = cook === null ? t.ingredients.cookWarnOff(localize(output.name), products) : t.ingredients.cookWarnOn(localize(output.name), products)
+      if (!(await confirmDialog(t.ingredients.cookWarnTitle, text, t.common.save))) return false
+    }
+    return true
+  }
+
   const save = async (event: FormEvent) => {
     event.preventDefault()
+    if (isAdmin) {
+      const error = normError(draft.norm, draft.unit, (id) => allIngredients.find((i) => i.id === id)?.unit)
+      if (error) {
+        showToast(t.ingredients.normErrors[error], 'error')
+        return
+      }
+      if (!cookValid(ownCook) || outputCooks().some(({ cook }) => !cookValid(cook))) {
+        showToast(t.ingredients.cookInvalid, 'error')
+        return
+      }
+      setSaving(true)
+      try {
+        const confirmed = await confirmCookChanges()
+        setSaving(false)
+        if (!confirmed) return
+      } catch (error) {
+        showToast(errorMessage(error), 'error')
+        setSaving(false)
+        return
+      }
+    }
     if (ingredient && !sameScale(ingredient.unit, draft.unit)) {
       setSaving(true)
       try {
@@ -133,11 +225,13 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
    * (eski birlikdagi narx yangisiga o'tmaydi), asl birlikka (yoki kg ↔ l) qaytilsa — asl narx; kg ↔ l — narx qoladi.
    */
   const changeUnit = (unit: StockUnit) => {
-    if (!ingredient || sameScale(unit, draft.unit)) setDraft({ ...draft, unit, price, priceSize: unitSize(unit, packOf(draft)) })
+    // kg / l ↔ dona: normadagi chiqishlar endi boshqa o'lchamda — norma o'chadi (server ham shunday qiladi)
+    const norm = sameScale(unit, draft.unit) ? draft.norm : null
+    if (!ingredient || sameScale(unit, draft.unit)) setDraft({ ...draft, unit, norm, price, priceSize: unitSize(unit, packOf(draft)) })
     else if (sameScale(unit, ingredient.unit)) {
       const original = ingredient.lastPrice !== null ? String(ingredient.lastPrice) : ''
-      setDraft({ ...draft, unit, price: original, priceSize: unitSize(ingredient.unit, ingredient.packSize) })
-    } else setDraft({ ...draft, unit, price: '', priceSize: unitSize(unit, packOf(draft)) })
+      setDraft({ ...draft, unit, norm, price: original, priceSize: unitSize(ingredient.unit, ingredient.packSize) })
+    } else setDraft({ ...draft, unit, norm, price: '', priceSize: unitSize(unit, packOf(draft)) })
   }
 
   /** faqat hech qayerda ishlatilmagan mahsulot (aks holda server `in_use` — faolsizlantirish kerak) */
@@ -245,7 +339,43 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
             <Toggle checked={draft.consumable} onChange={(consumable) => setDraft({ ...draft, consumable })} label={t.ingredients.consumable} />
             <p className="mt-0.5 pl-10 text-xs text-neutral-500">{t.ingredients.consumableHint}</p>
           </div>
+          {/* pishganda chiqishi (1000 g → 655 g) — kg / l da; ta'minotchi faqat ko'radi */}
+          {cookable && (isAdmin || draft.cook !== '') && (
+            <div className="min-w-0 flex-1">
+              <span className="flex items-center gap-1.5 text-sm font-semibold text-neutral-700">
+                {t.ingredients.cook}: {formatNumber(COOK_YIELD_BASE)} {t.units[baseUnitOf(draft.unit)]} →
+                <input
+                  value={draft.cook}
+                  onChange={(event) => setDraft({ ...draft, cook: event.target.value.replace(/\D/g, '').slice(0, 5) })}
+                  disabled={!isAdmin}
+                  inputMode="numeric"
+                  placeholder="—"
+                  aria-label={t.ingredients.cook}
+                  className={`${inputClass} h-9! w-20! text-right font-bold tabular-nums ${cookValid(ownCook) ? '' : 'border-red-400'}`}
+                />
+                {t.units[baseUnitOf(draft.unit)]}
+              </span>
+              <p className="mt-0.5 text-xs text-neutral-500">{t.ingredients.cookHint}</p>
+            </div>
+          )}
         </div>
+        {/* norma: 64 kg tovuq → 34,5 kg go'sht + 5 kg qanot (kirimda chiqqanlari omborga); boshqa normadan chiqadigan
+            mahsulotda (go'sht) — qayerdan kelishi */}
+        {source ? (
+          <p className="text-xs text-neutral-500">{t.ingredients.normFrom(localize(source.name))}</p>
+        ) : (
+          <YieldNormEditor
+            selfId={ingredient?.id}
+            name={localize(draft.name)}
+            unit={draft.unit}
+            price={price === '' ? null : Number(price)}
+            priceSize={size}
+            value={draft.norm}
+            onChange={(norm) => setDraft({ ...draft, norm })}
+            ingredients={allIngredients}
+            readOnly={!isAdmin}
+          />
+        )}
       </form>
     </Modal>
   )
@@ -259,6 +389,22 @@ function RecipeUsage({ ingredientId }: { ingredientId: ID }) {
   const t = useT()
   const products = useProducts().data ?? []
   return t.ingredients.usedIn(products.filter((p) => p.recipe.some((line) => line.ingredientId === ingredientId)).length)
+}
+
+/** Nom ostida: "Kirimda → Go'sht, Qanot" (norma) va / yoki "pishganda 65,5%"; ikkalasi ham yo'q — hech narsa. */
+function YieldNote({ ingredient, all, className = '' }: { ingredient: Ingredient; all: Ingredient[]; className?: string }) {
+  const t = useT()
+  const localize = useLocalize()
+  const nameOf = (id: ID) => {
+    const found = all.find((i) => i.id === id)
+    return found ? localize(found.name) : id
+  }
+  const parts = [
+    ingredient.yieldNorm && t.ingredients.normInto(ingredient.yieldNorm.outputs.map((output) => nameOf(output.ingredientId)).join(', ')),
+    ingredient.cookYield !== null && t.ingredients.cookShort(`${formatNumber(ingredient.cookYield / 10, 1)}%`),
+  ].filter(Boolean)
+  if (parts.length === 0) return null
+  return <span className={`text-xs font-semibold text-emerald-700 ${className}`}>{parts.join(' · ')}</span>
 }
 
 /**
@@ -331,6 +477,7 @@ export default function IngredientsPage() {
                         <span className="font-semibold text-neutral-950">{localize(ingredient.name)}</span>
                         {ingredient.consumable && <ConsumableBadge />}
                         <span className="ml-2 text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</span>
+                        <YieldNote ingredient={ingredient} all={ingredients.data ?? []} className="ml-2" />
                       </td>
                       <td className={`${cellClass} whitespace-nowrap text-neutral-600`}>{formatUnit(ingredient, t)}</td>
                       <td className={`${cellClass} text-right font-bold text-neutral-950 tabular-nums`}>{ingredient.lastPrice !== null ? formatMoney(ingredient.lastPrice, t) : '—'}</td>
@@ -371,6 +518,7 @@ export default function IngredientsPage() {
                       {ingredient.consumable && <ConsumableBadge />}
                     </p>
                     <p className="text-xs text-neutral-400">{[ingredient.name.ru, ingredient.name.en].filter(Boolean).join(' · ')}</p>
+                    <YieldNote ingredient={ingredient} all={ingredients.data ?? []} className="block" />
                   </div>
                   {/* oxirgi narx ombor birligi uchun: "128 000 so'm / kg", qadoqli — "16 800 so'm / dona (600 g)";
                       sig'masa birlik keyingi qatorga tushadi (narx ham, birlik ham o'zi bo'linmaydi) */}

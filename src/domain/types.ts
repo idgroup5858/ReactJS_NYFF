@@ -241,7 +241,30 @@ export interface Ingredient {
    * (`consume`) bo'ladi; "kam qoldi" ogohlantirishlariga kirmaydi
    */
   consumable: boolean
+  /**
+   * Norma (2026-11-19, faqat admin): bir marta o'lchangan namuna — 64 kg tovuqdan 34,5 kg yarim tayyor go'sht va 5 kg
+   * qanot. Berilgan bo'lsa kirimda mahsulot o'zi omborga qo'shilmaydi — shu nisbatda chiqqanlari qo'shiladi, narx ularga
+   * og'irligi bo'yicha bo'linadi. `null` — oddiy mahsulot
+   */
+  yieldNorm: YieldNorm | null
+  /**
+   * Pishganda chiqishi (faqat admin, kg / l da): 1000 g xomdan shuncha g pishgan — 655. Berilgan bo'lsa retseptdagi son
+   * **pishgan** miqdor, sotuvda xomi ayriladi (100 g → 153 g). `null` — retseptdagi son o'zi
+   */
+  cookYield: number | null
   active: boolean
+}
+
+/** Normadagi chiqish: [qty] — namunadan chiqqani, chiqqan mahsulotning ombor birligida, qadoqsiz (kg / l / dona). */
+export interface YieldOutput {
+  ingredientId: ID
+  qty: number
+}
+
+/** Norma namunasi: [qty] butun mahsulotdan (ombor birligida, qadoqsiz) [outputs] chiqadi, qolgani chiqindi. */
+export interface YieldNorm {
+  qty: number
+  outputs: YieldOutput[]
 }
 
 /** Ombordagi qoldiq. Yozuv bo'lmasa qoldiq 0, ogohlantirish chegarasi yo'q. */
@@ -278,6 +301,8 @@ export interface PurchaseItem {
   price: number | null
   /** hujjat yozilgan paytdagi qadoq hajmi (asosiy birlikda) — mahsulotniki keyin o'zgarsa ham shu bilan ko'rsatiladi */
   packSize: number | null
+  /** normasi bor mahsulot (butun tovuq): omborga o'zi emas, shular qo'shilgan — **asosiy birlikda** (g / ml / dona) */
+  outputs?: { ingredientId: ID; qty: number }[]
 }
 
 /** Ta'minotchi kiritgan kirim. Admin narxlarni kiritib tasdiqlamaguncha omborga qo'shilmaydi. */

@@ -3,7 +3,8 @@ import { useIngredients, useStock } from '@/api/queries'
 import { inputClass } from '@/components/ui/styles'
 import type { ID, Ingredient } from '@/domain/types'
 import { toBase } from '@/domain/units'
-import { useT } from '@/i18n'
+import { normSplit } from '@/domain/yieldNorm'
+import { useLocalize, useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock, formatUnit } from '@/lib/format'
 import { lineQty, linePrice, newDraftLine, piecePack, type DraftLine } from './draftLines'
 import IngredientPicker from './IngredientPicker'
@@ -30,13 +31,15 @@ type Props = {
  */
 export default function LinesEditor({ lines, onChange, availableIn, mode, excludeId }: Props) {
   const t = useT()
+  const localize = useLocalize()
   const allIngredients = useIngredients().data ?? []
   const ingredients = allIngredients.filter((i) => i.active && i.id !== excludeId)
   // tayyorlashda qadoq hisobga olinmaydi — miqdor kg / l / dona
   const packOf = (ingredient: Ingredient) => (mode === 'production' ? null : ingredient.packSize)
   // donali qadoqli mahsulot (tuxum, 30 talik) — kirim va ko'chirishda qadoq + dona maydonlari
   const piecePackOf = (ingredient: Ingredient | undefined) => (mode === 'production' ? null : piecePack(ingredient))
-  const ingredientOf = (line: DraftLine) => allIngredients.find((i) => i.id === line.ingredientId)
+  const byId = (id: ID) => allIngredients.find((i) => i.id === id)
+  const ingredientOf = (line: DraftLine) => byId(line.ingredientId)
   // shunday qator bo'lsa miqdor ustuni hamma qatorda kengroq — ustunlar tekis tursin
   const wide = lines.some((line) => piecePackOf(ingredientOf(line)) !== null)
   // tanlangan ombor qoldig'i (asosiy birlikda, yozuvi yo'q — 0, chegara yo'q).
@@ -66,6 +69,21 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
         // kirim: yozilgan narx yoki oxirgi narx; miqdor bor-u narx yo'q — qizil (yuborib bo'lmaydi)
         const price = mode === 'purchase' ? linePrice(line, ingredient) : null
         const noPrice = mode === 'purchase' && !!ingredient && qty > 0 && price === null
+        // normasi bor mahsulot (butun tovuq): omborga o'zi emas — "Omborga: Go'sht 37,734 kg + Qanot 5,469 kg"
+        const norm = mode === 'purchase' && ingredient ? ingredient.yieldNorm : null
+        const normHint =
+          ingredient && norm
+            ? `${t.purchase.normInto}: ${
+                qty > 0
+                  ? normSplit(toBase(qty, ingredient.unit, ingredient.packSize), norm, ingredient.unit, (id) => byId(id)?.unit ?? ingredient.unit)
+                      .map((output) => {
+                        const found = byId(output.ingredientId)
+                        return found ? `${localize(found.name)} ${formatStock(output.qty, found, t)}` : output.ingredientId
+                      })
+                      .join(' + ')
+                  : norm.outputs.map((output) => (byId(output.ingredientId) ? localize(byId(output.ingredientId)!.name) : output.ingredientId)).join(', ')
+              }`
+            : null
         return (
           <div
             key={line.key}
@@ -149,9 +167,13 @@ export default function LinesEditor({ lines, onChange, availableIn, mode, exclud
               <span className="order-last col-span-full flex flex-wrap gap-x-4 gap-y-0.5 px-1 text-xs text-neutral-500">
                 {ingredient && (
                   <>
-                    <span className={low ? 'font-semibold text-red-700' : ''}>
-                      {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
-                    </span>
+                    {normHint ? (
+                      <span className="font-semibold text-emerald-700 tabular-nums">{normHint}</span>
+                    ) : (
+                      <span className={low ? 'font-semibold text-red-700' : ''}>
+                        {t.transfer.available}: {available !== null ? formatStock(available, ingredient, t) : '—'}
+                      </span>
+                    )}
                     <span>
                       {t.purchase.lastPrice}: {ingredient.lastPrice !== null ? `${formatMoney(ingredient.lastPrice, t)} / ${formatUnit(ingredient, t)}` : '—'}
                     </span>
