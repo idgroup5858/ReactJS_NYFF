@@ -27,6 +27,7 @@ function guarded(roles: Role[], children: RouteObject[], login?: ReactNode): Rou
  *   /ombor/*             ta'minotchi (admin ham kiradi)
  *   /admin/*             admin panel (kirmagan bo'lsa — shu manzilda email va parol oynasi)
  *   /nbu/test            Milliy Ecom (NBU) API sinovi — faqat admin, menyuda yo'q
+ *   /telegram/*          Telegram mini app — mijoz buyurtmasi (xodimlar tizimidan mustaqil, `src/telegram`)
  */
 export const router = createBrowserRouter([
   {
@@ -100,4 +101,6 @@ export const router = createBrowserRouter([
       { path: '*', Component: NotFoundPage },
     ],
   },
+  // Telegram mini app (mijoz) — butunlay `src/telegram` da; olib tashlash: shu qator va papka (docs/TELEGRAM.md)
+  { path: 'telegram/*', lazy: () => import('@/telegram/TelegramApp') },
 ], { basename: import.meta.env.BASE_URL })

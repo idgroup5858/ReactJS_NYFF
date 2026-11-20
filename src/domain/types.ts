@@ -413,8 +413,8 @@ export const ORDER_TYPES: OrderType[] = ['dine_in', 'takeaway', 'delivery']
 export type OrderSource = 'cashier' | 'kiosk' | 'mobile'
 export const ORDER_SOURCES: OrderSource[] = ['cashier', 'kiosk', 'mobile']
 
-/** Mijozning mobil ilovasi qaysi telefonda. */
-export type MobilePlatform = 'android' | 'ios'
+/** Mijoz buyurtmani qayerdan berdi: telefon ilovasi yoki Telegram mini app (`src/telegram`). */
+export type MobilePlatform = 'android' | 'ios' | 'telegram'
 
 /**
  * Mobil ilovadan kelgan buyurtma: mijoz, telefon, manzil (faqat dostavkada) va u tanlagan to'lov — `cash` (kuryerga /

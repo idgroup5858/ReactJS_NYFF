@@ -161,7 +161,7 @@ export const en: Dict = {
   orderStatus: { pending: 'Unpaid', preparing: 'Preparing', ready: 'Ready', cancelled: 'Cancelled' },
   payment: { cash: 'Cash', card: 'Card', click: 'Click' },
   orderSource: { cashier: 'Cashier', kiosk: 'Kiosk', mobile: 'Mobile app' },
-  mobilePlatform: { android: 'Android', ios: 'iOS' },
+  mobilePlatform: { android: 'Android', ios: 'iOS', telegram: 'Telegram' },
   units: { kg: 'kg', l: 'L', pcs: 'pcs', g: 'g', ml: 'ml', pack: 'pcs', packOfPcs: 'pack' },
   kassa: {
     kioskHint: 'Orders to pay at the counter',

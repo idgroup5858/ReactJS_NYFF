@@ -161,7 +161,7 @@ export const ru: Dict = {
   orderStatus: { pending: 'Не оплачен', preparing: 'Готовится', ready: 'Готов', cancelled: 'Отменён' },
   payment: { cash: 'Наличные', card: 'Карта', click: 'Click' },
   orderSource: { cashier: 'Касса', kiosk: 'Киоск', mobile: 'Мобильное приложение' },
-  mobilePlatform: { android: 'Android', ios: 'iOS' },
+  mobilePlatform: { android: 'Android', ios: 'iOS', telegram: 'Telegram' },
   units: { kg: 'кг', l: 'л', pcs: 'шт', g: 'г', ml: 'мл', pack: 'шт', packOfPcs: 'уп.' },
   kassa: {
     kioskHint: 'Заказы с оплатой на кассе',

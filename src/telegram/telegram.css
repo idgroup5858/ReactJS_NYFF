@@ -1,0 +1,126 @@
+/*
+ * Telegram mini app ranglari — Android ilovadagi palitra (`ui/theme/Color.kt`): taksi sarig'i + qora. Faqat `.nyt`
+ * ildizi ichida amal qiladi — xodimlar tizimi tokenlariga (`styles/global.css`) bog'liq emas va ularni o'zgartirmaydi.
+ * Komponentlarda: `bg-(--nyt-surface)`, `text-(--nyt-text)`, `border-(--nyt-line)`.
+ */
+.nyt {
+  --nyt-page: #f3f3f3;
+  --nyt-surface: #ffffff;
+  --nyt-muted: #ecece7;
+  --nyt-line: #e5e5e0;
+  --nyt-text: #0a0a0a;
+  --nyt-text-muted: #737373;
+  --nyt-text-faint: #a3a3a3;
+  --nyt-header: #121212;
+  --nyt-on-header: #ffffff;
+  --nyt-on-header-muted: rgba(255, 255, 255, 0.6);
+  --nyt-header-chip: rgba(255, 255, 255, 0.1);
+  --nyt-accent: #ffc20e;
+  --nyt-accent-pressed: #f2b200;
+  --nyt-on-accent: #121212;
+  --nyt-select: #fe9a00;
+  --nyt-gold: #f9b406;
+  --nyt-success: #15803d;
+  --nyt-success-soft: #dcfce7;
+  --nyt-danger: #b91c1c;
+  --nyt-danger-soft: #fee2e2;
+  --nyt-warning: #92400e;
+  --nyt-warning-soft: #fef3c7;
+  --nyt-bar: #121212;
+  --nyt-on-bar: #ffffff;
+  --nyt-card-border: transparent;
+  --nyt-backdrop: rgba(0, 0, 0, 0.45);
+
+  color-scheme: light;
+  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  color: var(--nyt-text);
+  background-color: var(--nyt-page);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+.nyt[data-theme="dark"] {
+  --nyt-page: #121212;
+  --nyt-surface: #1c1c1c;
+  --nyt-muted: #262626;
+  --nyt-line: #2e2e2e;
+  --nyt-text: #f5f5f5;
+  --nyt-text-muted: #a3a3a3;
+  --nyt-text-faint: #737373;
+  --nyt-header: #000000;
+  --nyt-header-chip: rgba(255, 255, 255, 0.12);
+  --nyt-success: #4ade80;
+  --nyt-success-soft: #14321f;
+  --nyt-danger: #f87171;
+  --nyt-danger-soft: #3b1414;
+  --nyt-warning: #fbbf24;
+  --nyt-warning-soft: #3a2a06;
+  --nyt-bar: #2a2a2a;
+  --nyt-card-border: #2e2e2e;
+  --nyt-backdrop: rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/*
+ * Asosiy qatlamda — Tailwind sinflari (`border-(--nyt-select)`, `border-(--nyt-danger)`) ustun kelsin: qatlamsiz qoida
+ * har qanday qatlamdagi sinfdan kuchli bo'lardi.
+ */
+@layer base {
+  .nyt *,
+  .nyt ::before,
+  .nyt ::after {
+    border-color: var(--nyt-line);
+  }
+
+  .nyt input::placeholder,
+  .nyt textarea::placeholder {
+    color: var(--nyt-text-faint);
+  }
+
+  .nyt input,
+  .nyt textarea {
+    caret-color: var(--nyt-select);
+  }
+}
+
+/* gorizontal ro'yxat (kategoriyalar) — aylantirish chizig'isiz */
+.nyt-scroll-x {
+  scrollbar-width: none;
+}
+.nyt-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* joriy bosqich ikonkasi — sekin miltillaydi */
+@keyframes nyt-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.nyt-pulse {
+  animation: nyt-pulse 1.6s ease-in-out infinite;
+}
+
+/* pastdan chiqadigan oyna */
+@keyframes nyt-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes nyt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.nyt-sheet {
+  animation: nyt-sheet-in 0.22s ease-out;
+}
+.nyt-fade {
+  animation: nyt-fade-in 0.18s ease-out;
+}
+
+/* pastki panel — telefonning pastki chizig'i (iPhone) ustida */
+.nyt-safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}

@@ -169,7 +169,7 @@ export const uz = {
   orderStatus: { pending: "To'lanmagan", preparing: 'Tayyorlanmoqda', ready: 'Tayyor', cancelled: 'Bekor qilingan' },
   payment: { cash: 'Naqd', card: 'Karta', click: 'Click' },
   orderSource: { cashier: 'Kassa', kiosk: 'Kiosk', mobile: 'Mobil ilova' },
-  mobilePlatform: { android: 'Android', ios: 'iOS' },
+  mobilePlatform: { android: 'Android', ios: 'iOS', telegram: 'Telegram' },
   // pack — qadoqli mahsulotning hisob birligi (600 g lik ketchup — 1 dona), packOfPcs — dona bilan sanaladiganniki (salfetka — 1 qadoq)
   units: { kg: 'kg', l: 'l', pcs: 'dona', g: 'g', ml: 'ml', pack: 'dona', packOfPcs: 'qadoq' },
   kassa: {
