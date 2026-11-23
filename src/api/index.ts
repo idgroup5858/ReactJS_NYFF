@@ -76,10 +76,21 @@ export interface KioskOrderInput {
   payment: 'card' | 'click' | null
 }
 
+export interface IngredientGroupInput {
+  id?: ID
+  /** o'zbekchasi majburiy (`name_required`) */
+  name: LocalizedText
+  /** ikonka manzili; bo'sh satr — ikonkasiz */
+  icon: string
+  /** `false` — kioskdagi taom tarkibida ko'rinmaydi */
+  inComposition: boolean
+}
+
 export interface IngredientInput {
   id?: ID
   name: LocalizedText
-  group: IngredientGroup
+  /** mavjud guruh id'si — aks holda `invalid_input` */
+  group: ID
   /**
    * tahrirda boshqa birlik — faqat admin (`forbidden`); qoldiq, retsept va hujjatlardagi sonlar o'zgarmaydi. kg / l ↔
    * dona: narx yuborilmasa bo'shaydi, tasdiq kutayotgan eski kirimda bo'lsa — `pending_purchase`
@@ -255,6 +266,18 @@ export const api = {
     /** shu mahsulotning oxirgi tayyorlashi — formadagi "sarflandi" ro'yxatini oldindan to'ldirish uchun */
     last: async (ingredientId: ID): Promise<Production | null> =>
       (await http.get<Page<Production>>('/productions', { ingredientId, limit: 1 })).items[0] ?? null,
+  },
+  /** Ombor guruhlari — faqat admin (ta'minotchiga server `forbidden`). Kioskdagi taom tarkibi ham o'zgaradi (`menu:`). */
+  ingredientGroups: {
+    save: ({ id, ...input }: IngredientGroupInput) =>
+      then(
+        id ? http.patch<IngredientGroup>(`/ingredient-groups/${id}`, input) : http.post<IngredientGroup>('/ingredient-groups', input),
+        'ingredient-groups',
+        'menu:',
+      ),
+    /** ichidagi mahsulotlar "Boshqa" ga o'tadi; "Boshqa" ning o'zi — `invalid_input` */
+    remove: (id: ID) => then(http.delete<void>(`/ingredient-groups/${id}`), 'ingredient-groups', 'ingredients', 'menu:'),
+    move: (id: ID, direction: -1 | 1) => then(http.post<void>(`/ingredient-groups/${id}/move`, { direction }), 'ingredient-groups'),
   },
   ingredients: {
     save: ({ id, ...input }: IngredientInput) =>

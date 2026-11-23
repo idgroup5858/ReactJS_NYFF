@@ -1,9 +1,11 @@
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useIngredientGroups } from '@/api/queries'
 import { inputClass } from '@/components/ui/styles'
-import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup } from '@/domain/types'
+import type { ID, Ingredient, IngredientGroup } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
+import { groupSections } from './groupSections'
 
 /** katta-kichik harf va o' / o‘ / oʻ farqsiz */
 const normalize = (text: string) => text.toLowerCase().replace(/[‘’ʻʼ`´]/g, "'")
@@ -18,13 +20,14 @@ export type ExtraSection = { title: string; items: Option[] }
 
 /**
  * Avval qo'shimcha bo'lim, keyin mahsulot guruhlari tartibida, guruh ichida alifbo bo'yicha (bir xil nomlilar yonma-yon).
- * So'zlarning hammasi nomda bo'lishi kerak (mahsulotda — istalgan tildagi nomida).
+ * So'zlarning hammasi nomda bo'lishi kerak (mahsulotda — istalgan tildagi nomida). Guruhlar hali yuklanmagan bo'lsa
+ * ([groups] — `undefined`) — sarlavhasiz bitta ro'yxat.
  */
 function buildSections(
   ingredients: Ingredient[],
   query: string,
   localize: (text: Ingredient['name']) => string,
-  groupTitle: (group: IngredientGroup) => string,
+  groups: IngredientGroup[] | undefined,
   extra?: ExtraSection,
 ): Section[] {
   const words = normalize(query).split(/\s+/).filter(Boolean)
@@ -35,15 +38,15 @@ function buildSections(
       return words.every((word) => text.includes(word))
     })
   const head = extra ? [{ key: 'extra', title: extra.title, items: extra.items.filter((option) => matches([option.label])) }] : []
-  const groups = INGREDIENT_GROUPS.map((group) => ({
-    key: group,
-    title: groupTitle(group),
-    items: ingredients
-      .filter((item) => item.group === group && matches(Object.values(item.name)))
+  const options = (items: Ingredient[]) =>
+    items
+      .filter((item) => matches(Object.values(item.name)))
       .map((item) => ({ id: item.id, label: localize(item.name) }))
-      .sort((a, b) => collator.compare(a.label, b.label)),
-  }))
-  return [...head, ...groups].filter((section) => section.items.length > 0)
+      .sort((a, b) => collator.compare(a.label, b.label))
+  const sections = groups
+    ? groupSections(groups, ingredients, (item) => item.group).map(({ group, items }) => ({ key: group.id, title: localize(group.name), items: options(items) }))
+    : [{ key: 'all', title: '', items: options(ingredients) }]
+  return [...head, ...sections].filter((section) => section.items.length > 0)
 }
 
 /** ro'yxat oynasining joyi (ekranga nisbatan): pastda joy yetmasa — tugmaning tepasiga ochiladi */
@@ -102,9 +105,9 @@ export default function IngredientPicker({ value, onChange, ingredients, selecte
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const open = place !== null
+  const groups = useIngredientGroups().data
 
-  const groupTitle = (group: IngredientGroup) => t.stock.groups[group]
-  const sections = open ? buildSections(ingredients, query, localize, groupTitle, extra) : []
+  const sections = open ? buildSections(ingredients, query, localize, groups, extra) : []
   const flat = sections.flatMap((section) => section.items)
   const indexOf = new Map(flat.map((item, index) => [item.id, index]))
   const current = extra?.items.find((option) => option.id === value)?.label ?? (selected ? localize(selected.name) : null)
@@ -114,7 +117,7 @@ export default function IngredientPicker({ value, onChange, ingredients, selecte
     // qidiruvsiz ochilsa — tanlangan mahsulot ustida turadi
     const index = initial
       ? 0
-      : buildSections(ingredients, '', localize, groupTitle, extra)
+      : buildSections(ingredients, '', localize, groups, extra)
           .flatMap((section) => section.items)
           .findIndex((item) => item.id === value)
     setQuery(initial)
@@ -237,7 +240,7 @@ export default function IngredientPicker({ value, onChange, ingredients, selecte
               ) : (
                 sections.map((section) => (
                   <div key={section.key} role="group" aria-label={section.title}>
-                    <p className="px-2.5 pt-2 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{section.title}</p>
+                    {section.title && <p className="px-2.5 pt-2 pb-1 text-[10px] font-bold tracking-[0.14em] text-neutral-400 uppercase">{section.title}</p>}
                     {section.items.map((item) => {
                       const index = indexOf.get(item.id) ?? -1
                       const isSelected = item.id === value

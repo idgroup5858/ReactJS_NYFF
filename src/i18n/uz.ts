@@ -422,16 +422,6 @@ export const uz = {
     warehouse: 'Ombor',
     /** ombor nomi — "ombor" so'zisiz (filial ombori — filial nomi bilan) */
     central: 'Markaziy',
-    groups: {
-      bread: 'Non',
-      meat: "Go'sht va tuxum",
-      vegetables: 'Sabzavotlar',
-      sauces: 'Souslar',
-      drinks: 'Ichimliklar',
-      coffee: 'Kofe va choy',
-      cleaning: "Xo'jalik va tozalash",
-      other: 'Boshqa',
-    },
     search: 'Mahsulot qidirish…',
     onlyLow: 'Faqat kam qolganlar',
     name: 'Mahsulot',
@@ -625,6 +615,26 @@ export const uz = {
       `«${name}» retseptlarda bor: ${products}. Endi retseptdagi son pishgan miqdor deb o'qiladi, sotuvda xomi ayriladi. Retseptlarni tekshiring.`,
     cookWarnOff: (name: string, products: string) =>
       `«${name}» retseptlarda bor: ${products}. Endi retseptdagi son xom miqdor deb o'qiladi. Retseptlarni tekshiring.`,
+  },
+  /** ombor guruhlari oynasi: Mahsulotlar → «Guruhlar» (faqat admin) */
+  groups: {
+    button: 'Guruhlar',
+    title: 'Mahsulot guruhlari',
+    hint: 'Omborda mahsulotlar shu guruhlar bo\'yicha va shu tartibda chiqadi',
+    add: 'Yangi guruh',
+    edit: 'Guruhni tahrirlash',
+    items: (count: number) => (count > 0 ? `${count} ta mahsulot` : "Mahsulot yo'q"),
+    inComposition: "Kioskdagi taom tarkibida ko'rinsin",
+    inCompositionHint: "O'chirilsa, bu guruhdagi mahsulotlar (qadoq, yog', ziravor kabi) mijozga taom tarkibida ko'rsatilmaydi",
+    hiddenBadge: "Tarkibda yo'q",
+    noIcon: 'Ikonkasiz',
+    iconHint: "Qoldiqlar va mahsulotlar sahifasida guruh nomi yonida ko'rinadi",
+    otherFixed: (name: string) => `«${name}» o'chirilmaydi — o'chirilgan guruhlarning mahsulotlari shunga o'tadi`,
+    deleteTitle: (name: string) => `«${name}» guruhi o'chirilsinmi?`,
+    deleteEmpty: "Guruhda mahsulot yo'q.",
+    deleteMoves: (count: number, other: string) => `Undagi ${count} ta mahsulot «${other}» guruhiga o'tadi.`,
+    deleteHidden: (other: string) => `«${other}» dagi mahsulotlar kioskdagi taom tarkibida ko'rinmaydi — kerak bo'lsa, ularni boshqa guruhga o'tkazing.`,
+    deleted: "Guruh o'chirildi",
   },
   admin: {
     profile: {

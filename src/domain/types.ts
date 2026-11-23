@@ -216,18 +216,29 @@ export const STOCK_UNITS: StockUnit[] = ['kg', 'l', 'pcs']
 export type BaseUnit = 'g' | 'ml' | 'pcs'
 
 /**
- * Ombor mahsulotlari guruhi — omborda saralash va guruh ikonkasi uchun (qoldiq, retsept, sotuvga ta'sir qilmaydi).
- * Ro'yxat tartibi — sahifalardagi tartib; mos guruh topilmasa — `other`.
+ * Ombor mahsulotlari guruhi (2026-11-23 dan admin boshqaradi — `GET /ingredient-groups`; avvalgi qattiq yozilgan 8
+ * tasi o'sha id lar bilan qoldi) — omborda saralash, guruh ikonkasi va kioskdagi taom tarkibi uchun (qoldiq, retsept,
+ * sotuvga ta'sir qilmaydi).
  */
-export type IngredientGroup = 'bread' | 'meat' | 'vegetables' | 'sauces' | 'drinks' | 'coffee' | 'cleaning' | 'other'
-export const INGREDIENT_GROUPS: IngredientGroup[] = ['bread', 'meat', 'vegetables', 'sauces', 'drinks', 'coffee', 'cleaning', 'other']
-/** Taom tarkibida (kioskda) ko'rsatilmaydigan guruhlar — mijozga "tarkibi: quti, yog', ziravor" deb chiqmasin. */
-export const NON_COMPOSITION_GROUPS: IngredientGroup[] = ['cleaning', 'other']
+export interface IngredientGroup {
+  id: ID
+  name: LocalizedText
+  /** ikonka manzili (`/images/icons/bread.png`); bo'sh satr — ikonkasiz */
+  icon: string
+  /** sahifalarda guruhlar shu tartibda */
+  sortOrder: number
+  /** `false` — guruhdagi mahsulotlar kioskdagi taom tarkibida ko'rinmaydi (qadoq, yog', ziravor) */
+  inComposition: boolean
+}
+
+/** "Boshqa" — o'chirilmaydigan guruh: o'chirilgan guruhdagi mahsulotlar shunga o'tadi. */
+export const OTHER_GROUP: ID = 'other'
 
 export interface Ingredient {
   id: ID
   name: LocalizedText
-  group: IngredientGroup
+  /** guruh id'si (`IngredientGroup.id`) */
+  group: ID
   unit: StockUnit
   /**
    * Qadoq hajmi asosiy birlikda (g / ml / dona): 600 — 1 dona ketchup 600 g. Berilgan bo'lsa kirim, ko'chirish, narx va

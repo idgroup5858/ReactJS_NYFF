@@ -2,7 +2,7 @@ import { Check, Eraser, History, PackageSearch, Pencil, Search, Truck, X } from 
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { api } from '@/api'
-import { useBranches, useIngredients, useStock, useWarehouses } from '@/api/queries'
+import { useBranches, useIngredientGroups, useIngredients, useStock, useWarehouses } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { Card } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
@@ -11,7 +11,7 @@ import SegmentedControl from '@/components/ui/SegmentedControl'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import ViewToggle from '@/components/ui/ViewToggle'
-import { INGREDIENT_GROUPS, type ID, type Ingredient, type IngredientGroup, type StockItem } from '@/domain/types'
+import type { ID, Ingredient, StockItem } from '@/domain/types'
 import { fromBase, toBase, unitSize } from '@/domain/units'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { countUnit, formatMoney, formatNumber, formatStock } from '@/lib/format'
@@ -21,6 +21,7 @@ import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
 import MovementsModal from './MovementsModal'
+import { groupSections, sortGroups } from './groupSections'
 import { useLastData } from './serverPagination'
 
 /**
@@ -284,6 +285,8 @@ export default function StockPage() {
   const [params, setParams] = useSearchParams()
   const warehousesQuery = useWarehouses()
   const ingredientsQuery = useIngredients()
+  const groupsQuery = useIngredientGroups()
+  const groups = sortGroups(groupsQuery.data ?? [])
   const allWarehouses = warehousesQuery.data ?? []
   const branches = useBranches().data ?? []
   const warehouses = activeWarehouses(allWarehouses, branches)
@@ -295,7 +298,9 @@ export default function StockPage() {
   const fromCentral = warehouse?.kind !== 'central' && !!centralId && centralId !== warehouseId
   const centralStock = useStock(centralId || undefined, { enabled: fromCentral }).data
   const [query, setQuery] = useState('')
-  const [group, setGroup] = useState<IngredientGroup | 'all'>('all')
+  const [groupFilter, setGroup] = useState<ID | 'all'>('all')
+  // tanlangan guruhni admin shu payt o'chirgan bo'lsa — hammasi
+  const group = groups.some((g) => g.id === groupFilter) ? groupFilter : 'all'
   const [onlyLow, setOnlyLow] = useState(false)
   const [history, setHistory] = useState<ID | null>(null)
   const view = useSettings().warehouseView
@@ -306,8 +311,8 @@ export default function StockPage() {
   const stockItems = useLastData(stockQuery.data)
 
   // mahsulotlar va qoldiq birinchi marta kelguncha ro'yxat ham, ko'rsatkichlar ham chiqmaydi (noldan sakramasin)
-  const loaded = ingredientsQuery.data !== undefined && stockItems !== undefined
-  const loadError = warehousesQuery.error ?? ingredientsQuery.error ?? stockQuery.error
+  const loaded = ingredientsQuery.data !== undefined && groupsQuery.data !== undefined && stockItems !== undefined
+  const loadError = warehousesQuery.error ?? ingredientsQuery.error ?? groupsQuery.error ?? stockQuery.error
   // qoldiq yozuvi yo'q mahsulot — qoldiq 0, chegara yo'q
   const stockById = new Map((stockItems ?? []).map((item) => [item.ingredientId, item]))
   const rows: Row[] = (stockItems ? (ingredientsQuery.data ?? []) : [])
@@ -325,9 +330,7 @@ export default function StockPage() {
     .filter((row) => !onlyLow || row.low)
     .filter((row) => !search || Object.values(row.ingredient.name).some((name) => name.toLowerCase().includes(search)))
     .sort((a, b) => Number(b.low) - Number(a.low) || localize(a.ingredient.name).localeCompare(localize(b.ingredient.name)))
-  const sections = INGREDIENT_GROUPS.map((value) => ({ group: value, rows: visible.filter((row) => row.ingredient.group === value) })).filter(
-    (section) => section.rows.length > 0,
-  )
+  const sections = groupSections(groups, visible, (row) => row.ingredient.group).map(({ group, items }) => ({ group, rows: items }))
 
   const totalValue = rows.reduce((sum, row) => sum + Math.max(0, inUnits(row.qty, row.ingredient)) * (row.ingredient.lastPrice ?? 0), 0)
   const lowCount = rows.filter((row) => row.low).length
@@ -404,11 +407,11 @@ export default function StockPage() {
             <Search size={16} className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400" />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.stock.search} className={`${inputClass} pl-9`} />
           </label>
-          <select value={group} onChange={(event) => setGroup(event.target.value as IngredientGroup | 'all')} aria-label={t.ingredients.group} className={`${inputClass} w-auto! cursor-pointer`}>
+          <select value={group} onChange={(event) => setGroup(event.target.value)} aria-label={t.ingredients.group} className={`${inputClass} w-auto! cursor-pointer`}>
             <option value="all">{t.common.all}</option>
-            {INGREDIENT_GROUPS.map((value) => (
-              <option key={value} value={value}>
-                {t.stock.groups[value]}
+            {groups.map((value) => (
+              <option key={value.id} value={value.id}>
+                {localize(value.name)}
               </option>
             ))}
           </select>
@@ -458,7 +461,7 @@ export default function StockPage() {
                 </tr>
               </thead>
               {sections.map((section) => (
-                <tbody key={section.group} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
+                <tbody key={section.group.id} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
                   <tr className="bg-neutral-50">
                     <td colSpan={5} className="px-3 py-1.5">
                       <GroupHeading group={section.group} count={section.rows.length} compact />
@@ -481,7 +484,7 @@ export default function StockPage() {
         </Card>
       ) : (
         sections.map((section) => (
-          <section key={section.group} className="space-y-2.5">
+          <section key={section.group.id} className="space-y-2.5">
             <GroupHeading group={section.group} count={section.rows.length} />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
               {section.rows.map((row) => (

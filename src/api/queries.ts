@@ -8,6 +8,7 @@ import type {
   ID,
   ImageFile,
   Ingredient,
+  IngredientGroup,
   Menu,
   MovementKind,
   MovementWithRef,
@@ -123,6 +124,9 @@ export const useKioskImages = () =>
 // ───────────────────────── Ombor ─────────────────────────
 
 export const useIngredients = () => useQuery('ingredients', () => http.get<Ingredient[]>('/ingredients'))
+
+/** Ombor guruhlari (`sortOrder` bo'yicha) — admin va ta'minotchi o'qiydi, faqat admin boshqaradi. */
+export const useIngredientGroups = () => useQuery('ingredient-groups', () => http.get<IngredientGroup[]>('/ingredient-groups'))
 
 /** Qoldiqlar (asosiy birlikda); [warehouseId] berilmasa — hamma omborlar (bitta ombor kerak bo'lsa — `enabled`). */
 export const useStock = (warehouseId?: ID, options: HookOptions = {}) =>

@@ -1,7 +1,7 @@
-import { PackageSearch, Pencil, Plus, Search } from 'lucide-react'
+import { Layers, PackageSearch, Pencil, Plus, Search } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api } from '@/api'
-import { useIngredients, useProducts } from '@/api/queries'
+import { useIngredientGroups, useIngredients, useProducts } from '@/api/queries'
 import { useCurrentUser } from '@/api/session'
 import { Card } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
@@ -12,16 +12,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import { inputClass, selectClass, tdClass, thClass } from '@/components/ui/styles'
 import Toggle from '@/components/ui/Toggle'
 import ViewToggle from '@/components/ui/ViewToggle'
-import {
-  INGREDIENT_GROUPS,
-  STOCK_UNITS,
-  type ID,
-  type Ingredient,
-  type IngredientGroup,
-  type IngredientUsage,
-  type LocalizedText,
-  type StockUnit,
-} from '@/domain/types'
+import { STOCK_UNITS, type ID, type Ingredient, type IngredientUsage, type LocalizedText, type StockUnit } from '@/domain/types'
 import { errorMessage, useLocalize, useT } from '@/i18n'
 import { baseUnitOf, convertPrice, sameScale, unitSize } from '@/domain/units'
 import { countUnit, formatMoney, formatNumber, formatUnit } from '@/lib/format'
@@ -30,6 +21,8 @@ import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import { COOK_YIELD_BASE } from '@/domain/yieldNorm'
 import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
+import { groupSections, sortGroups } from './groupSections'
+import IngredientGroupsModal from './IngredientGroupsModal'
 import UnitChangeWarning from './UnitChangeWarning'
 import { cookOf, cookValid, normError, normOf, normRow, type NormDraft } from './normDraft'
 import YieldNormEditor from './YieldNormEditor'
@@ -40,7 +33,8 @@ import YieldNormEditor from './YieldNormEditor'
  */
 type Draft = {
   name: LocalizedText
-  group: IngredientGroup
+  /** guruh id'si; yangi mahsulotda bo'sh — ro'yxatdagi birinchi guruh */
+  group: ID
   unit: StockUnit
   packSize: string
   price: string
@@ -84,6 +78,7 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
   const localize = useLocalize()
   const isAdmin = useCurrentUser()?.role === 'admin'
   const allIngredients = useIngredients().data ?? []
+  const groups = sortGroups(useIngredientGroups().data ?? [])
   const [saving, setSaving] = useState(false)
   /** ishlatilgan mahsulot birligi o'zgarayotganda — ogohlantirish (bu paytda forma yashirinadi, kiritilgani saqlanadi) */
   const [warning, setWarning] = useState<IngredientUsage | null>(null)
@@ -103,7 +98,7 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
         }
       : {
           name: { uz: '', ru: '', en: '' },
-          group: 'vegetables',
+          group: '',
           unit: 'kg',
           packSize: '',
           price: '',
@@ -115,6 +110,8 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
         },
   )
   const setName = (lang: keyof LocalizedText, value: string) => setDraft({ ...draft, name: { ...draft.name, [lang]: value } })
+  /** tanlangan guruh; yangi mahsulotda (yoki guruh shu payt o'chirilgan bo'lsa) — ro'yxatdagi birinchisi */
+  const group = groups.some((g) => g.id === draft.group) ? draft.group : (groups[0]?.id ?? draft.group)
   const size = unitSize(draft.unit, packOf(draft))
   /** hozirgi birlikdagi narx (ko'rsatiladi va yuboriladi) */
   const price = draft.price === '' ? '' : String(convertPrice(Number(draft.price), draft.priceSize, size))
@@ -137,7 +134,7 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
   const submit = async () => {
     setSaving(true)
     try {
-      const { name, group, unit, active, consumable } = draft
+      const { name, unit, active, consumable } = draft
       // admin ham, ta'minotchi ham (2026-11-15); bo'sh — narxsiz
       const lastPrice = price === '' ? null : Number(price)
       // 0 — serverda `invalid_qty` (bo'sh — qadoqsiz)
@@ -281,10 +278,10 @@ function IngredientForm({ ingredient, onClose }: { ingredient: Ingredient | null
         </div>
         <div className="grid items-start gap-3 sm:grid-cols-4">
           <Field label={t.ingredients.group} htmlFor="ing-group">
-            <select id="ing-group" value={draft.group} onChange={(event) => setDraft({ ...draft, group: event.target.value as IngredientGroup })} className={selectClass}>
-              {INGREDIENT_GROUPS.map((group) => (
-                <option key={group} value={group}>
-                  {t.stock.groups[group]}
+            <select id="ing-group" value={group} onChange={(event) => setDraft({ ...draft, group: event.target.value })} className={selectClass}>
+              {groups.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {localize(option.name)}
                 </option>
               ))}
             </select>
@@ -416,15 +413,19 @@ export default function IngredientsPage() {
   const localize = useLocalize()
   const isAdmin = useCurrentUser()?.role === 'admin'
   const ingredients = useIngredients()
+  const groupsQuery = useIngredientGroups()
   const view = useSettings().warehouseView
   const [query, setQuery] = useState('')
   const [editing, setEditing] = useState<Ingredient | 'new' | null>(null)
+  /** guruhlar oynasi — faqat admin (2026-11-23) */
+  const [groupsOpen, setGroupsOpen] = useState(false)
   const search = query.trim().toLowerCase()
+  const loadError = (!ingredients.data && ingredients.error) || (!groupsQuery.data && groupsQuery.error)
 
   const list = (ingredients.data ?? [])
     .filter((i) => !search || Object.values(i.name).some((name) => name.toLowerCase().includes(search)))
     .sort((a, b) => localize(a.name).localeCompare(localize(b.name)))
-  const sections = INGREDIENT_GROUPS.map((group) => ({ group, items: list.filter((i) => i.group === group) })).filter((section) => section.items.length > 0)
+  const sections = groupSections(groupsQuery.data ?? [], list, (i) => i.group)
 
   return (
     <div className="space-y-5">
@@ -432,10 +433,18 @@ export default function IngredientsPage() {
         title={t.ingredients.title}
         description={t.ingredients.hint}
         actions={
-          <button type="button" onClick={() => setEditing('new')} className="btn-primary flex h-10 items-center gap-2 rounded px-4 text-xs font-bold">
-            <Plus size={16} />
-            {t.ingredients.add}
-          </button>
+          <>
+            {isAdmin && (
+              <button type="button" onClick={() => setGroupsOpen(true)} className="btn-ghost flex h-10 items-center gap-2 rounded px-4 text-xs font-bold">
+                <Layers size={16} />
+                {t.groups.button}
+              </button>
+            )}
+            <button type="button" onClick={() => setEditing('new')} className="btn-primary flex h-10 items-center gap-2 rounded px-4 text-xs font-bold">
+              <Plus size={16} />
+              {t.ingredients.add}
+            </button>
+          </>
         }
       />
       <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -446,9 +455,9 @@ export default function IngredientsPage() {
         <ViewToggle value={view} onChange={setWarehouseView} />
       </Card>
 
-      {!ingredients.data && ingredients.error ? (
+      {loadError ? (
         <Card className="p-4">
-          <EmptyState icon={PackageSearch} title={errorMessage(ingredients.error)} />
+          <EmptyState icon={PackageSearch} title={errorMessage(loadError)} />
         </Card>
       ) : view === 'list' && sections.length > 0 ? (
         // bitta jadval, guruhlar — sarlavha qatorlari: ustunlar hamma guruhda bir tekis
@@ -465,7 +474,7 @@ export default function IngredientsPage() {
                 </tr>
               </thead>
               {sections.map((section) => (
-                <tbody key={section.group} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
+                <tbody key={section.group.id} className="divide-y divide-neutral-100 border-b border-neutral-200 last:border-b-0">
                   <tr className="bg-neutral-50">
                     <td colSpan={isAdmin ? 5 : 4} className="px-3 py-1.5">
                       <GroupHeading group={section.group} count={section.items.length} compact />
@@ -507,7 +516,7 @@ export default function IngredientsPage() {
       ) : (
         // guruhlar bo'yicha kartochkalar to'ri
         sections.map((section) => (
-          <section key={section.group} className="space-y-2.5">
+          <section key={section.group.id} className="space-y-2.5">
             <GroupHeading group={section.group} count={section.items.length} />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
               {section.items.map((ingredient) => (
@@ -546,6 +555,7 @@ export default function IngredientsPage() {
         ))
       )}
       {editing && <IngredientForm ingredient={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {groupsOpen && <IngredientGroupsModal onClose={() => setGroupsOpen(false)} />}
     </div>
   )
 }
