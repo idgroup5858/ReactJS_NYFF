@@ -28,3 +28,20 @@ export function productionCost(lines: CostLine[]): number | null {
 export function producedUnitPrice(cost: number, baseQty: number, unit: StockUnit, packSize: number | null): number {
   return Math.round((cost * unitSize(unit, packSize)) / baseQty)
 }
+
+/**
+ * "Chelak (qadoq) bilan" tayyorlash mumkin bo'lgan mahsulot (backend bilan bir xil): kg / l va qadoq hajmi bor — Chesnok
+ * sousi, Mayonez Milter. Shunday sarflangan qator ham qadoqda: Milter "4" → 12 000 g. Donali qadoq (tuxum) — donada.
+ */
+export function packedLine(unit: StockUnit, packSize: number | null): boolean {
+  return unit !== 'pcs' && packSize !== null
+}
+
+/**
+ * "Chelak bilan" tayyorlashda 1 qadoq og'irligi, asosiy birlikda (backend bilan bir xil): sarflangan kg / l lar jami
+ * (1 ml = 1 g) ÷ chiqqan qadoq soni; donali (tuxum) kirmaydi. 13 300 g, 5 chelak → 2 660 g.
+ */
+export function packWeight(lines: { qty: number; unit: StockUnit }[], packs: number): number {
+  const total = lines.reduce((sum, line) => sum + (line.unit === 'pcs' ? 0 : line.qty), 0)
+  return Math.round(total / packs)
+}

@@ -355,10 +355,15 @@ export interface Transfer {
   createdAt: Timestamp
 }
 
-/** Tayyorlashda sarflangan mahsulot: miqdor **qadoqsiz** birlikda — kg / l / dona (qadoqli tuxum ham donada). */
+/**
+ * Tayyorlashda sarflangan mahsulot: miqdor **qadoqsiz** birlikda — kg / l / dona (qadoqli tuxum ham donada). "Chelak
+ * bilan" tayyorlashda qadoqli kg / l mahsulot (Mayonez Milter) — qadoqda, [packSize] — o'sha paytdagi qadoq hajmi
+ * (asosiy birlikda); qadoqsiz qatorda yo'q.
+ */
 export interface ProductionItem {
   ingredientId: ID
   qty: number
+  packSize?: number
 }
 
 /**
@@ -371,8 +376,13 @@ export interface Production {
   warehouseId: ID
   /** tayyor mahsulot */
   ingredientId: ID
-  /** chiqqan miqdor, qadoqsiz birlikda — kg / l / dona */
+  /** chiqqan miqdor, qadoqsiz birlikda — kg / l / dona; "chelak bilan" ([packSize] bor) — qadoq (chelak) soni */
   qty: number
+  /**
+   * "Chelak (qadoq) bilan" (2026-11-24): shu safargi 1 chelak og'irligi, asosiy birlikda — sarflangan kg / l lar jami ÷
+   * chelak soni; tovarning qadoq hajmi ham shunga yangilanadi. `null` — qadoqsiz (katlet)
+   */
+  packSize: number | null
   items: ProductionItem[]
   /** tannarx, so'm; sarflanganlardan birining narxi bo'lmasa — `null` */
   cost: number | null

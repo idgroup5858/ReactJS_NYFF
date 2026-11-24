@@ -260,8 +260,9 @@ export const api = {
     /**
      * Tayyorlash — doim markaziy omborda: sarflanganlar ([items]) ayriladi, tayyor mahsulot ([ingredientId], [qty])
      * qo'shiladi; miqdorlar qadoqsiz (kg / l / dona). Tayyor mahsulotning oxirgi narxi tannarxdan yangilanadi.
+     * [packed] — "chelak bilan": [qty] va qadoqli kg / l sarflangan — qadoqda, 1 chelak og'irligini server hisoblaydi.
      */
-    create: (input: { ingredientId: ID; qty: number; items: ProductionItem[]; note?: string }) =>
+    create: (input: { ingredientId: ID; qty: number; items: ProductionItem[]; note?: string; packed?: boolean }) =>
       then(http.post<Production>('/productions', input), 'productions', 'ingredients', 'stock', 'movements'),
     /** shu mahsulotning oxirgi tayyorlashi — formadagi "sarflandi" ro'yxatini oldindan to'ldirish uchun */
     last: async (ingredientId: ID): Promise<Production | null> =>

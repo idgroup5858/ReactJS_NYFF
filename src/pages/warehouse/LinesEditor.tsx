@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { useIngredients, useStock } from '@/api/queries'
 import { inputClass } from '@/components/ui/styles'
+import { packedLine } from '@/domain/production'
 import type { ID, Ingredient } from '@/domain/types'
 import { toBase } from '@/domain/units'
 import { normSplit } from '@/domain/yieldNorm'
@@ -22,6 +23,8 @@ type Props = {
   mode: 'purchase' | 'transfer' | 'production'
   /** tanlab bo'lmaydigan mahsulot (tayyorlashda — tayyor mahsulotning o'zi) */
   excludeId?: ID
+  /** tayyorlash "chelak bilan": qadoqli kg / l mahsulot (Mayonez Milter) qadoqda, qolgani — qadoqsiz */
+  packed?: boolean
 }
 
 /**
@@ -29,13 +32,14 @@ type Props = {
  * yonida ombordagi mavjud qoldiq; kirimda — narx (1 birlik), oxirgi narx va qator summasi ham. Donali qadoqli mahsulotda
  * (tuxum, 30 talik; kirim va ko'chirish) miqdor ikki maydonda — "[1] qadoq + [20] dona", bittasi bo'sh qolsa ham bo'ladi.
  */
-export default function LinesEditor({ lines, onChange, availableIn, mode, excludeId }: Props) {
+export default function LinesEditor({ lines, onChange, availableIn, mode, excludeId, packed = false }: Props) {
   const t = useT()
   const localize = useLocalize()
   const allIngredients = useIngredients().data ?? []
   const ingredients = allIngredients.filter((i) => i.active && i.id !== excludeId)
-  // tayyorlashda qadoq hisobga olinmaydi — miqdor kg / l / dona
-  const packOf = (ingredient: Ingredient) => (mode === 'production' ? null : ingredient.packSize)
+  // tayyorlashda qadoq hisobga olinmaydi — miqdor kg / l / dona; "chelak bilan" — qadoqli kg / l (Milter) qadoqda
+  const packOf = (ingredient: Ingredient) =>
+    mode !== 'production' ? ingredient.packSize : packed && packedLine(ingredient.unit, ingredient.packSize) ? ingredient.packSize : null
   // donali qadoqli mahsulot (tuxum, 30 talik) — kirim va ko'chirishda qadoq + dona maydonlari
   const piecePackOf = (ingredient: Ingredient | undefined) => (mode === 'production' ? null : piecePack(ingredient))
   const byId = (id: ID) => allIngredients.find((i) => i.id === id)

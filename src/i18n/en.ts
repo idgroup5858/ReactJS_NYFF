@@ -511,6 +511,10 @@ export const en: Dict = {
     inStock: 'In stock',
     consumed: 'Used',
     consumedHint: 'The actual amount the cook reports: meat — kg, eggs — pcs (not packs)',
+    packed: 'In buckets (packs)',
+    packedHint:
+      "Made — number of buckets; packed items (mayonnaise) are in buckets too. 1 bucket weight = total used kg / l ÷ buckets — the item's pack size is updated on save. Pieces (eggs) don't count toward the weight",
+    packTotal: (total: string, unit: string, each: string) => `Total ${total} → 1 ${unit} = ${each}`,
     cost: 'Cost',
     perUnit: (price: string, unit: string) => `1 ${unit} — ${price}`,
     costUnknown: 'One of the used items has no price — cost is not calculated',

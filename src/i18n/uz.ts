@@ -527,6 +527,10 @@ export const uz = {
     inStock: 'Omborda',
     consumed: 'Sarflandi',
     consumedHint: "Oshpaz aytgan haqiqiy miqdor: go'sht — kg, tuxum — dona (qadoq emas)",
+    packed: 'Chelak (qadoq) bilan',
+    packedHint:
+      "Chiqdi — chelak soni, qadoqli mahsulot (mayonez) ham chelakda. 1 chelak og'irligi = sarflangan kg / l lar jami ÷ chelak soni — saqlanganda tovar qadog'i shunga yangilanadi. Donali (tuxum) og'irlikka kirmaydi",
+    packTotal: (total: string, unit: string, each: string) => `Jami ${total} → 1 ${unit} = ${each}`,
     cost: 'Tannarx',
     perUnit: (price: string, unit: string) => `1 ${unit} — ${price}`,
     costUnknown: "Sarflanganlardan birining narxi yo'q — tannarx hisoblanmaydi",
