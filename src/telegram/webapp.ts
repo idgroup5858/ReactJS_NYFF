@@ -101,6 +101,34 @@ export function telegramBackButton(onBack: (() => void) | null): () => void {
 
 export const insideTelegram = () => webApp != null
 
+/** Mini app ramka (iframe) ichida — Telegram Web (web.telegram.org). */
+function framed(): boolean {
+  try {
+    return window.self !== window.top
+  } catch {
+    return true
+  }
+}
+
+/**
+ * Bank sahifasi (to'lov, karta ulash) — foydalanuvchi bosganda chaqiriladi. Telegram ilovasida (telefon, kompyuter) —
+ * shu oynaning o'zida: qaytish yo'li [returnTo] (shu domendagi `/telegram/…`) `sessionStorage` ga yoziladi, bank
+ * to'lovdan keyin serverning qaytish sahifasiga yuboradi, u mijozni [returnTo] ga o'tkazadi (NestJS_NYFF API.md 5.7).
+ * Telegram Web'da (ramka — bank sahifasi unda ochilmasligi mumkin) va oddiy brauzerda — alohida oynada ([openExternal]).
+ */
+export function openBankPage(url: string, id: string, returnTo: string): void {
+  if (!webApp || framed()) return openExternal(url)
+  try {
+    sessionStorage.setItem(`nyt.return.${id}`, returnTo)
+  } catch {
+    // xotira yopiq — qaytib kelolmaydi, alohida oynada
+    return openExternal(url)
+  }
+  // bank sahifasida bizning "Orqaga" ishlamaydi — ko'rinmasin (qaytganda mini app o'zi qayta qo'yadi)
+  if (webApp.isVersionAtLeast('6.1')) webApp.BackButton.hide()
+  window.location.assign(url)
+}
+
 /**
  * Tashqi sahifani (to'lov oynasi) ochish — foydalanuvchi bosganda chaqiriladi. Telegram'da — uning brauzerida, mini app
  * yopilmaydi; oddiy brauzerda — yangi tab; tab ochilmasa (bloklangan) — shu oynada (qaytganda to'lov tekshiriladi).

@@ -6,7 +6,7 @@ import { useT } from '../i18n'
 import { useBackHandler, useNav } from '../nav'
 import { cartStore, pendingPayment, type PendingPayment } from '../store'
 import { ConfirmDialog, DarkButton, Outcome, PillButton, PrimaryButton, Spinner, TopBar } from '../ui'
-import { openExternal } from '../webapp'
+import { openBankPage } from '../webapp'
 
 /**
  * - `open` — to'lov oynasini ochish tugmasi (foydalanuvchi bosganda ochiladi — brauzer bloklamasin);
@@ -24,9 +24,10 @@ const CANCEL_ATTEMPTS = 3
 const DEFAULT_WINDOW_MS = 16 * 60_000
 
 /**
- * Karta bilan to'lov (API.md 5.7). Android'da bank sahifasi ilova ichida ochilib, qaytish manzili ushlanadi; mini appda
- * u alohida oynada (Telegram brauzerida) ochiladi, mini app esa natijani har 2 soniyada serverdan so'raydi — mijoz
- * qaytganda tayyor turadi. To'langan bo'lsa savat tozalanadi va buyurtma sahifasi ochiladi.
+ * Karta bilan to'lov (API.md 5.7). Android'da bank sahifasi ilova ichida ochilib, qaytish manzili ushlanadi; Telegram
+ * ilovasida — mini appning o'z oynasida, bank to'lovdan keyin shu sahifaga qaytaradi ([openBankPage]); Telegram Web va
+ * brauzerda — alohida oynada. Natija har 2 soniyada serverdan so'raladi. To'langan bo'lsa savat tozalanadi va buyurtma
+ * sahifasi ochiladi.
  */
 export default function PaymentPage() {
   const t = useT()
@@ -129,8 +130,8 @@ export default function PaymentPage() {
   const openWindow = () => {
     if (!pending?.paymentUrl) return
     if (!pending.opened) pendingPayment.save({ ...pending, opened: true })
-    // tab ochilmasa shu oynada ochiladi — oldin saqlanib bo'lsin
-    openExternal(pending.paymentUrl)
+    // shu oynada ochilishi mumkin — oldin saqlanib bo'lsin; bank shu sahifaga qaytaradi (`opened` — natija kutiladi)
+    openBankPage(pending.paymentUrl, pending.id, window.location.pathname)
     setStage('waiting')
     waitForPayment()
   }

@@ -1,10 +1,11 @@
 import { CircleX, CloudOff, CreditCard, ExternalLink, Hourglass } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { cardBinding, startCardBinding } from '../data'
 import { currentDict, errorText, useT } from '../i18n'
 import { useNav } from '../nav'
 import { DarkButton, Outcome, PillButton, PrimaryButton, Spinner, TopBar } from '../ui'
-import { openExternal } from '../webapp'
+import { openBankPage } from '../webapp'
 
 type Stage =
   | { kind: 'loading' }
@@ -51,11 +52,6 @@ export default function CardBindPage() {
     poller.current++
   }, [])
 
-  useEffect(() => {
-    start()
-    return stopPolling
-  }, [start, stopPolling])
-
   const retry = () => {
     setStage({ kind: 'loading' })
     start()
@@ -95,6 +91,15 @@ export default function CardBindPage() {
     [nav],
   )
 
+  // bank sahifasidan shu oynaga qaytdi (`?binding=<id>`, [openBankPage]) — yangi sessiya ochilmaydi, natija so'raladi
+  const [params] = useSearchParams()
+  const returned = params.get('binding')
+  useEffect(() => {
+    if (returned) wait(returned, RECHECK_MS)
+    else start()
+    return stopPolling
+  }, [returned, start, stopPolling, wait])
+
   // oynadan qaytdi — darhol so'ralsin
   useEffect(() => {
     if (stage.kind !== 'waiting') return
@@ -107,7 +112,7 @@ export default function CardBindPage() {
   }, [stage, wait])
 
   const open = (id: string, url: string) => {
-    openExternal(url)
+    openBankPage(url, id, `${window.location.pathname}?binding=${encodeURIComponent(id)}`)
     setStage({ kind: 'waiting', url, id })
     wait(id, WAIT_MS)
   }
