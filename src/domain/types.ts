@@ -263,6 +263,11 @@ export interface Ingredient {
    * **pishgan** miqdor, sotuvda xomi ayriladi (100 g → 153 g). `null` — retseptdagi son o'zi
    */
   cookYield: number | null
+  /**
+   * Guruh ichidagi tartib (2026-11-24, faqat admin suradi): «Mahsulotlar», «Qoldiqlar» va tanlash ro'yxati shu
+   * tartibda; teng bo'lsa — `id` bo'yicha (`compareIngredients`). Yangi mahsulot va guruhi o'zgargani — guruh oxiriga
+   */
+  sortOrder: number
   active: boolean
 }
 

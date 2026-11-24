@@ -291,6 +291,8 @@ export const api = {
       ),
     /** retseptda, kirimda, ko'chirishda, harakatda yo'q mahsulot — qoldiq yozuvlari bilan (aks holda `in_use`) */
     remove: (id: ID) => then(http.delete<void>(`/ingredients/${id}`), 'ingredients', 'stock', 'reports'),
+    /** admin: guruh ichida bir pog'ona yuqoriga (-1) yoki pastga (+1); chetda bo'lsa o'zgarmaydi */
+    move: (id: ID, direction: -1 | 1) => then(http.post<void>(`/ingredients/${id}/move`, { direction }), 'ingredients'),
     /** admin, birlikni o'zgartirishdan oldin: retseptlari bor taomlar, qoldiq / chegara, hujjatlar soni (har safar yangi) */
     usage: (id: ID) => http.get<IngredientUsage>(`/ingredients/${id}/usage`),
     /** ogohlantirish chegarasi — asosiy birlikda (g / ml / dona) */

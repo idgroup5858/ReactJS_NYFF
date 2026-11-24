@@ -1,9 +1,13 @@
-import { OTHER_GROUP, type ID, type IngredientGroup } from '@/domain/types'
+import { OTHER_GROUP, type ID, type Ingredient, type IngredientGroup } from '@/domain/types'
 
 export type GroupSection<T> = { group: IngredientGroup; items: T[] }
 
 /** Guruhlar sahifadagi tartibda (`sortOrder` — admin suradi). */
 export const sortGroups = (groups: IngredientGroup[]): IngredientGroup[] => [...groups].sort((a, b) => a.sortOrder - b.sortOrder)
+
+/** Mahsulotlar guruh ichida admin surgan tartibda: `sortOrder`, teng bo'lsa — `id` (server ham shunday saralaydi). */
+export const compareIngredients = (a: Ingredient, b: Ingredient): number =>
+  a.sortOrder - b.sortOrder || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
 
 /**
  * Guruhlar tartibida bo'limlar, bo'shlari tashlanadi. Ro'yxatda yo'q guruhdagi mahsulot (bo'lmasligi kerak — server

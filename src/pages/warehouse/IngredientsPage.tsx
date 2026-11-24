@@ -1,4 +1,4 @@
-import { Layers, PackageSearch, Pencil, Plus, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, Layers, PackageSearch, Pencil, Plus, Search } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { api } from '@/api'
 import { useIngredientGroups, useIngredients, useProducts } from '@/api/queries'
@@ -21,7 +21,7 @@ import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import { COOK_YIELD_BASE } from '@/domain/yieldNorm'
 import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
-import { groupSections, sortGroups } from './groupSections'
+import { compareIngredients, groupSections, sortGroups } from './groupSections'
 import IngredientGroupsModal from './IngredientGroupsModal'
 import UnitChangeWarning from './UnitChangeWarning'
 import { cookOf, cookValid, normError, normOf, normRow, type NormDraft } from './normDraft'
@@ -404,9 +404,36 @@ function YieldNote({ ingredient, all, className = '' }: { ingredient: Ingredient
   return <span className={`text-xs font-semibold text-emerald-700 ${className}`}>{parts.join(' · ')}</span>
 }
 
+const iconButton = 'btn-icon inline-flex h-8 w-8 shrink-0 items-center justify-center rounded'
+
+/**
+ * Guruh ichida ↑ / ↓ (faqat admin, 2026-11-24) — «Qoldiqlar» va tanlash ro'yxati ham shu tartibda. Guruh chetida va
+ * qidiruv yozilganda ([locked]) o'chiq: qidiruvda ko'ringan qo'shni guruhdagi haqiqiy qo'shni bo'lmasligi mumkin.
+ */
+function MoveButtons({ id, first, last, locked }: { id: ID; first: boolean; last: boolean; locked: boolean }) {
+  const t = useT()
+  const move = async (direction: -1 | 1) => {
+    try {
+      await api.ingredients.move(id, direction)
+    } catch (error) {
+      showToast(errorMessage(error), 'error')
+    }
+  }
+  return (
+    <>
+      <button type="button" disabled={locked || first} onClick={() => void move(-1)} aria-label={t.common.up} title={t.common.up} className={iconButton}>
+        <ChevronUp size={14} />
+      </button>
+      <button type="button" disabled={locked || last} onClick={() => void move(1)} aria-label={t.common.down} title={t.common.down} className={iconButton}>
+        <ChevronDown size={14} />
+      </button>
+    </>
+  )
+}
+
 /**
  * Ombor mahsulotlari ro'yxati (kartochkalar yoki ixcham jadval — ko'rinish shu qurilmada saqlanadi): retseptlar va
- * kirimlarda ishlatiladi. Ta'minotchi ham, admin ham qo'sha oladi; "Retseptlarda" — faqat admin ko'radi.
+ * kirimlarda ishlatiladi. Ta'minotchi ham, admin ham qo'sha oladi; "Retseptlarda" va ↑ / ↓ — faqat admin.
  */
 export default function IngredientsPage() {
   const t = useT()
@@ -424,8 +451,11 @@ export default function IngredientsPage() {
 
   const list = (ingredients.data ?? [])
     .filter((i) => !search || Object.values(i.name).some((name) => name.toLowerCase().includes(search)))
-    .sort((a, b) => localize(a.name).localeCompare(localize(b.name)))
+    .sort(compareIngredients)
   const sections = groupSections(groupsQuery.data ?? [], list, (i) => i.group)
+  /** ↑ / ↓ tugmalari — faqat admin; qidiruv yozilganda o'chiq */
+  const moveButtons = (items: Ingredient[], index: number) =>
+    isAdmin && <MoveButtons id={items[index].id} first={index === 0} last={index === items.length - 1} locked={!!search} />
 
   return (
     <div className="space-y-5">
@@ -480,7 +510,7 @@ export default function IngredientsPage() {
                       <GroupHeading group={section.group} count={section.items.length} compact />
                     </td>
                   </tr>
-                  {section.items.map((ingredient) => (
+                  {section.items.map((ingredient, index) => (
                     <tr key={ingredient.id} className={ingredient.active ? '' : 'opacity-50'}>
                       <td className={cellClass}>
                         <span className="font-semibold text-neutral-950">{localize(ingredient.name)}</span>
@@ -496,15 +526,12 @@ export default function IngredientsPage() {
                         </td>
                       )}
                       <td className={`${cellClass} text-right`}>
-                        <button
-                          type="button"
-                          onClick={() => setEditing(ingredient)}
-                          aria-label={t.common.edit}
-                          title={t.common.edit}
-                          className="btn-icon inline-flex h-8 w-8 items-center justify-center rounded"
-                        >
-                          <Pencil size={14} />
-                        </button>
+                        <div className="inline-flex gap-1">
+                          {moveButtons(section.items, index)}
+                          <button type="button" onClick={() => setEditing(ingredient)} aria-label={t.common.edit} title={t.common.edit} className={iconButton}>
+                            <Pencil size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -519,7 +546,7 @@ export default function IngredientsPage() {
           <section key={section.group.id} className="space-y-2.5">
             <GroupHeading group={section.group} count={section.items.length} />
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-              {section.items.map((ingredient) => (
+              {section.items.map((ingredient, index) => (
                 <div key={ingredient.id} className={`flex flex-col gap-2 rounded-card bg-surface p-3.5 shadow-card dark:ring-1 dark:ring-line ${ingredient.active ? '' : 'opacity-50'}`}>
                   <div>
                     <p className="leading-snug font-semibold text-neutral-950">
@@ -537,16 +564,13 @@ export default function IngredientsPage() {
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     {/* ta'minotchida bo'sh — tahrirlash tugmasi o'ngda qoladi */}
-                    <p className="text-xs text-neutral-500">{isAdmin && <RecipeUsage ingredientId={ingredient.id} />}</p>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(ingredient)}
-                      aria-label={t.common.edit}
-                      title={t.common.edit}
-                      className="btn-icon flex h-8 w-8 shrink-0 items-center justify-center rounded"
-                    >
-                      <Pencil size={14} />
-                    </button>
+                    <p className="min-w-0 text-xs text-neutral-500">{isAdmin && <RecipeUsage ingredientId={ingredient.id} />}</p>
+                    <div className="flex shrink-0 gap-1">
+                      {moveButtons(section.items, index)}
+                      <button type="button" onClick={() => setEditing(ingredient)} aria-label={t.common.edit} title={t.common.edit} className={iconButton}>
+                        <Pencil size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

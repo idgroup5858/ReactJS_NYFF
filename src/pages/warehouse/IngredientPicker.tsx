@@ -5,12 +5,10 @@ import { useIngredientGroups } from '@/api/queries'
 import { inputClass } from '@/components/ui/styles'
 import type { ID, Ingredient, IngredientGroup } from '@/domain/types'
 import { useLocalize, useT } from '@/i18n'
-import { groupSections } from './groupSections'
+import { compareIngredients, groupSections } from './groupSections'
 
 /** katta-kichik harf va o' / o‘ / oʻ farqsiz */
 const normalize = (text: string) => text.toLowerCase().replace(/[‘’ʻʼ`´]/g, "'")
-/** raqamlar son sifatida: "Cola 0.5 l" → "Cola 1 l" → "Cola 1.5 l" → "Cola 2 l" */
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
 type Option = { id: ID; label: string }
 type Section = { key: string; title: string; items: Option[] }
@@ -19,9 +17,9 @@ type Section = { key: string; title: string; items: Option[] }
 export type ExtraSection = { title: string; items: Option[] }
 
 /**
- * Avval qo'shimcha bo'lim, keyin mahsulot guruhlari tartibida, guruh ichida alifbo bo'yicha (bir xil nomlilar yonma-yon).
- * So'zlarning hammasi nomda bo'lishi kerak (mahsulotda — istalgan tildagi nomida). Guruhlar hali yuklanmagan bo'lsa
- * ([groups] — `undefined`) — sarlavhasiz bitta ro'yxat.
+ * Avval qo'shimcha bo'lim, keyin mahsulot guruhlari tartibida, guruh ichida admin surgan tartibda («Mahsulotlar» dagi
+ * ↑ / ↓, 2026-11-24 gacha — alifbo). So'zlarning hammasi nomda bo'lishi kerak (mahsulotda — istalgan tildagi nomida).
+ * Guruhlar hali yuklanmagan bo'lsa ([groups] — `undefined`) — sarlavhasiz bitta ro'yxat.
  */
 function buildSections(
   ingredients: Ingredient[],
@@ -41,8 +39,8 @@ function buildSections(
   const options = (items: Ingredient[]) =>
     items
       .filter((item) => matches(Object.values(item.name)))
+      .sort(compareIngredients)
       .map((item) => ({ id: item.id, label: localize(item.name) }))
-      .sort((a, b) => collator.compare(a.label, b.label))
   const sections = groups
     ? groupSections(groups, ingredients, (item) => item.group).map(({ group, items }) => ({ key: group.id, title: localize(group.name), items: options(items) }))
     : [{ key: 'all', title: '', items: options(ingredients) }]

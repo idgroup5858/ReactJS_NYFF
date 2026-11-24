@@ -21,7 +21,7 @@ import { setWarehouseView, useSettings } from '@/store/settingsStore'
 import ConsumableBadge from './ConsumableBadge'
 import GroupHeading from './GroupHeading'
 import MovementsModal from './MovementsModal'
-import { groupSections, sortGroups } from './groupSections'
+import { compareIngredients, groupSections, sortGroups } from './groupSections'
 import { useLastData } from './serverPagination'
 
 /**
@@ -329,7 +329,8 @@ export default function StockPage() {
     .filter((row) => group === 'all' || row.ingredient.group === group)
     .filter((row) => !onlyLow || row.low)
     .filter((row) => !search || Object.values(row.ingredient.name).some((name) => name.toLowerCase().includes(search)))
-    .sort((a, b) => Number(b.low) - Number(a.low) || localize(a.ingredient.name).localeCompare(localize(b.ingredient.name)))
+    // guruh ichida: kam qolganlar tepada, keyin admin surgan tartib («Mahsulotlar» dagi ↑ / ↓)
+    .sort((a, b) => Number(b.low) - Number(a.low) || compareIngredients(a.ingredient, b.ingredient))
   const sections = groupSections(groups, visible, (row) => row.ingredient.group).map(({ group, items }) => ({ group, rows: items }))
 
   const totalValue = rows.reduce((sum, row) => sum + Math.max(0, inUnits(row.qty, row.ingredient)) * (row.ingredient.lastPrice ?? 0), 0)
