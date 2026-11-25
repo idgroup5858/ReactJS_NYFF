@@ -32,6 +32,7 @@ import type {
   ShiftWithSummary,
   StaffMember,
   StockItem,
+  TelegramBotSlot,
   TelegramStatus,
   Transfer,
   TvOrder,
@@ -244,5 +245,9 @@ export const useOverview = (options: HookOptions = {}) =>
 
 // ───────────────────────── AI yordamchi (faqat admin) ─────────────────────────
 
-/** Telegram bot holati, shu adminning start linki va ulangan chatlar. */
-export const useTelegramStatus = () => useQuery('telegram', () => http.get<TelegramStatus>('/telegram'))
+/** Bot so'rovlari prefiksi: asosiy — `/telegram`, ombor boti — `/telegram/stock`. */
+export const telegramPath = (bot: TelegramBotSlot) => (bot === 'stock' ? '/telegram/stock' : '/telegram')
+
+/** Telegram bot holati, shu adminning start linki va ulangan chatlar (asosiy yoki ombor boti). */
+export const useTelegramStatus = (bot: TelegramBotSlot = 'main') =>
+  useQuery(bot === 'stock' ? 'telegram:stock' : 'telegram', () => http.get<TelegramStatus>(telegramPath(bot)))

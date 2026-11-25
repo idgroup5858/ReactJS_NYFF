@@ -32,6 +32,7 @@ import type {
   StockItem,
   StockReset,
   StockUnit,
+  TelegramBotSlot,
   TelegramStatus,
   Transfer,
   TvOrder,
@@ -42,6 +43,7 @@ import type {
 } from '@/domain/types'
 import type { ScreenKind } from '@/store/screenCodes'
 import { http } from './http'
+import { telegramPath } from './queries'
 import { invalidate } from './query'
 
 /**
@@ -425,12 +427,15 @@ export const api = {
     /** javob kutilayotganda ko'rsatiladigan ibora — savol turiga qarab (darhol, AI'siz) */
     waiting: (text: string) => http.post<{ text: string }>('/ai/waiting', { text }),
   },
+  /** Ikki bot: `main` — asosiy (smena hisoboti, AI, FaceID, zaxira), `stock` — ombor boti (kirim, kam qoldi). */
   telegram: {
-    /** bot tokeni (@BotFather) — server tekshiradi, saqlaydi va botni ishga tushiradi */
-    connect: (token: string) => then(http.put<TelegramStatus>('/telegram/token', { token }), 'telegram'),
-    disconnect: () => then(http.delete<void>('/telegram/token'), 'telegram'),
+    /** bot tokeni (@BotFather) — server tekshiradi, saqlaydi va botni ishga tushiradi; ikkinchi botniki — `telegram_bot_taken` */
+    connect: (token: string, bot: TelegramBotSlot = 'main') =>
+      then(http.put<TelegramStatus>(`${telegramPath(bot)}/token`, { token }), 'telegram'),
+    disconnect: (bot: TelegramBotSlot = 'main') => then(http.delete<void>(`${telegramPath(bot)}/token`), 'telegram'),
     /** yangi start link — eskisi ishlamay qoladi, ulangan chatlar qoladi */
-    regenerateLink: () => then(http.post<TelegramStatus>('/telegram/link'), 'telegram'),
-    unlink: (chatId: string) => then(http.delete<void>(`/telegram/chats/${chatId}`), 'telegram'),
+    regenerateLink: (bot: TelegramBotSlot = 'main') => then(http.post<TelegramStatus>(`${telegramPath(bot)}/link`), 'telegram'),
+    unlink: (chatId: string, bot: TelegramBotSlot = 'main') =>
+      then(http.delete<void>(`${telegramPath(bot)}/chats/${chatId}`), 'telegram'),
   },
 }

@@ -1,13 +1,16 @@
-import { Bot, Copy, ExternalLink, KeyRound, RefreshCw, Unlink, Unplug } from 'lucide-react'
+import { Bot, Copy, ExternalLink, KeyRound, Package, RefreshCw, Unlink, Unplug } from 'lucide-react'
 import { toDataURL } from 'qrcode'
 import { useEffect, useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router'
 import { api } from '@/api'
 import { useTelegramStatus } from '@/api/queries'
 import { Card, CardHeader } from '@/components/ui/Card'
 import EmptyState from '@/components/ui/EmptyState'
+import SegmentedControl from '@/components/ui/SegmentedControl'
 import { inputClass, tdClass, thClass } from '@/components/ui/styles'
-import type { TelegramStatus } from '@/domain/types'
+import type { TelegramBotSlot, TelegramStatus } from '@/domain/types'
 import { errorMessage, useT } from '@/i18n'
+import type { Dict } from '@/i18n/uz'
 import { copyText } from '@/lib/clipboard'
 import { formatDateTime } from '@/lib/format'
 import { confirmDialog, showToast } from '@/lib/swal'
@@ -31,8 +34,16 @@ function LinkQr({ link }: { link: string }) {
   )
 }
 
+/** Bot turiga qarab farq qiladigan matnlar (qolgani ikkalasida bir xil). */
+const botTexts = (t: Dict, slot: TelegramBotSlot) => {
+  const tg = t.ai.telegram
+  return slot === 'stock'
+    ? { ...tg.stock, title: tg.bots.stock }
+    : { connectTitle: tg.connectTitle, newBot: null, linkHint: tg.linkHint, disconnectText: tg.disconnectText, unlinkText: tg.unlinkText, title: tg.bots.main }
+}
+
 /** Token maydoni — birinchi ulash va almashtirish uchun. */
-function TokenForm({ submitLabel, onDone }: { submitLabel: string; onDone?: () => void }) {
+function TokenForm({ slot, submitLabel, onDone }: { slot: TelegramBotSlot; submitLabel: string; onDone?: () => void }) {
   const t = useT()
   const [token, setToken] = useState('')
   const [saving, setSaving] = useState(false)
@@ -42,7 +53,7 @@ function TokenForm({ submitLabel, onDone }: { submitLabel: string; onDone?: () =
     if (saving) return
     setSaving(true)
     try {
-      await api.telegram.connect(token.trim())
+      await api.telegram.connect(token.trim(), slot)
       setToken('')
       showToast(t.ai.telegram.connected)
       onDone?.()
@@ -74,11 +85,12 @@ function TokenForm({ submitLabel, onDone }: { submitLabel: string; onDone?: () =
 }
 
 /** Bot hali ulanmagan: @BotFather qadamlari va token maydoni. */
-function ConnectCard() {
+function ConnectCard({ slot }: { slot: TelegramBotSlot }) {
   const t = useT()
+  const texts = botTexts(t, slot)
   return (
     <Card className="max-w-2xl">
-      <CardHeader title={t.ai.telegram.connectTitle} />
+      <CardHeader title={texts.connectTitle} />
       <div className="space-y-4 p-4">
         <ol className="space-y-2.5">
           {t.ai.telegram.steps.map((step, index) => (
@@ -88,14 +100,16 @@ function ConnectCard() {
             </li>
           ))}
         </ol>
-        <TokenForm submitLabel={t.ai.telegram.connect} />
+        {texts.newBot && <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-900">{texts.newBot}</p>}
+        <TokenForm slot={slot} submitLabel={t.ai.telegram.connect} />
       </div>
     </Card>
   )
 }
 
-function Connected({ status }: { status: TelegramStatus }) {
+function Connected({ slot, status }: { slot: TelegramBotSlot; status: TelegramStatus }) {
   const t = useT()
+  const texts = botTexts(t, slot)
   const bot = status.bot!
   const link = status.link ?? ''
   const [replacing, setReplacing] = useState(false)
@@ -127,7 +141,7 @@ function Connected({ status }: { status: TelegramStatus }) {
           <div className="flex flex-col gap-5 p-4 md:flex-row md:items-center">
             <LinkQr link={link} />
             <div className="min-w-0 flex-1 space-y-3">
-              <p className="text-sm text-neutral-600">{t.ai.telegram.linkHint}</p>
+              <p className="text-sm text-neutral-600">{texts.linkHint}</p>
               <p className="rounded border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-xs break-all text-neutral-800 select-all">{link}</p>
               <div className="flex flex-wrap gap-2">
                 <a href={link} target="_blank" rel="noreferrer" className="btn-primary flex h-10 items-center gap-2 rounded px-4 text-sm font-bold">
@@ -140,7 +154,7 @@ function Connected({ status }: { status: TelegramStatus }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void run([t.ai.telegram.regenerateTitle, t.ai.telegram.regenerateText, t.ai.telegram.regenerate], api.telegram.regenerateLink)}
+                  onClick={() => void run([t.ai.telegram.regenerateTitle, t.ai.telegram.regenerateText, t.ai.telegram.regenerate], () => api.telegram.regenerateLink(slot))}
                   className="btn-ghost flex h-10 items-center gap-2 rounded px-4 text-sm font-semibold"
                 >
                   <RefreshCw size={15} />
@@ -153,7 +167,7 @@ function Connected({ status }: { status: TelegramStatus }) {
 
         <Card>
           <CardHeader
-            title={t.ai.tabs.telegram}
+            title={texts.title}
             actions={
               <span
                 className={`inline-flex items-center gap-1.5 rounded-chip px-2 py-1 text-xs font-semibold ${
@@ -179,7 +193,7 @@ function Connected({ status }: { status: TelegramStatus }) {
             </div>
             {!status.running && <p className="rounded bg-amber-50 px-3 py-2 text-xs text-amber-900">{t.ai.telegram.stoppedHint}</p>}
             {replacing ? (
-              <TokenForm submitLabel={t.common.save} onDone={() => setReplacing(false)} />
+              <TokenForm slot={slot} submitLabel={t.common.save} onDone={() => setReplacing(false)} />
             ) : (
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => setReplacing(true)} className="btn-ghost flex h-9 items-center gap-2 rounded px-3 text-xs font-semibold">
@@ -188,7 +202,7 @@ function Connected({ status }: { status: TelegramStatus }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void run([t.ai.telegram.disconnectTitle, t.ai.telegram.disconnectText, t.ai.telegram.disconnect], api.telegram.disconnect)}
+                  onClick={() => void run([t.ai.telegram.disconnectTitle, texts.disconnectText, t.ai.telegram.disconnect], () => api.telegram.disconnect(slot))}
                   className="btn-icon-danger flex h-9 items-center gap-2 rounded px-3 text-xs font-semibold"
                 >
                   <Unplug size={14} />
@@ -204,7 +218,7 @@ function Connected({ status }: { status: TelegramStatus }) {
         <CardHeader title={t.ai.telegram.chatsTitle} />
         {status.chats.length === 0 ? (
           <div className="p-4">
-            <EmptyState icon={Unlink} title={t.ai.telegram.chatsEmpty} message={t.ai.telegram.linkHint} />
+            <EmptyState icon={Unlink} title={t.ai.telegram.chatsEmpty} message={texts.linkHint} />
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -229,7 +243,7 @@ function Connected({ status }: { status: TelegramStatus }) {
                     <td className={`${tdClass} text-right`}>
                       <button
                         type="button"
-                        onClick={() => void run([t.ai.telegram.unlinkTitle, t.ai.telegram.unlinkText, t.ai.telegram.unlink], () => api.telegram.unlink(chat.chatId))}
+                        onClick={() => void run([t.ai.telegram.unlinkTitle, texts.unlinkText, t.ai.telegram.unlink], () => api.telegram.unlink(chat.chatId, slot))}
                         className="btn-icon-danger inline-flex h-8 items-center gap-1.5 rounded px-2.5 text-xs font-semibold"
                       >
                         <Unlink size={13} />
@@ -247,14 +261,39 @@ function Connected({ status }: { status: TelegramStatus }) {
   )
 }
 
-/**
- * Telegram bot: token kiritilmagan bo'lsa — @BotFather qadamlari; ulangan bo'lsa — shu adminning start linki (QR bilan,
- * muddatsiz), bot holati va ulangan chatlar. Direktor linkni ochib "Start" bosadi — keyin botga savol yozadi.
- */
-export default function TelegramPage() {
-  const status = useTelegramStatus()
+/** Bitta bot: token kiritilmagan bo'lsa — @BotFather qadamlari; ulangan bo'lsa — start link, bot holati va chatlar. */
+function BotPanel({ slot }: { slot: TelegramBotSlot }) {
+  const status = useTelegramStatus(slot)
   if (!status.data) {
     return <EmptyState icon={Bot} title={status.error ? errorMessage(status.error) : ' '} />
   }
-  return status.data.bot ? <Connected status={status.data} /> : <ConnectCard />
+  return status.data.bot ? <Connected slot={slot} status={status.data} /> : <ConnectCard slot={slot} />
+}
+
+/**
+ * Telegram botlar — ikkita: asosiy (smena hisoboti, AI savollar, FaceID, zaxira) va ombor boti (yangi kirim, kam qolgan
+ * mahsulotlar; ulanmagan bo'lsa — ular asosiy botga). Har biri o'z tokeni, start linki (QR bilan, muddatsiz) va
+ * chatlari bilan. Direktor linkni ochib "Start" bosadi. Tanlangan bot — `?bot=stock` (sahifa yangilansa ham qoladi).
+ */
+export default function TelegramPage() {
+  const t = useT()
+  const [params, setParams] = useSearchParams()
+  const slot: TelegramBotSlot = params.get('bot') === 'stock' ? 'stock' : 'main'
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <SegmentedControl<TelegramBotSlot>
+          label={t.ai.tabs.telegram}
+          value={slot}
+          onChange={(value) => setParams(value === 'stock' ? { bot: 'stock' } : {}, { replace: true })}
+          options={[
+            { value: 'main', label: <><Bot size={14} />{t.ai.telegram.bots.main}</> },
+            { value: 'stock', label: <><Package size={14} />{t.ai.telegram.bots.stock}</> },
+          ]}
+        />
+        <p className="min-w-0 flex-[1_1_18rem] text-sm text-neutral-500">{t.ai.telegram.botHint[slot]}</p>
+      </div>
+      <BotPanel key={slot} slot={slot} />
+    </div>
+  )
 }

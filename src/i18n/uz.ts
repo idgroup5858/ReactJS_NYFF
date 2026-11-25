@@ -144,6 +144,7 @@ export const uz = {
     telegram_token_invalid: "Bot tokeni noto'g'ri — @BotFather bergan tokenni to'liq nusxalang",
     telegram_unreachable: "Telegram serveriga ulanib bo'lmadi — internetni tekshiring",
     telegram_not_connected: 'Avval bot tokenini kiriting',
+    telegram_bot_taken: "Bu bot boshqa vazifaga ulangan — @BotFather'da yangi bot yarating",
     faceid_checkin_required: "Terminalda «Kirish» ni bosib, yuzingizni ko'rsating",
     faceid_checkout_required: "Terminalda «Chiqish» ni bosib, yuzingizni ko'rsating",
     employee_no_taken: 'Bu tabel raqami shu filialda boshqa kassirda',
@@ -1081,6 +1082,19 @@ export const uz = {
       unlink: 'Uzish',
       unlinkTitle: 'Chat uzilsinmi?',
       unlinkText: "Bu chat botdan javob olmay qo'yadi. Qayta ulanish uchun start link kerak bo'ladi.",
+      /** ikki bot: asosiy — smena hisoboti (AI, FaceID, zaxira ham), ombor — kirim va kam qoldi */
+      bots: { main: 'Asosiy bot', stock: 'Ombor boti' },
+      botHint: {
+        main: 'Smena hisobotlari shu botga keladi. AI savollar, FaceID ruxsati va zaxira nusxa ham shu yerda.',
+        stock: "Yangi kirim va filiallarda kam qolgan mahsulotlar haqida xabarlar shu botga keladi. Ulanmagan bo'lsa — ular asosiy botga ketadi.",
+      },
+      stock: {
+        connectTitle: 'Ombor botini ulash',
+        newBot: "Asosiy botdan boshqa, yangi bot yarating — bitta botni ikki joyga ulab bo'lmaydi.",
+        linkHint: "Telefonda QR kodni skanerlang yoki linkni oching va «Start» ni bosing — shundan keyin kirim va kam qolgan mahsulotlar haqida xabar kelaveradi.",
+        disconnectText: "Token va ulangan chatlar o'chiriladi — kirim va kam qoldi xabarlari yana asosiy botga ketadi.",
+        unlinkText: "Bu chatga endi xabar kelmaydi. Qayta ulanish uchun start link kerak bo'ladi.",
+      },
     },
   },
   tv: {

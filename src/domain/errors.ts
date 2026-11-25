@@ -62,6 +62,8 @@ export type ErrorCode =
   | 'telegram_token_invalid'
   | 'telegram_unreachable'
   | 'telegram_not_connected'
+  /** ombor botiga asosiy botning tokeni kiritildi (yoki aksincha) */
+  | 'telegram_bot_taken'
   // ── FaceID (filial terminali → HR tizimi → markaz; admin "Filiallar" → "FaceID tekshiruvi") ──
   /** smena ochish / kassaga kirish — terminalda «Kirish» kerak (yoki boshqa filialda «Kirish» bosilgan) */
   | 'faceid_checkin_required'

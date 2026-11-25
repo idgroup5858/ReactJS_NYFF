@@ -806,7 +806,13 @@ export interface TelegramChatInfo {
   linkedAt: string
 }
 
-/** `GET /telegram`: bot (yo'q — token kiritilmagan), server tinglayaptimi, shu adminning start linki, ulangan chatlar. */
+/** Qaysi bot: asosiy (smena hisoboti, AI, FaceID, zaxira) yoki ombor boti (kirim, kam qoldi). */
+export type TelegramBotSlot = 'main' | 'stock'
+
+/**
+ * `GET /telegram` (asosiy bot), `GET /telegram/stock` (ombor boti): bot (yo'q — token kiritilmagan), server
+ * tinglayaptimi, shu adminning start linki, ulangan chatlar.
+ */
 export interface TelegramStatus {
   bot: { id: number; username: string; name: string } | null
   running: boolean

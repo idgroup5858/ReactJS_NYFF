@@ -139,6 +139,7 @@ export const en: Dict = {
     telegram_token_invalid: 'Invalid bot token — copy the full token from @BotFather',
     telegram_unreachable: "Couldn't reach Telegram — check the internet connection",
     telegram_not_connected: 'Enter the bot token first',
+    telegram_bot_taken: 'This bot is already connected for another purpose — create a new bot in @BotFather',
     faceid_checkin_required: 'Press «Kirish» (check in) on the terminal and show your face',
     faceid_checkout_required: 'Press «Chiqish» (check out) on the terminal and show your face',
     employee_no_taken: 'This employee number is already used by another cashier in this branch',
@@ -1060,6 +1061,18 @@ export const en: Dict = {
       unlink: 'Unlink',
       unlinkTitle: 'Unlink the chat?',
       unlinkText: 'This chat will stop getting bot answers. Linking again will need the start link.',
+      bots: { main: 'Main bot', stock: 'Stock bot' },
+      botHint: {
+        main: 'Shift reports come to this bot. AI questions, FaceID approvals and backups live here too.',
+        stock: 'New purchases and low-stock alerts from branches come to this bot. If it is not connected, they go to the main bot.',
+      },
+      stock: {
+        connectTitle: 'Connect the stock bot',
+        newBot: 'Create a new bot, different from the main one — one bot cannot be connected in two places.',
+        linkHint: 'Scan the QR code with your phone or open the link and tap “Start” — then purchase and low-stock alerts will start arriving.',
+        disconnectText: 'The token and linked chats will be removed — purchase and low-stock alerts will go to the main bot again.',
+        unlinkText: 'This chat will stop getting alerts. Linking again will need the start link.',
+      },
     },
   },
   tv: {
